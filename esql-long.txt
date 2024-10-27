@@ -1,0 +1,1461 @@
+# ES|QL Syntax Guide
+
+This guide provides an overview of the ES|QL syntax and examples of its usage.
+
+## Basic Syntax
+
+An ES|QL query is composed of a source command followed by an optional series of processing commands, separated by a pipe character (`|`). For example:
+
+```esql
+source-command
+| processing-command1
+| processing-command2
+```
+
+The result of a query is the table produced by the final processing command.
+
+For readability, each processing command is typically written on a new line. However, an ES|QL query can also be written as a single line:
+
+```esql
+source-command | processing-command1 | processing-command2
+```
+
+## Identifiers
+
+Identifiers in ES|QL need to be quoted with backticks (```) if they don’t start with a letter, `_` or `@`, or if any of the other characters is not a letter, number, or `_`.
+
+For example:
+
+```esql
+FROM index
+| KEEP `1.field`
+```
+
+When referencing a function alias that itself uses a quoted identifier, the backticks of the quoted identifier need to be escaped with another backtick.
+
+For example:
+
+```esql
+FROM index
+| STATS COUNT(`1.field`)
+| EVAL my_count = `COUNT(``1.field``)`
+```
+
+## Literals
+
+ES|QL currently supports numeric, string and timespan literals.
+
+### String Literals
+
+A string literal is a sequence of unicode characters delimited by double quotes (`"`). For example:
+
+```esql
+FROM index
+| WHERE first_name == "Georgi"
+```
+
+If the literal string itself contains quotes, these need to be escaped (`\\"`). ES|QL also supports the triple-quotes (`"""`) delimiter, for convenience:
+
+```esql
+ROW name = """Indiana "Indy" Jones"""
+```
+
+The special characters CR, LF and TAB can be provided with the usual escaping: `\r`, `\n`, `\t`, respectively.
+
+### Numerical Literals
+
+The numeric literals are accepted in decimal and in the scientific notation with the exponent marker (`e` or `E`), starting either with a digit, decimal point `.` or the negative sign `-`.
+
+For example:
+
+- `1969`    -- integer notation
+- `3.14`    -- decimal notation
+- `.1234`   -- decimal notation starting with decimal point
+- `4E5`     -- scientific notation (with exponent marker)
+- `1.2e-3`  -- scientific notation with decimal point
+- `-.1e2`   -- scientific notation starting with the negative sign
+
+The integer numeric literals are implicitly converted to the `integer`, `long` or the `double` type, whichever can first accommodate the literal’s value.
+
+## Timespan Literals
+
+Datetime intervals and timespans can be expressed using timespan literals. Timespan literals are a combination of a number and a qualifier.
+
+These qualifiers are supported:
+
+- `millisecond`/`milliseconds`/`ms`
+- `second`/`seconds`/`sec`/`s`
+- `minute`/`minutes`/`min`
+- `hour`/`hours`/`h`
+- `day`/`days`/`d`
+- `week`/`weeks`/`w`
+- `month`/`months`/`mo`
+- `quarter`/`quarters`/`q`
+- `year`/`years`/`yr`/`y`
+
+Timespan literals are not whitespace sensitive, and should not be wrapped with quotes:
+- GOOD: 1day
+- GOOD: 1 day
+- BAD: "day"
+- BAD: "2 days"
+
+## Example Queries with Timespan Literals
+
+Here are some example queries that use timespan literals:
+
+1. Retrieve logs from the last 24 hours and calculate the average response time:
+
+```esql
+FROM logs-*
+| WHERE @timestamp > NOW() - 24h
+| STATS avg_response_time = AVG(response_time)
+```
+
+2. Get the count of events per day for the last 7 days:
+
+```esql
+FROM events
+| WHERE @timestamp > NOW() - 7 days
+| STATS daily_count = COUNT(*) BY day = DATE_TRUNC(1 day, @timestamp)
+| SORT day
+```
+
+3. Find the maximum temperature recorded in the last month:
+
+```esql
+FROM weather_data
+| WHERE @timestamp > NOW() - 1 month
+| STATS max_temp = MAX(temperature)
+```
+
+4. Calculate the total sales for each week in the last quarter:
+
+```esql
+FROM sales
+| WHERE @timestamp > NOW() - 1 quarter
+| STATS weekly_sales = SUM(sales_amount) BY week = DATE_TRUNC(1 week, @timestamp)
+| SORT week
+```
+
+4. The same example with BUCKET instead of DATE_TRUNC:
+
+```esql
+FROM sales
+| WHERE @timestamp > NOW() - 1 quarter
+| STATS weekly_sales = SUM(sales_amount) BY week = BUCKET(@timestamp, 1 week)
+| SORT week
+```
+
+5. Retrieve error logs from the last 15 minutes and group by error type:
+
+```esql
+FROM error_logs
+| WHERE @timestamp > NOW() - 15 minutes
+| STATS error_count = COUNT(*) BY error_type
+| SORT error_count DESC
+```
+
+#### Comments
+
+ES|QL uses C++ style comments:
+- Double slash `//` for single line comments
+- `/*` and `*/` for block comments
+
+```esql
+// Query the employees index
+FROM employees
+| WHERE height > 2
+```
+
+```esql
+FROM /* Query the employees index */ employees
+| WHERE height > 2
+```
+
+```esql
+FROM employees
+/* Query the
+ * employees
+ * index */
+| WHERE height > 2
+```
+
+## Examples
+
+Here are the examples for all functions
+
+```esql
+ROW number = -1.0
+| EVAL abs_number = ABS(number)
+
+FROM employees
+| KEEP first_name, last_name, height
+| EVAL abs_height = ABS(0.0 - height)
+
+
+ROW a=.9
+| EVAL acos=ACOS(a)
+
+ROW b = -0.5
+| EVAL acos_b = ACOS(b)
+
+
+ROW a=.9
+| EVAL asin=ASIN(a)
+
+ROW a = -.5
+| EVAL asin = ASIN(a)
+
+
+ROW a=12.9
+| EVAL atan = ATAN(a)
+
+ROW x=5.0, y=3.0
+| EVAL atan_yx = ATAN(y / x)
+
+
+ROW y=12.9, x=.6
+| EVAL atan2 = ATAN2(y, x)
+
+ROW y=5.0, x=3.0
+| EVAL atan2 = ATAN2(y, x)
+
+
+FROM employees
+| STATS AVG(height)
+
+FROM employees
+| STATS avg_salary_change = ROUND(AVG(MV_AVG(salary_change)), 10)
+
+
+FROM employees
+| WHERE hire_date >= "1985-01-01T00:00:00Z" AND hire_date < "1986-01-01T00:00:00Z"
+| STATS hire_date = MV_SORT(VALUES(hire_date)) BY month = BUCKET(hire_date, 20, "1985-01-01T00:00:00Z", "1986-01-01T00:00:00Z")
+| SORT hire_date
+
+FROM employees
+| WHERE hire_date >= "1985-01-01T00:00:00Z" AND hire_date < "1986-01-01T00:00:00Z"
+| STATS hires_per_week = COUNT(*) BY week = BUCKET(hire_date, 1 week)
+| SORT week
+
+FROM employees
+| STATS COUNT(*) BY bs = BUCKET(salary, 20, 25324, 74999)
+| SORT bs
+
+FROM employees
+| STATS s1 = b1 + 1, s2 = BUCKET(salary / 1000 + 999, 50.) + 2 BY b1 = BUCKET(salary / 100 + 99, 50.), b2 = BUCKET(salary / 1000 + 999, 50.)
+| SORT b1, b2
+| KEEP s1, b1, s2, b2
+
+FROM employees
+| WHERE hire_date >= "1985-01-01T00:00:00Z" AND hire_date < "1986-01-01T00:00:00Z"
+| STATS c = COUNT(1) BY b = BUCKET(salary, 5000.)
+| SORT b
+
+FROM sample_data
+| WHERE @timestamp >= NOW() - 1 day and @timestamp < NOW()
+| STATS COUNT(*) BY bucket = BUCKET(@timestamp, 25, NOW() - 1 day, NOW())
+
+FROM employees
+| WHERE hire_date >= "1985-01-01T00:00:00Z" AND hire_date < "1986-01-01T00:00:00Z"
+| STATS AVG(salary) BY bucket = BUCKET(hire_date, 20, "1985-01-01T00:00:00Z", "1986-01-01T00:00:00Z")
+| SORT bucket
+
+FROM employees
+| STATS s1 = BUCKET(salary / 1000 + 999, 50.) + 2 BY b1 = BUCKET(salary / 100 + 99, 50.), b2 = BUCKET(salary / 1000 + 999, 50.)
+| SORT b1, b2
+| KEEP b1, s1, b2
+
+
+FROM employees
+| EVAL type = CASE(
+    languages <= 1, "monolingual",
+    languages <= 2, "bilingual",
+     "polyglot")
+| KEEP emp_no, languages, type
+
+FROM sample_data
+| EVAL successful = CASE(
+    STARTS_WITH(message, "Connected to"), 1,
+    message == "Connection error", 0
+  )
+| STATS success_rate = AVG(successful)
+
+FROM sample_data
+| EVAL error = CASE(message LIKE "*error*", 1, 0)
+| EVAL hour = DATE_TRUNC(1 hour, @timestamp)
+| STATS error_rate = AVG(error) by hour
+| SORT hour
+
+
+ROW d = 1000.0
+| EVAL c = cbrt(d)
+
+
+ROW a=1.8
+| EVAL a=CEIL(a)
+
+
+FROM hosts
+| WHERE CIDR_MATCH(ip1, "127.0.0.2/32")
+| KEEP card, host, ip0, ip1
+
+FROM network_logs
+| WHERE CIDR_MATCH(source_ip, "192.168.1.0/24", "10.0.0.0/8")
+| KEEP timestamp, source_ip, destination_ip, action
+
+
+ROW a=null, b="b"
+| EVAL COALESCE(a, b)
+
+ROW x=null, y=null, z="z"
+| EVAL first_non_null = COALESCE(x, y, z)
+
+
+FROM address
+| KEEP street_1, street_2
+| EVAL fullstreet = CONCAT(street_1, street_2)
+
+FROM employees
+| KEEP first_name, last_name
+| EVAL fullname = CONCAT(first_name, " ", last_name)
+
+
+ROW a=1.8
+| EVAL cos=COS(a)
+
+ROW angle=0.5
+| EVAL cosine_value = COS(angle)
+
+
+ROW a=1.8
+| EVAL cosh=COSH(a)
+
+ROW angle=0.5
+| EVAL hyperbolic_cosine = COSH(angle)
+
+
+FROM employees
+| STATS COUNT(height)
+
+FROM employees
+| STATS count = COUNT(*) BY languages
+| SORT languages DESC
+
+ROW words="foo;bar;baz;qux;quux;foo"
+| STATS word_count = COUNT(SPLIT(words, ";"))
+
+ROW n=1
+| WHERE n < 0
+| STATS COUNT(n)
+
+ROW n=1
+| STATS COUNT(n > 0 OR NULL), COUNT(n < 0 OR NULL)
+
+
+FROM hosts
+| STATS COUNT_DISTINCT(ip0), COUNT_DISTINCT(ip1)
+
+FROM hosts
+| STATS COUNT_DISTINCT(ip0, 80000), COUNT_DISTINCT(ip1, 5)
+
+ROW words="foo;bar;baz;qux;quux;foo"
+| STATS distinct_word_count = COUNT_DISTINCT(SPLIT(words, ";"))
+
+
+ROW date1 = TO_DATETIME("2023-12-02T11:00:00.000Z"), date2 = TO_DATETIME("2023-12-02T11:00:00.001Z")
+| EVAL dd_ms = DATE_DIFF("microseconds", date1, date2)
+
+ROW date1 = TO_DATETIME("2023-01-01T00:00:00.000Z"), date2 = TO_DATETIME("2023-12-31T23:59:59.999Z")
+| EVAL dd_days = DATE_DIFF("days", date1, date2)
+
+
+ROW date = DATE_PARSE("yyyy-MM-dd", "2022-05-06")
+| EVAL year = DATE_EXTRACT("year", date)
+
+FROM sample_data
+| WHERE DATE_EXTRACT("hour_of_day", @timestamp) < 9 AND DATE_EXTRACT("hour_of_day", @timestamp) >= 17
+
+
+FROM employees
+| KEEP first_name, last_name, hire_date
+| EVAL hired = DATE_FORMAT("YYYY-MM-dd", hire_date)
+
+
+ROW date_string = "2022-05-06"
+| EVAL date = DATE_PARSE("yyyy-MM-dd", date_string)
+
+
+
+FROM employees
+| KEEP first_name, last_name, hire_date
+| EVAL year_hired = DATE_TRUNC(1 year, hire_date)
+
+FROM employees
+| EVAL year = DATE_TRUNC(1 year, hire_date)
+| STATS hires = COUNT(emp_no) BY year
+| SORT year
+
+FROM sample_data
+| EVAL error = CASE(message LIKE "*error*", 1, 0)
+| EVAL hour = DATE_TRUNC(1 hour, @timestamp)
+| STATS error_rate = AVG(error) BY hour
+| SORT hour
+
+
+ROW a = "2023-01-23T12:15:00.000Z - some text - 127.0.0.1"
+| DISSECT a "%{date} - %{msg} - %{ip}"
+| KEEP date, msg, ip
+
+ROW a = "2023-01-23T12:15:00.000Z - some text - 127.0.0.1"
+| DISSECT a "%{date} - %{msg} - %{ip}"
+| KEEP date, msg, ip
+| EVAL date = TO_DATETIME(date)
+
+ROW a = "2023-01-23T12:15:00.000Z - some text - 127.0.0.1"
+| DISSECT a "%{date} - %{msg} - %{ip}" APPEND_SEPARATOR=" | "
+| KEEP date, msg, ip
+
+
+FROM employees
+| DROP height
+
+FROM employees
+| DROP height*
+
+FROM employees
+| DROP height, weight, age
+
+FROM employees
+| DROP emp_*
+
+FROM employees
+| KEEP first_name, last_name, height, weight
+| DROP weight
+| SORT height DESC
+
+
+ROW E()
+
+FROM employees
+| EVAL euler_number = E()
+| KEEP euler_number
+
+
+FROM employees
+| KEEP last_name
+| EVAL ln_E = ENDS_WITH(last_name, "d")
+
+FROM employees
+| KEEP first_name
+| EVAL fn_E = ENDS_WITH(first_name, "a")
+
+
+ROW language_code = "1"
+| ENRICH languages_policy
+
+ROW a = "1"
+| ENRICH languages_policy ON a
+
+ROW a = "1"
+| ENRICH languages_policy ON a WITH language_name
+
+ROW a = "1"
+| ENRICH languages_policy ON a WITH name = language_name
+
+
+FROM employees
+| SORT emp_no
+| KEEP first_name, last_name, height
+| EVAL height_feet = height * 3.281, height_cm = height * 100
+
+FROM employees
+| SORT emp_no
+| KEEP first_name, last_name, height
+| EVAL height = height * 3.281
+
+FROM employees
+| SORT emp_no
+| KEEP first_name, last_name, height
+| EVAL height * 3.281
+
+FROM employees
+| EVAL height * 3.281
+| STATS avg_height_feet = AVG(`height * 3.281`)
+
+
+ROW d = 5.0
+| EVAL s = EXP(d)
+
+ROW value = 2.0
+| EVAL result = EXP(value)
+
+
+ROW a=1.8
+| EVAL a=FLOOR(a)
+
+FROM employees
+| KEEP first_name, last_name, height
+| EVAL height_floor = FLOOR(height)
+
+
+FROM employees
+
+FROM <logs-{now/d}>
+
+FROM employees-00001,other-employees-*
+
+FROM cluster_one:employees-00001,cluster_two:other-employees-*
+
+FROM employees METADATA _id
+
+FROM "this=that","""this[that"""
+
+
+ROW a = "ZWxhc3RpYw=="
+| EVAL d = FROM_BASE64(a)
+
+ROW encoded = "U29tZSBzYW1wbGUgdGV4dA=="
+| EVAL decoded = FROM_BASE64(encoded)
+
+
+ROW a = 10, b = 20
+| EVAL g = GREATEST(a, b)
+
+ROW x = "apple", y = "banana", z = "cherry"
+| EVAL max_fruit = GREATEST(x, y, z)
+
+
+ROW a = "2023-01-23T12:15:00.000Z 127.0.0.1 some.email@foo.com 42"
+| GROK a "%{TIMESTAMP_ISO8601:date} %{IP:ip} %{EMAILADDRESS:email} %{NUMBER:num}"
+| KEEP date, ip, email, num
+
+ROW a = "2023-01-23T12:15:00.000Z 127.0.0.1 some.email@foo.com 42"
+| GROK a "%{TIMESTAMP_ISO8601:date} %{IP:ip} %{EMAILADDRESS:email} %{NUMBER:num:int}"
+| KEEP date, ip, email, num
+
+ROW a = "2023-01-23T12:15:00.000Z 127.0.0.1 some.email@foo.com 42"
+| GROK a "%{TIMESTAMP_ISO8601:date} %{IP:ip} %{EMAILADDRESS:email} %{NUMBER:num:int}"
+| KEEP date, ip, email, num
+| EVAL date = TO_DATETIME(date)
+
+FROM addresses
+| KEEP city.name, zip_code
+| GROK zip_code "%{WORD:zip_parts} %{WORD:zip_parts}"
+
+
+ROW ip4 = TO_IP("1.2.3.4"), ip6 = TO_IP("fe80::cae2:65ff:fece:feb9")
+| EVAL ip4_prefix = IP_PREFIX(ip4, 24, 0), ip6_prefix = IP_PREFIX(ip6, 0, 112)
+
+FROM network_logs
+| EVAL truncated_ip = IP_PREFIX(ip_address, 16, 0)
+| KEEP ip_address, truncated_ip
+
+
+FROM employees
+| KEEP emp_no, first_name, last_name, height
+
+FROM employees
+| KEEP h*
+
+FROM employees
+| KEEP h*, *
+
+FROM employees
+| KEEP first_name, last_name, first_name*
+
+FROM employees
+| KEEP first_name*, last_name, first_na*
+
+FROM employees
+| KEEP *, first_name
+
+
+ROW a = 10, b = 20
+| EVAL l = LEAST(a, b)
+
+ROW x = 5, y = 15, z = 10
+| EVAL min_value = LEAST(x, y, z)
+
+
+FROM employees
+| KEEP last_name
+| EVAL left = LEFT(last_name, 3)
+| SORT last_name ASC
+| LIMIT 5
+
+ROW full_name = "John Doe"
+| EVAL first_name = LEFT(full_name, 4)
+| KEEP first_name
+
+
+FROM employees
+| KEEP first_name, last_name
+| EVAL fn_length = LENGTH(first_name)
+
+ROW message = "Hello, World!"
+| EVAL message_length = LENGTH(message)
+
+
+FROM employees
+| SORT emp_no ASC
+| LIMIT 5
+
+FROM employees
+| WHERE department == "Engineering"
+| LIMIT 10
+
+FROM employees
+| STATS avg_salary = AVG(salary) BY department
+| LIMIT 3
+
+FROM employees
+| SORT hire_date DESC
+| LIMIT 7
+
+FROM employees
+| WHERE hire_date > "2020-01-01"
+| SORT salary DESC
+| KEEP first_name, last_name, salary
+| LIMIT 5
+
+
+ROW a = "hello"
+| EVAL a_ll = LOCATE(a, "ll")
+
+ROW phrase = "Elasticsearch is powerful"
+| EVAL position = LOCATE(phrase, "powerful")
+
+
+ROW base = 2.0, value = 8.0
+| EVAL s = LOG(base, value)
+
+ROW value = 100
+| EVAL s = LOG(value)
+
+
+ROW d = 1000.0
+| EVAL s = LOG10(d)
+
+ROW value = 100
+| EVAL log_value = LOG10(value)
+
+
+FROM library
+| SORT page_count DESC
+| KEEP name, author
+| LOOKUP era ON author
+| LIMIT 5
+
+FROM library
+| SORT page_count DESC
+| KEEP name, author, genre
+| LOOKUP era ON author, genre
+| LIMIT 5
+
+FROM library
+| SORT page_count DESC
+| KEEP name, author
+| LOOKUP awards ON author
+| LIMIT 5
+
+
+
+ROW message = "   some text  ",  color = " red "
+| EVAL message = LTRIM(message)
+| EVAL color = LTRIM(color)
+| EVAL message = CONCAT("'", message, "'")
+| EVAL color = CONCAT("'", color, "'")
+
+ROW text = "   example text  "
+| EVAL trimmed_text = LTRIM(text)
+| EVAL formatted_text = CONCAT("Trimmed: '", trimmed_text, "'")
+
+
+FROM employees
+| STATS MAX(languages)
+
+FROM employees
+| STATS max_avg_salary_change = MAX(MV_AVG(salary_change))
+
+
+FROM employees
+| STATS MEDIAN(salary)
+
+FROM employees
+| STATS median_max_salary_change = MEDIAN(MV_MAX(salary_change))
+
+
+FROM employees
+| STATS MEDIAN(salary), MEDIAN_ABSOLUTE_DEVIATION(salary)
+
+FROM employees
+| STATS m_a_d_max_salary_change = MEDIAN_ABSOLUTE_DEVIATION(MV_MAX(salary_change))
+
+
+FROM employees
+| STATS MIN(languages)
+
+FROM employees
+| STATS min_avg_salary_change = MIN(MV_AVG(salary_change))
+
+
+ROW a = ["foo", "bar"], b = ["baz", "qux"]
+| EVAL c = MV_APPEND(a, b)
+| KEEP a, b, c
+
+ROW x = [1, 2, 3], y = [4, 5, 6]
+| EVAL z = MV_APPEND(x, y)
+| KEEP x, y, z
+
+
+ROW a=[3, 5, 1, 6]
+| EVAL avg_a = MV_AVG(a)
+
+ROW scores=[10, 20, 30, 40]
+| EVAL average_score = MV_AVG(scores)
+
+
+ROW a=["foo", "zoo", "bar"]
+| EVAL j = MV_CONCAT(a, ", ")
+
+ROW a=[10, 9, 8]
+| EVAL j = MV_CONCAT(TO_STRING(a), ", ")
+
+
+ROW a=["foo", "zoo", "bar"]
+| EVAL count_a = MV_COUNT(a)
+
+ROW b=["apple", "banana", "cherry", "date"]
+| EVAL count_b = MV_COUNT(b)
+
+
+ROW a=["foo", "foo", "bar", "foo"]
+| EVAL dedupe_a = MV_DEDUPE(a)
+
+ROW b=["apple", "apple", "banana", "apple", "banana"]
+| EVAL dedupe_b = MV_DEDUPE(b)
+
+
+ROW a=[1,2,3], b="b", j=["a","b"]
+| MV_EXPAND a
+
+ROW a=[1,2,3], b="b", j=["a","b"]
+| MV_EXPAND a
+| MV_EXPAND j
+
+ROW a=[1,2,3,4,5], b="b"
+| MV_EXPAND a
+| WHERE a > 2
+
+
+ROW a="foo;bar;baz"
+| EVAL first_a = MV_FIRST(SPLIT(a, ";"))
+
+ROW b="apple;banana;cherry"
+| EVAL first_b = MV_FIRST(SPLIT(b, ";"))
+
+
+ROW a="foo;bar;baz"
+| EVAL last_a = MV_LAST(SPLIT(a, ";"))
+
+ROW a="apple;banana;cherry"
+| EVAL last_fruit = MV_LAST(SPLIT(a, ";"))
+
+
+ROW a=[3, 5, 1]
+| EVAL max_a = MV_MAX(a)
+
+ROW a=["foo", "zoo", "bar"]
+| EVAL max_a = MV_MAX(a)
+
+
+ROW a=[3, 5, 1]
+| EVAL median_a = MV_MEDIAN(a)
+
+ROW a=[3, 7, 1, 6]
+| EVAL median_a = MV_MEDIAN(a)
+
+
+ROW a=[2, 1]
+| EVAL min_a = MV_MIN(a)
+
+ROW a=["foo", "bar"]
+| EVAL min_a = MV_MIN(a)
+
+
+ROW a = [70.0, 45.0, 21.0, 21.0, 21.0]
+| EVAL sum = MV_PSERIES_WEIGHTED_SUM(a, 1.5)
+| KEEP sum
+
+ROW b = [10.0, 20.0, 30.0, 40.0, 50.0]
+| EVAL weighted_sum = MV_PSERIES_WEIGHTED_SUM(b, 2.0)
+| KEEP weighted_sum
+
+
+ROW a = [1, 2, 2, 3]
+| EVAL a1 = MV_SLICE(a, 1), a2 = MV_SLICE(a, 2, 3)
+
+ROW a = [1, 2, 2, 3]
+| EVAL a1 = MV_SLICE(a, -2), a2 = MV_SLICE(a, -3, -1)
+
+
+ROW names = ["Alice", "Bob", "Charlie"]
+| EVAL sorted_names = mv_sort(names)
+
+ROW a = [4, 2, -3, 2]
+| EVAL sa = mv_sort(a), sd = mv_sort(a, "DESC")
+
+
+ROW a=[3, 5, 6]
+| EVAL sum_a = MV_SUM(a)
+
+ROW numbers=[1, 2, 3, 4, 5]
+| EVAL total_sum = MV_SUM(numbers)
+
+
+ROW a = ["x", "y", "z"], b = ["1", "2"]
+| EVAL c = MV_ZIP(a, b, "-")
+| KEEP a, b, c
+
+ROW names = ["Alice", "Bob", "Charlie"], ids = ["001", "002", "003"]
+| EVAL combined = MV_ZIP(names, ids, ":")
+| KEEP names, ids, combined
+
+
+ROW current_date = NOW()
+
+FROM sample_data
+| WHERE @timestamp > NOW() - 1 hour
+
+
+FROM employees
+| WHERE emp_no == 10001
+
+FROM employees
+| WHERE emp_no != 10001
+
+FROM employees
+| WHERE salary < 50000
+
+FROM employees
+| WHERE salary <= 50000
+
+FROM employees
+| WHERE salary > 50000
+
+FROM employees
+| WHERE salary >= 50000
+
+FROM employees
+| EVAL total_compensation = salary + bonus
+
+FROM employees
+| EVAL remaining_salary = salary - tax
+
+FROM employees
+| EVAL yearly_salary = salary * 12
+
+FROM employees
+| EVAL monthly_salary = salary / 12
+
+FROM employees
+| EVAL remainder = salary % 12
+
+FROM employees
+| EVAL negative_salary = -salary
+
+FROM employees
+| WHERE salary > 50000 AND bonus > 10000
+
+FROM employees
+| WHERE salary > 50000 OR bonus > 10000
+
+FROM employees
+| WHERE NOT (salary > 50000)
+
+FROM employees
+| WHERE manager IS NULL
+
+FROM employees
+| WHERE manager IS NOT NULL
+
+FROM employees
+| WHERE department IN ("Sales", "Marketing", "HR")
+
+ROW a = 1, b = 4, c = 3
+| WHERE c-a IN (3, b / 2, a)
+
+FROM employees
+| WHERE first_name LIKE "?b*"
+| KEEP first_name, last_name
+
+FROM employees
+| WHERE first_name RLIKE ".leja.*"
+| KEEP first_name, last_name
+
+FROM employees
+| EVAL salary = salary::double
+
+
+FROM cluster_one:my-index-000001
+| LIMIT 10
+
+
+FROM employees
+| STATS p0 = PERCENTILE(salary, 0), p50 = PERCENTILE(salary, 50), p99 = PERCENTILE(salary, 99)
+
+FROM employees
+| STATS p80_max_salary_change = PERCENTILE(MV_MAX(salary_change), 80)
+
+
+ROW PI()
+
+FROM employees
+| EVAL pi_value = PI()
+| KEEP pi_value
+
+
+ROW base = 2.0, exponent = 2
+| EVAL result = POW(base, exponent)
+
+ROW base = 4, exponent = 0.5
+| EVAL s = POW(base, exponent)
+
+
+FROM employees
+| KEEP first_name, last_name, still_hired
+| RENAME  still_hired AS employed
+
+FROM employees
+| KEEP first_name, last_name
+| RENAME first_name AS fn, last_name AS ln
+
+
+ROW a = "Hello!"
+| EVAL triple_a = REPEAT(a, 3)
+
+ROW greeting = "Hi"
+| EVAL repeated_greeting = REPEAT(greeting, 5)
+
+
+ROW str = "Hello World"
+| EVAL str = REPLACE(str, "World", "Universe")
+| KEEP str
+
+ROW str = "User123"
+| EVAL str = REPLACE(str, "\\d", "*")
+| KEEP str
+
+
+FROM employees
+| KEEP last_name
+| EVAL right = RIGHT(last_name, 3)
+| SORT last_name ASC
+| LIMIT 5
+
+ROW full_name = "John Doe"
+| EVAL last_part = RIGHT(full_name, 4)
+| KEEP last_part
+
+
+FROM employees
+| KEEP first_name, last_name, height
+| EVAL height_ft = ROUND(height * 3.281, 1)
+
+FROM sales
+| KEEP product_name, revenue
+| EVAL rounded_revenue = ROUND(revenue, -2)
+
+
+ROW a = 1, b = "two", c = null
+
+ROW a = [2, 1]
+
+ROW a = ROUND(1.23, 0)
+
+ROW x = 5, y = [3, 4], z = TO_STRING(123)
+
+ROW a = ABS(-10), b = CONCAT("Hello", " ", "World"), c = TO_BOOLEAN("true")
+
+
+ROW message = "   some text  ",  color = " red "
+| EVAL message = RTRIM(message)
+| EVAL color = RTRIM(color)
+| EVAL message = CONCAT("'", message, "'")
+| EVAL color = CONCAT("'", color, "'")
+
+
+SHOW INFO
+
+
+ROW d = 100.0
+| EVAL s = SIGNUM(d)
+
+ROW d = -50.0
+| EVAL s = SIGNUM(d)
+
+
+ROW a=1.8
+| EVAL sin = SIN(a)
+
+ROW angle=0.5
+| EVAL sine_value = SIN(angle)
+
+
+ROW a=1.8
+| EVAL sinh=SINH(a)
+
+ROW angle=0.5
+| EVAL hyperbolic_sine = SINH(angle)
+
+
+FROM employees
+| KEEP first_name, last_name, height
+| SORT height
+
+FROM employees
+| KEEP first_name, last_name, height
+| SORT height DESC
+
+FROM employees
+| KEEP first_name, last_name, height
+| SORT height DESC, first_name ASC
+
+FROM employees
+| KEEP first_name, last_name, height
+| SORT first_name ASC NULLS FIRST
+
+
+ROW words="foo;bar;baz;qux;quux;corge"
+| EVAL word = SPLIT(words, ";")
+
+ROW sentence="hello world;this is ES|QL"
+| EVAL words = SPLIT(sentence, " ")
+
+
+ROW d = 100.0
+| EVAL s = SQRT(d)
+
+FROM employees
+| KEEP first_name, last_name, height
+| EVAL sqrt_height = SQRT(height)
+
+
+FROM airports
+| STATS centroid = ST_CENTROID_AGG(location)
+
+FROM city_boundaries
+| STATS city_centroid = ST_CENTROID_AGG(boundary)
+
+
+FROM airport_city_boundaries
+| WHERE ST_CONTAINS(city_boundary, TO_GEOSHAPE("POLYGON((109.35 18.3, 109.45 18.3, 109.45 18.4, 109.35 18.4, 109.35 18.3))"))
+| KEEP abbrev, airport, region, city, city_location
+
+FROM regions
+| WHERE ST_CONTAINS(region_boundary, TO_GEOSHAPE("POLYGON((30 10, 40 40, 20 40, 10 20, 30 10))"))
+| KEEP region_name, region_code, region_boundary
+
+
+FROM airport_city_boundaries
+| WHERE ST_DISJOINT(city_boundary, TO_GEOSHAPE("POLYGON((-10 -60, 120 -60, 120 60, -10 60, -10 -60))"))
+| KEEP abbrev, airport, region, city, city_location
+
+FROM airport_city_boundaries
+| WHERE ST_DISJOINT(city_boundary, TO_GEOSHAPE("POLYGON((30 10, 40 40, 20 40, 10 20, 30 10))"))
+| KEEP abbrev, airport, region, city, city_location
+
+
+FROM airports
+| WHERE abbrev == "CPH"
+| EVAL distance = ST_DISTANCE(location, city_location)
+| KEEP abbrev, name, location, city_location, distance
+
+FROM airports
+| WHERE abbrev == "JFK"
+| EVAL distance = ST_DISTANCE(location, city_location)
+| KEEP abbrev, name, location, city_location, distance
+
+
+FROM airports
+| WHERE ST_INTERSECTS(location, TO_GEOSHAPE("POLYGON((42 14, 43 14, 43 15, 42 15, 42 14))"))
+
+FROM city_boundaries
+| WHERE ST_INTERSECTS(boundary, TO_GEOSHAPE("POLYGON((10 10, 20 10, 20 20, 10 20, 10 10))"))
+| KEEP city_name, boundary
+
+
+FROM airport_city_boundaries
+| WHERE ST_WITHIN(city_boundary, TO_GEOSHAPE("POLYGON((109.1 18.15, 109.6 18.15, 109.6 18.65, 109.1 18.65, 109.1 18.15))"))
+| KEEP abbrev, airport, region, city, city_location
+
+FROM parks
+| WHERE ST_WITHIN(park_boundary, TO_GEOSHAPE("POLYGON((40.7128 -74.0060, 40.7128 -73.9352, 40.7306 -73.9352, 40.7306 -74.0060, 40.7128 -74.0060))"))
+| KEEP park_name, park_boundary
+
+
+ROW point = TO_GEOPOINT("POINT(42.97109629958868 14.7552534006536)")
+| EVAL x = ST_X(point), y = ST_Y(point)
+
+ROW point = TO_CARTESIANPOINT("POINT(100.0 200.0)")
+| EVAL x = ST_X(point), y = ST_Y(point)
+
+
+ROW point = TO_GEOPOINT("POINT(42.97109629958868 14.7552534006536)")
+| EVAL x = ST_X(point), y = ST_Y(point)
+
+ROW point = TO_GEOPOINT("POINT(34.052235 -118.243683)")
+| EVAL latitude = ST_Y(point)
+
+
+FROM employees
+| KEEP last_name
+| EVAL ln_S = STARTS_WITH(last_name, "B")
+
+FROM employees
+| KEEP first_name, last_name
+| EVAL fn_S = STARTS_WITH(first_name, "A")
+| WHERE fn_S
+
+
+STATS [column1 =] expression1[, ..., [columnN =] expressionN] [BY grouping_expression1[, ..., grouping_expressionN]]
+
+FROM employees
+| STATS count = COUNT(emp_no) BY languages
+| SORT languages
+
+FROM employees
+| STATS avg_lang = AVG(languages)
+
+FROM employees
+| STATS avg_lang = AVG(languages), max_lang = MAX(languages)
+
+ROW i=1, a=["a", "b"] | STATS MIN(i) BY a | SORT a ASC
+
+FROM employees
+| EVAL hired = DATE_FORMAT("YYYY", hire_date)
+| STATS avg_salary = AVG(salary) BY hired, languages.long
+| EVAL avg_salary = ROUND(avg_salary)
+| SORT hired, languages.long
+
+ROW i=1, a=["a", "b"], b=[2, 3] | STATS MIN(i) BY a, b | SORT a ASC, b ASC
+
+FROM employees
+| STATS avg_salary_change = ROUND(AVG(MV_AVG(salary_change)), 10)
+
+FROM employees
+| STATS my_count = COUNT() BY LEFT(last_name, 1)
+| SORT `LEFT(last_name, 1)`
+
+FROM employees
+| STATS AVG(salary)
+
+FROM employees
+| STATS AVG(salary)
+| EVAL avg_salary_rounded = ROUND(`AVG(salary)`)
+
+
+FROM employees
+| KEEP last_name
+| EVAL ln_sub = SUBSTRING(last_name, 1, 3)
+
+FROM employees
+| KEEP last_name
+| EVAL ln_sub = SUBSTRING(last_name, -3, 3)
+
+FROM employees
+| KEEP last_name
+| EVAL ln_sub = SUBSTRING(last_name, 2)
+
+
+FROM employees
+| STATS SUM(languages)
+
+FROM employees
+| STATS total_salary_changes = SUM(MV_MAX(salary_change))
+
+
+source-command
+| processing-command1
+| processing-command2
+
+source-command | processing-command1 | processing-command2
+
+FROM index
+| KEEP `1.field`
+
+FROM index
+| STATS COUNT(`1.field`)
+| EVAL my_count = `COUNT(``1.field``)`
+
+FROM index
+| WHERE first_name == "Georgi"
+
+ROW name = """Indiana "Indy" Jones"""
+
+FROM logs-*
+| WHERE @timestamp > NOW() - 24h
+| STATS avg_response_time = AVG(response_time)
+
+FROM events
+| WHERE @timestamp > NOW() - 7 days
+| STATS daily_count = COUNT(*) BY day = DATE_TRUNC(1 day, @timestamp)
+| SORT day
+
+FROM weather_data
+| WHERE @timestamp > NOW() - 1 month
+| STATS max_temp = MAX(temperature)
+
+FROM sales
+| WHERE @timestamp > NOW() - 1 quarter
+| STATS weekly_sales = SUM(sales_amount) BY week = DATE_TRUNC(1 week, @timestamp)
+| SORT week
+
+FROM sales
+| WHERE @timestamp > NOW() - 1 quarter
+| STATS weekly_sales = SUM(sales_amount) BY week = BUCKET(@timestamp, 1 week)
+| SORT week
+
+FROM error_logs
+| WHERE @timestamp > NOW() - 15 minutes
+| STATS error_count = COUNT(*) BY error_type
+| SORT error_count DESC
+
+// Query the employees index
+FROM employees
+| WHERE height > 2
+
+FROM /* Query the employees index */ employees
+| WHERE height > 2
+
+FROM employees
+/* Query the
+ * employees
+ * index */
+| WHERE height > 2
+
+
+ROW a=1.8
+| EVAL tan=TAN(a)
+
+ROW angle=0.5
+| EVAL tangent = TAN(angle)
+
+
+ROW a=1.8
+| EVAL tanh = TANH(a)
+
+ROW angle=0.5
+| EVAL hyperbolic_tangent = TANH(angle)
+
+
+ROW TAU()
+
+FROM sample_data
+| EVAL tau_value = TAU()
+| KEEP tau_value
+
+
+ROW a = "elastic"
+| EVAL e = TO_BASE64(a)
+
+ROW text = "Hello, World!"
+| EVAL encoded_text = TO_BASE64(text)
+
+
+ROW str = ["true", "TRuE", "false", "", "yes", "1"]
+| EVAL bool = TO_BOOLEAN(str)
+
+ROW num = [0, 1, 2, -1]
+| EVAL bool = TO_BOOLEAN(num)
+
+
+ROW wkt = ["POINT(4297.11 -1475.53)", "POINT(7580.93 2272.77)"]
+| MV_EXPAND wkt
+| EVAL pt = TO_CARTESIANPOINT(wkt)
+
+ROW wkt = ["POINT(1000.0 2000.0)", "POINT(3000.0 4000.0)"]
+| MV_EXPAND wkt
+| EVAL pt = TO_CARTESIANPOINT(wkt)
+
+
+ROW wkt = ["POINT(4297.11 -1475.53)", "POLYGON ((3339584.72 1118889.97, 4452779.63 4865942.27, 2226389.81 4865942.27, 1113194.90 2273030.92, 3339584.72 1118889.97))"]
+| MV_EXPAND wkt
+| EVAL geom = TO_CARTESIANSHAPE(wkt)
+
+ROW wkt = ["POINT(1000.0 2000.0)", "POLYGON ((1000.0 2000.0, 2000.0 3000.0, 3000.0 4000.0, 1000.0 2000.0))"]
+| MV_EXPAND wkt
+| EVAL geom = TO_CARTESIANSHAPE(wkt)
+
+
+ROW string = ["1953-09-02T00:00:00.000Z", "1964-06-02T00:00:00.000Z", "1964-06-02 00:00:00"]
+| EVAL datetime = TO_DATETIME(string)
+
+ROW int = [0, 1]
+| EVAL dt = TO_DATETIME(int)
+
+
+ROW rad = [1.57, 3.14, 4.71]
+| EVAL deg = TO_DEGREES(rad)
+
+ROW angle_in_radians = 1.0
+| EVAL angle_in_degrees = TO_DEGREES(angle_in_radians)
+
+
+ROW str1 = "5.20128E11", str2 = "foo"
+| EVAL dbl = TO_DOUBLE("520128000000"), dbl1 = TO_DOUBLE(str1), dbl2 = TO_DOUBLE(str2)
+
+
+ROW wkt = "POINT(42.97109630194 14.7552534413725)"
+| EVAL pt = TO_GEOPOINT(wkt)
+
+ROW wkt = "POINT(34.052235 -118.243683)"
+| EVAL pt = TO_GEOPOINT(wkt)
+
+
+ROW wkt = "POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))"
+| EVAL geom = TO_GEOSHAPE(wkt)
+
+ROW wkt = "LINESTRING (30 10, 10 30, 40 40)"
+| EVAL geom = TO_GEOSHAPE(wkt)
+
+
+ROW long = [5013792, 2147483647, 501379200000]
+| EVAL int = TO_INTEGER(long)
+
+
+ROW str1 = "1.1.1.1", str2 = "foo"
+| EVAL ip1 = TO_IP(str1), ip2 = TO_IP(str2)
+| WHERE CIDR_MATCH(ip1, "1.0.0.0/8")
+
+ROW ip_str = "192.168.1.1"
+| EVAL ip = TO_IP(ip_str)
+| KEEP ip
+
+
+ROW str1 = "2147483648", str2 = "2147483648.2", str3 = "foo"
+| EVAL long1 = TO_LONG(str1), long2 = TO_LONG(str2), long3 = TO_LONG(str3)
+
+ROW str1 = "1234567890", str2 = "9876543210"
+| EVAL long1 = TO_LONG(str1), long2 = TO_LONG(str2)
+
+
+ROW message = "Some Text"
+| EVAL message_lower = TO_LOWER(message)
+
+FROM employees
+| KEEP first_name, last_name
+| EVAL first_name_lower = TO_LOWER(first_name)
+| EVAL last_name_lower = TO_LOWER(last_name)
+
+
+ROW deg = [90.0, 180.0, 270.0]
+| EVAL rad = TO_RADIANS(deg)
+
+ROW angle_deg = 45.0
+| EVAL angle_rad = TO_RADIANS(angle_deg)
+
+
+ROW a=10
+| EVAL j = TO_STRING(a)
+
+ROW a=[10, 9, 8]
+| EVAL j = TO_STRING(a)
+
+
+ROW str1 = "2147483648", str2 = "2147483648.2", str3 = "foo"
+| EVAL long1 = TO_UNSIGNED_LONG(str1), long2 = TO_ULONG(str2), long3 = TO_UL(str3)
+
+ROW date1 = TO_DATETIME("2023-12-02T11:00:00.000Z"), date2 = TO_DATETIME("2023-12-02T11:00:00.001Z")
+| EVAL long_date1 = TO_UNSIGNED_LONG(date1), long_date2 = TO_UNSIGNED_LONG(date2)
+
+
+ROW message = "Some Text"
+| EVAL message_upper = TO_UPPER(message)
+
+FROM employees
+| KEEP first_name, last_name
+| EVAL first_name_upper = TO_UPPER(first_name)
+| EVAL last_name_upper = TO_UPPER(last_name)
+
+
+ROW v = TO_VERSION("1.2.3")
+
+ROW version_string = "2.3.4"
+| EVAL version = TO_VERSION(version_string)
+
+
+FROM employees
+| STATS top_salaries = TOP(salary, 3, "desc"), top_salary = MAX(salary)
+
+FROM sales
+| STATS top_products = TOP(product_id, 5, "asc"), max_sales = MAX(sales_amount)
+
+
+ROW message = "   some text  ",  color = " red "
+| EVAL message = TRIM(message)
+| EVAL color = TRIM(color)
+
+ROW text = "   example text  ",  label = " label "
+| EVAL text = TRIM(text)
+| EVAL label = TRIM(label)
+
+
+FROM employees
+| EVAL first_letter = SUBSTRING(first_name, 0, 1)
+| STATS first_name = MV_SORT(VALUES(first_name)) BY first_letter
+| SORT first_letter
+
+
+FROM employees
+| STATS w_avg = WEIGHTED_AVG(salary, height) BY languages
+| EVAL w_avg = ROUND(w_avg)
+| KEEP w_avg, languages
+| SORT languages
+
+FROM sales
+| STATS weighted_sales = WEIGHTED_AVG(revenue, units_sold) BY region
+| EVAL weighted_sales = ROUND(weighted_sales, 2)
+| KEEP weighted_sales, region
+| SORT region
+
+
+FROM employees
+| KEEP first_name, last_name, still_hired
+| WHERE still_hired == true
+
+FROM employees
+| KEEP first_name, last_name, still_hired
+| WHERE still_hired
+
+FROM sample_data
+| WHERE @timestamp > NOW() - 1 hour
+
+FROM employees
+| KEEP first_name, last_name, height
+| WHERE LENGTH(first_name) < 4
+
+FROM employees
+| WHERE birth_date IS NULL
+| KEEP first_name, last_name
+| SORT first_name
+| LIMIT 3
+
+FROM employees
+| WHERE is_rehired IS NOT NULL
+| STATS COUNT(emp_no)
+
+FROM employees
+| WHERE first_name LIKE "?b*"
+| KEEP first_name, last_name
+
+FROM employees
+| WHERE first_name RLIKE ".leja.*"
+| KEEP first_name, last_name
+
+ROW a = 1, b = 4, c = 3
+| WHERE c-a IN (3, b / 2, a)
+
+
+```
