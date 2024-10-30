@@ -366,7 +366,7 @@ const Form = () => {
     <Box p={4}>
       <VStack spacing={4} align="stretch">
         <Heading>ES|QL Composer</Heading>
-        <Accordion defaultIndex={[0, 1]} allowToggle allowMultiple>
+        <Accordion defaultIndex={[0, 1, 2]} allowMultiple>
           <AccordionItem backgroundColor={"green.50"}>
             <AccordionButton>
               <Heading as="h3" size="sm">
@@ -458,7 +458,7 @@ const Form = () => {
                   <SpinningButton
                     isLoading={isWarmCacheLoading}
                     onClick={handleWarmCache}
-                    disabled={!apiKey}
+                    disabled={!apiKey.length || !esqlGuideText.length || !schemaGuideText.length}
                   >
                     Warm Cache
                   </SpinningButton>
@@ -566,7 +566,7 @@ const Form = () => {
           <SpinningButton
             isLoading={isUpdateESQLLoading}
             onClick={handleUpdateESQL}
-            disabled={!apiKey || !naturalInput}
+            disabled={!apiKey || !esqlGuideText || !schemaGuideText || !naturalInput}
           >
             {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
           </SpinningButton>
@@ -639,7 +639,7 @@ const Form = () => {
             <SpinningButton
               isLoading={isPrettifyESQLLoading}
               onClick={(e) => prettifyESQL()}
-              disabled={!apiKey || !esqlInput}
+              disabled={!apiKey || !esqlGuideText || !schemaGuideText || !esqlInput}
             >
               Prettify
             </SpinningButton>
