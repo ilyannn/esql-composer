@@ -1,0 +1,31 @@
+# Flights Dataset
+
+Here is the list of fields of the "kibana_sample_data_flights" data view, their type and representative examples:
+
+timestamp: Date, e.g. '2018-01-01T02:59:15'
+dayOfWeek: Integer, e.g. 0, 1, 2, 3, 4, 5, 6
+Carrier: Keyword, e.g. 'Kibana Airlines', 'JetBeats', 'Logstash Airways'
+FlightNum: Keyword, e.g. '58U013N', 'XEJ78I2', 'EVARI8I'
+Origin: Keyword, e.g. 'Licenciado Benito Juarez International Airport', 'Edmonton International Airport', 'Zurich Airport'
+OriginAirportID: Keyword, e.g. 'AICM', 'CYEG', 'ZRH'
+OriginCityName: Keyword, e.g. 'Mexico City', 'Edmonton', 'Zurich'
+OriginRegion: Keyword, e.g. 'MX-DIF', 'CA-AB', 'CH-ZH'
+OriginCountry: Keyword, e.g. 'MX', 'CA', 'CH'
+OriginLocation: Geo point, e.g. { lat: '19.4363', lon: '-99.072098' }, { lat: '53.30970001', lon: '-113.5800018' }, { lat: '47.464699', lon: '8.54917' }
+Dest: Keyword, e.g. "Xi'an Xianyang International Airport", 'Genoa Cristoforo Colombo Airport', 'Zurich Airport'
+DestAirportID: Keyword, e.g. 'XIY', 'GE01', 'ZRH'
+DestCityName: Keyword, e.g. "Xi'an", 'Genova', 'Zurich'
+DestRegion: Keyword, e.g. 'SE-BD', 'IT-42', 'CH-ZH'
+DestCountry: Keyword, e.g. 'CN', 'IT', 'CH'
+DestLocation: Geo point, e.g. { lat: '34.447102', lon: '108.751999' }, { lat: '44.4133', lon: '8.8375' }, { lat: '47.464699', lon: '8.54917' }
+AvgTicketPrice: Float, e.g. 730.041778346198, 418.1520890531832, 180.24681638061213
+OriginWeather: Keyword, e.g. 'Damaging Wind', 'Rain', 'Clear'
+DestWeather: Keyword, e.g. 'Clear', 'Thunder & Lightning', 'Hail'
+Cancelled: Boolean, e.g. false, true
+DistanceMiles: Float, e.g. 8300.428124665925, 4891.315227492962, 0.0
+DistanceKilometers: Float, e.g. 13358.24419986236, 7871.808813474433, 0.0
+FlightDelayMin: Integer, e.g. 0, 300, 15
+FlightDelay: Boolean, e.g. false, true
+FlightDelayType: Keyword, e.g. 'No Delay', 'Security Delay', 'NAS Delay'
+FlightTimeMin: Float, e.g. 785.7790705801389, 393.5904406737217, 300.0
+FlightTimeHour: Keyword, e.g. 13.096317843002314, 6.5598406778953615, 5.0
