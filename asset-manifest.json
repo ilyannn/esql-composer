@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/esql-composer/static/css/main.27984461.css",
-    "main.js": "/esql-composer/static/js/main.860dbef4.js",
+    "main.js": "/esql-composer/static/js/main.bbda4f40.js",
     "index.html": "/esql-composer/index.html",
     "main.27984461.css.map": "/esql-composer/static/css/main.27984461.css.map",
-    "main.860dbef4.js.map": "/esql-composer/static/js/main.860dbef4.js.map"
+    "main.bbda4f40.js.map": "/esql-composer/static/js/main.bbda4f40.js.map"
   },
   "entrypoints": [
     "static/css/main.27984461.css",
-    "static/js/main.860dbef4.js"
+    "static/js/main.bbda4f40.js"
   ]
 }
