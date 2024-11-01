@@ -427,6 +427,7 @@ const Form = () => {
         "Uncached",
         "Saved",
         "Output",
+        "Model",
       ],
       ...allStats.map((stat) => [
         stat.first_token_time,
@@ -436,6 +437,7 @@ const Form = () => {
         stat.input_uncached,
         stat.saved_to_cache,
         stat.output,
+        stat.model,
       ]),
     ]
       .map((e) => e.join(","))

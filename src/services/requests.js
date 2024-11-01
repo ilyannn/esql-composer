@@ -1,7 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 export const warmCache = async (apiKey, modelSelected, esql, schema) => {
-  return await generateESQLUpdate(apiKey, modelSelected, esql, schema, undefined);
+  return await generateESQLUpdate(
+    apiKey,
+    modelSelected,
+    esql,
+    schema,
+    undefined
+  );
 };
 
 export const MODEL_LIST = [
@@ -189,7 +195,8 @@ FROM logs-endpoint
   let requestText;
 
   if (naturalInput === undefined) {
-    requestText = "Please complete the following ES|QL query at the last token, marked *. Return only the completion:\n";
+    requestText =
+      "Please complete the following ES|QL query at the last token, marked *. Return only the completion:\n";
   } else if (naturalInput) {
     requestText = "Prompt: " + naturalInput + "\n";
   } else {
@@ -251,7 +258,7 @@ export const generateESQLUpdate = async (
 ) => {
   const anthropic = createAnthropicInstance(apiKey);
 
-  const startTime = Date.now();
+  const requestTime = Date.now();
   const isCompletionRequest = naturalInput === undefined;
   let first_token_time = null;
   let esql_time = null;
@@ -265,13 +272,14 @@ export const generateESQLUpdate = async (
     } else if (line.startsWith("```") && isInsideEsql === true) {
       isInsideEsql = false;
       doneESQL?.();
-      esql_time = Date.now() - startTime;
+      esql_time = Date.now() - requestTime;
     } else if (isInsideEsql) {
       haveESQLLine?.(line);
     } else {
       haveExplanationLine?.(line);
     }
   };
+
   const stream = anthropic.messages
     .stream({
       stream: true,
@@ -281,7 +289,7 @@ export const generateESQLUpdate = async (
     })
     .on("text", (textDelta, _) => {
       if (!first_token_time) {
-        first_token_time = Date.now() - startTime;
+        first_token_time = Date.now() - requestTime;
       }
       currentLine += textDelta;
       if (isCompletionRequest && currentLine.startsWith("*")) {
@@ -305,7 +313,8 @@ export const generateESQLUpdate = async (
       } else if (event.type === "message_start") {
         const usage = event.message.usage;
         result.stats = {
-          start_time: Date.now() - startTime,
+          model: event.message.model,
+          start_time: Date.now() - requestTime,
           input_cached: usage.cache_read_input_tokens,
           input_uncached: usage.input_tokens,
           saved_to_cache: usage.cache_creation_input_tokens,
@@ -317,7 +326,7 @@ export const generateESQLUpdate = async (
 
   await stream.finalMessage();
 
-  result.stats.total_time = Date.now() - startTime;
+  result.stats.total_time = Date.now() - requestTime;
   result.stats.first_token_time = first_token_time;
   result.stats.esql_time = esql_time;
   return result;
