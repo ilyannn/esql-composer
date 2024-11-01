@@ -582,7 +582,7 @@ const Form = () => {
                     <FormLabel>Anthropic API Key</FormLabel>
                     <InputGroup>
                       <Input
-                        placeholder="Anthropic API Key"
+                        placeholder="Enter key here"
                         value={apiKey}
                         autoComplete="anthropic-api-key"
                         onChange={(e) => {
@@ -677,7 +677,7 @@ const Form = () => {
                     >
                       <FormLabel>ES|QL Reference</FormLabel>
                       <Textarea
-                        placeholder="You can find reference material in the Kibana repo."
+                        placeholder="Put reference material here."
                         value={esqlGuideText}
                         onChange={(e) => setEsqlGuideText(e.target.value)}
                         flex={1}
