@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-export const warmCache = async (apiKey, esql, schema) => {
-  return await generateESQLUpdate(apiKey, esql, schema, undefined);
+export const warmCache = async (apiKey, modelSelected, esql, schema) => {
+  return await generateESQLUpdate(apiKey, modelSelected, esql, schema, undefined);
 };
 
 export const MODEL_LIST = [
@@ -240,6 +240,7 @@ FROM logs-endpoint
  */
 export const generateESQLUpdate = async (
   apiKey,
+  modelSelected,
   esql,
   schema,
   esqlInput,
@@ -274,7 +275,7 @@ export const generateESQLUpdate = async (
   const stream = anthropic.messages
     .stream({
       stream: true,
-      model: "claude-3-5-sonnet-20241022",
+      model: MODEL_LIST[modelSelected],
       max_tokens: 256,
       ...prepareRequest(esql, schema, esqlInput, naturalInput),
     })

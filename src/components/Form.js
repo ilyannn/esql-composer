@@ -1,7 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef} from "react";
 import axios from "axios";
-import Anthropic from "@anthropic-ai/sdk";
 import autosize from "autosize";
+import moment from 'moment';
+import Anthropic from "@anthropic-ai/sdk";
+import ClockLoader from "react-spinners/ClockLoader";
+
+import { useInterval } from 'usehooks-ts'
 
 import {
   Box,
@@ -56,6 +60,8 @@ const COMPLETION_KEY = "`";
 
 const Form = () => {
   const [apiKey, setApiKey] = useState("");
+  const [cacheWarmedInfo, setCacheWarmedInfo] = useState(null);
+  const [cacheWarmedText, setCacheWarmedText] = useState(null);
   const [esqlGuideText, setEsqlGuideText] = useState("");
   const [schemaGuideText, setSchemaGuideText] = useState("");
   const [esqlInput, setEsqlInput] = useState("");
@@ -108,6 +114,29 @@ const Form = () => {
       autosize.destroy(esqlCompletionRefValue);
     };
   }, []);
+
+  useEffect(() => {
+    if (!cacheWarmedInfo) {
+      return;
+    }
+    if (cacheWarmedInfo.esqlGuideText === esqlGuideText && cacheWarmedInfo.schemaGuideText === schemaGuideText && cacheWarmedInfo.modelSelected === modelSelected) {
+      return;
+    }
+    setCacheWarmedInfo(null);
+  }, [modelSelected, esqlGuideText, schemaGuideText, cacheWarmedInfo]);
+
+  const updateCacheWarmedText = () => {
+    if (!cacheWarmedInfo) {
+      setCacheWarmedText(null);
+      return;
+    }
+    const { date } = cacheWarmedInfo;
+    const fromNow = moment(date).fromNow();
+    setCacheWarmedText(`cached ${fromNow}`);
+  };
+
+  useEffect(updateCacheWarmedText, [cacheWarmedInfo]);
+  useInterval(updateCacheWarmedText, 5 * 1000)
 
   const loadESQLFile = async (filename) => {
     if (!filename) {
@@ -172,7 +201,7 @@ const Form = () => {
     let newESQLCompletion = "\n".repeat(cursorY) + " ".repeat(cursorX);
 
     const haveESQLLine = (line) => {
-       newESQLCompletion += line + "\n";
+      newESQLCompletion += line + "\n";
       /*      const updatedCursorPosition = esqlInputRef.current.selectionStart;
       if (updatedCursorPosition > cursorPosition) {
         // User has entered more text in the meantime
@@ -196,6 +225,7 @@ const Form = () => {
     try {
       const data = await generateESQLUpdate(
         apiKey,
+        modelSelected,
         esqlGuideText,
         schemaGuideText,
         esqlBeforeCursor,
@@ -205,6 +235,7 @@ const Form = () => {
       );
       setStats(data.stats);
       setAllStats([...allStats, data.stats]);
+      saveCacheWarmedInfo();
     } catch (error) {
       console.error("Completion error:", error);
     }
@@ -265,10 +296,11 @@ const Form = () => {
 
   const handleWarmCache = async () => {
     await performAPIAction("Cache warming", async () => {
-      const data = await warmCache(apiKey, esqlGuideText, schemaGuideText);
+      const data = await warmCache(apiKey, modelSelected, esqlGuideText, schemaGuideText);
 
       setStats(data.stats);
       setAllStats([...allStats, data.stats]);
+      saveCacheWarmedInfo();
 
       toast({
         title: "Cache warming successful",
@@ -315,6 +347,7 @@ const Form = () => {
       setEsqlCompletion("");
       const data = await generateESQLUpdate(
         apiKey,
+        modelSelected,
         esqlGuideText,
         schemaGuideText,
         esqlInput,
@@ -322,6 +355,7 @@ const Form = () => {
         haveESQLLine,
         doneESQL
       );
+      saveCacheWarmedInfo();
       setStats(data.stats);
       setAllStats([...allStats, data.stats]);
       setHistory([
@@ -348,6 +382,15 @@ const Form = () => {
     setEsqlCompletion("");
     setNaturalInput("");
     setHistory([]);
+  };
+
+  const saveCacheWarmedInfo = () => {
+    setCacheWarmedInfo({
+      date: Date.now(),
+      esqlGuideText,
+      schemaGuideText,
+      modelSelected,
+    });
   };
 
   const copyESQL = () => {
@@ -588,6 +631,25 @@ const Form = () => {
               <Heading as="h3" size="md">
                 <AccordionIcon /> Reference Guides
               </Heading>
+              <Spacer />
+              {cacheWarmedText && (
+                      <Tooltip
+                        isDisabled={!tooltipsShown}
+                        label="Time since the current values were put into the cache"
+                      >
+                        <HStack align={"center"} justify={"flex-start"}>
+                          <ClockLoader
+                            color="#49c325"
+                            size={16}
+                            speedMultiplier={0.15}
+                          />
+                          <Text fontSize={"sm"}>
+                            {cacheWarmedText}
+                          </Text>
+                        </HStack>
+                      </Tooltip>
+                    )}
+
             </AccordionButton>
             <AccordionPanel>
               <ResizableBox
@@ -664,21 +726,23 @@ const Form = () => {
                       </HStack>
                     </FormControl>
                   </VStack>
-                  <Tooltip
-                    isDisabled={!tooltipsShown}
-                    label="Send a request with the current ES|QL and schema"
-                  >
-                    <SpinningButton
-                      spinningAction={handleWarmCache}
-                      disabled={
-                        !apiKey.length ||
-                        !esqlGuideText.length ||
-                        !schemaGuideText.length
-                      }
+                  <VStack align="center" justify="flex-start">
+                    <Tooltip
+                      isDisabled={!tooltipsShown}
+                      label="Send a request with the current ES|QL and schema"
                     >
-                      Warm Cache
-                    </SpinningButton>
-                  </Tooltip>
+                      <SpinningButton
+                        spinningAction={handleWarmCache}
+                        disabled={
+                          !apiKey.length ||
+                          !esqlGuideText.length ||
+                          !schemaGuideText.length
+                        }
+                      >
+                        Warm Cache
+                      </SpinningButton>
+                    </Tooltip>
+                  </VStack>
                 </HStack>
               </ResizableBox>
             </AccordionPanel>
