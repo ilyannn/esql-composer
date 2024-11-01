@@ -4,6 +4,36 @@ export const warmCache = async (apiKey, esql, schema) => {
   return await generateESQLUpdate(apiKey, esql, schema, undefined);
 };
 
+export const MODEL_LIST = [
+  "claude-3-5-haiku-latest",
+  "claude-3-5-sonnet-latest",
+];
+
+export const testWithSimpleQuestion = async (apiKey, modelSelected) => {
+  const anthropic = createAnthropicInstance(apiKey);
+
+  const response = await anthropic.messages.create({
+    messages: [
+      {
+        role: "user",
+        content: [{ type: "text", text: "Are you an LLM?" }],
+      },
+    ],
+    model: MODEL_LIST[modelSelected],
+    max_tokens: 256,
+  });
+
+  return response.content[0].text;
+};
+
+const createAnthropicInstance = (apiKey) => {
+  return new Anthropic({
+    apiKey,
+    defaultHeaders: { "anthropic-beta": "prompt-caching-2024-07-31" },
+    dangerouslyAllowBrowser: true,
+  });
+};
+
 const prepareRequest = (
   esqlGuideText,
   schemaGuideText,
@@ -218,11 +248,7 @@ export const generateESQLUpdate = async (
   doneESQL = undefined,
   haveExplanationLine = undefined
 ) => {
-  const anthropic = new Anthropic({
-    apiKey,
-    defaultHeaders: { "anthropic-beta": "prompt-caching-2024-07-31" },
-    dangerouslyAllowBrowser: true,
-  });
+  const anthropic = createAnthropicInstance(apiKey);
 
   const startTime = Date.now();
   const isCompletionRequest = naturalInput === undefined;

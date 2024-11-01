@@ -1,25 +1,42 @@
-import React, { ReactNode } from 'react';
-import { Button, Spinner } from '@chakra-ui/react';
+import React, { ReactNode, forwardRef } from "react";
+import ScaleLoader from "react-spinners/ScaleLoader";
+import { Button } from "@chakra-ui/react";
 
 interface SpinningButtonProps {
-  isLoading: boolean;
-  onClick: () => void;
+  spinningAction: () => Promise<void>;
   disabled?: boolean;
   children: ReactNode;
+  type: "button" | "submit" | "reset" | undefined;
 }
+const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
+  ({ spinningAction, disabled, children, type }, ref) => {
+    const [isLoading, setIsLoading] = React.useState(false);
 
-const SpinningButton: React.FC<SpinningButtonProps> = ({ isLoading, onClick, disabled, children }) => {
-  return (
-    <Button
-      onClick={onClick}
-      isLoading={isLoading}
-      isDisabled={disabled}
-      spinner={<Spinner />}
-      colorScheme="blue"
-    >
-      {children}
-    </Button>
-  );
-};
+    const onClick = async () => {
+      if (!isLoading) {
+        setIsLoading(true);
+        try {
+          await spinningAction();
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    return (
+      <Button
+        ref={ref}
+        type={type}
+        onClick={onClick}
+        isLoading={isLoading}
+        isDisabled={disabled}
+        spinner={<ScaleLoader height={25} margin={4} color="white" />}
+        colorScheme="blue"
+      >
+        {children}
+      </Button>
+    );
+  }
+);
 
 export default SpinningButton;

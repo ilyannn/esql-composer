@@ -8,14 +8,8 @@ import {
   Input,
   Textarea,
   VStack,
-  Text,
   HStack,
   Heading,
-  Alert,
-  AlertIcon,
-  CloseButton,
-  AlertTitle,
-  AlertDescription,
   Button,
   Stat,
   StatLabel,
@@ -33,17 +27,29 @@ import {
   UnorderedList,
   Checkbox,
   Link,
+  FormControl,
+  FormLabel,
+  FormHelperText,
+  InputRightElement,
+  InputGroup,
+  Slider,
+  SliderMark,
+  SliderTrack,
+  SliderFilledTrack,
+  SliderThumb,
+  StackDivider,
+  Text,
 } from "@chakra-ui/react";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
 import SpinningButton from "./SpinningButton";
-import {
-  WarningIcon,
-  CheckCircleIcon,
-  ExternalLinkIcon,
-} from "@chakra-ui/icons";
+import { CheckIcon, ExternalLinkIcon } from "@chakra-ui/icons";
 
-import { warmCache, generateESQLUpdate } from "../services/requests";
+import {
+  testWithSimpleQuestion,
+  warmCache,
+  generateESQLUpdate,
+} from "../services/requests";
 
 const GENERATION_KEY = "Enter";
 const COMPLETION_KEY = "`";
@@ -55,19 +61,27 @@ const Form = () => {
   const [esqlInput, setEsqlInput] = useState("");
   const [esqlCompletion, setEsqlCompletion] = useState("");
   const [naturalInput, setNaturalInput] = useState("");
-  const [isWarmCacheLoading, setIsWarmCacheLoading] = useState(false);
-  const [isUpdateESQLLoading, setIsUpdateESQLLoading] = useState(false);
-  const [isPrettifyESQLLoading, setIsPrettifyESQLLoading] = useState(false);
   const [tooltipsShown, setTooltipsShown] = useState(true);
-  const [warmCacheError, setWarmCacheError] = useState(null);
   const [apiKeyWorks, setApiKeyWorks] = useState(null);
   const [stats, setStats] = useState(null);
   const [allStats, setAllStats] = useState([]);
   const apiKeyRef = useRef(null);
   const naturalInputRef = useRef(null);
   const esqlInputRef = useRef(null);
+  const esqlCompletionRef = useRef(null);
+  const esqlCompleteButtonRef = useRef(null);
   const toast = useToast();
   const [history, setHistory] = useState([]);
+
+  // Since Haiku 3.5 is not available yet.
+  const [modelSelected, setModelSelected] = useState(1);
+
+  const modelSliderlabelStyles = {
+    mt: "3",
+    ml: "-3",
+    fontSize: "sm",
+    fontFamily: "monospace",
+  };
 
   useEffect(() => {
     // Load the contents of esql.txt and schema.txt
@@ -86,9 +100,12 @@ const Form = () => {
 
     // https://github.com/chakra-ui/chakra-ui/issues/670#issuecomment-625770981
     const esqlInputRefValue = esqlInputRef.current;
+    const esqlCompletionRefValue = esqlCompletionRef.current;
     autosize(esqlInputRefValue);
+    autosize(esqlCompletionRefValue);
     return () => {
       autosize.destroy(esqlInputRefValue);
+      autosize.destroy(esqlCompletionRefValue);
     };
   }, []);
 
@@ -122,35 +139,6 @@ const Form = () => {
       });
   };
 
-  const handleWarmCache = async () => {
-    setIsWarmCacheLoading(true);
-    try {
-      const data = await warmCache(apiKey, esqlGuideText, schemaGuideText);
-      toast({
-        title: "Request successful",
-        description: `Cache was succesfully warmed up.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      setStats(data.stats);
-      setAllStats([...allStats, data.stats]);
-      setWarmCacheError(null);
-      if (naturalInputRef.current) {
-        naturalInputRef.current.focus();
-      }
-      setApiKeyWorks(true);
-    } catch (error) {
-      setWarmCacheError(error);
-      console.error("Error:", error);
-      if (error instanceof Anthropic.APIError && error.status === 401) {
-        setApiKeyWorks(false);
-      }
-    } finally {
-      setIsWarmCacheLoading(false);
-    }
-  };
-
   const handleNaturalTextChange = async (e) => {
     const text = e.target.value;
     setNaturalInput(text);
@@ -165,12 +153,26 @@ const Form = () => {
       return;
     }
     const esqlBeforeCursor = esqlInput.substring(0, cursorPosition);
+    const cursorY = esqlBeforeCursor.split("\n").length - 1;
+    const cursorX =
+      esqlBeforeCursor.length -
+      (cursorY === 0 ? 0 : esqlBeforeCursor.lastIndexOf("\n") + 1);
 
-    console.log("Cursor position:", cursorPosition);
+    let lineEnd = esqlInput.indexOf("\n", cursorPosition);
+    if (lineEnd === -1) {
+      lineEnd = esqlInput.length;
+    }
+    if (lineEnd > cursorPosition) {
+      setEsqlInput(
+        esqlInput.substring(0, cursorPosition) + esqlInput.substring(lineEnd)
+      );
+    }
+    setEsqlCompletion("");
+
+    let newESQLCompletion = "\n".repeat(cursorY) + " ".repeat(cursorX);
 
     const haveESQLLine = (line) => {
-      console.log("Line completion:", line);
-      const newESQL = esqlBeforeCursor + line;
+       newESQLCompletion += line + "\n";
       /*      const updatedCursorPosition = esqlInputRef.current.selectionStart;
       if (updatedCursorPosition > cursorPosition) {
         // User has entered more text in the meantime
@@ -182,7 +184,8 @@ const Form = () => {
           return;
         }
       }*/
-      setEsqlCompletion(newESQL);
+      setEsqlCompletion(newESQLCompletion);
+      autosize.update(esqlCompletionRef.current);
       /*      esqlInputRef.current.setSelectionRange(
         cursorPosition,
         cursorPosition + line.length
@@ -207,8 +210,84 @@ const Form = () => {
     }
   };
 
-  const performESQLRequest = async (text) => {
+  /**
+   * Handles API errors and updates the state of apiKeyWorks.
+   *
+   * Stores the information about the authentication success or failure.
+   * Displays a toast if the API call fails and it's not an authentication failure.
+   *
+   * @param {string} label - The action being performed, used in error messages.
+   * @param {Function} action - The function that performs the API call.
+   * @returns {Promise<*>} The result of the API call if successful.
+   */
+  const performAPIAction = async (label, action) => {
     try {
+      const answer = await action();
+      setApiKeyWorks(true);
+      return answer;
+    } catch (error) {
+      if (error instanceof Anthropic.APIError && error.status === 401) {
+        setApiKeyWorks(false);
+      }
+
+      let title = `${label} error`;
+      let description;
+
+      if (error instanceof Anthropic.APIError) {
+        description = `${error.status} – ${error.error.error.message}`;
+      } else if (error && typeof error === "object" && "message" in error) {
+        description = error.message;
+      }
+
+      toast({
+        title,
+        description,
+        status: "error",
+        isClosable: true,
+      });
+    }
+  };
+
+  const testAPIKey = async () => {
+    const claudeAnswer = await performAPIAction("API test", () =>
+      testWithSimpleQuestion(apiKey, modelSelected)
+    );
+
+    if (claudeAnswer) {
+      toast({
+        title: "API test successful",
+        description: `Claude says: ${claudeAnswer}`,
+        status: "success",
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleWarmCache = async () => {
+    await performAPIAction("Cache warming", async () => {
+      const data = await warmCache(apiKey, esqlGuideText, schemaGuideText);
+
+      setStats(data.stats);
+      setAllStats([...allStats, data.stats]);
+
+      toast({
+        title: "Cache warming successful",
+        description: `Cache will now provide ${
+          data.stats.saved_to_cache + data.stats.input_cached
+        } tokens for requests like this.`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      if (naturalInputRef.current) {
+        naturalInputRef.current.focus();
+      }
+    });
+  };
+
+  const performESQLRequest = async (text) => {
+    await performAPIAction("ES|QL generation", async () => {
       let interpolatedLines = esqlInput.split("\n");
       let lineIndex = -1;
       const haveESQLLine = (line) => {
@@ -223,14 +302,15 @@ const Form = () => {
           return;
         }
         setEsqlInput(interpolatedLines.join("\n"));
+        autosize.update(esqlInputRef.current);
       };
       const doneESQL = () => {
         lineIndex++;
         if (lineIndex < interpolatedLines.length) {
           interpolatedLines.splice(lineIndex);
           setEsqlInput(interpolatedLines.join("\n"));
+          autosize.update(esqlInputRef.current);
         }
-        autosize.update(esqlInputRef.current);
       };
       setEsqlCompletion("");
       const data = await generateESQLUpdate(
@@ -244,7 +324,6 @@ const Form = () => {
       );
       setStats(data.stats);
       setAllStats([...allStats, data.stats]);
-      setApiKeyWorks(true);
       setHistory([
         ...history,
         {
@@ -257,33 +336,11 @@ const Form = () => {
       if (naturalInputRef.current?.value === text) {
         naturalInputRef.current?.setSelectionRange(0, naturalInput.length);
       }
-    } catch (error) {
-      console.error("Error:", error);
-      if (error instanceof Anthropic.APIError && error.status === 401) {
-        setApiKeyWorks(false);
-      }
-    }
+    });
   };
 
   const handleUpdateESQL = async () => {
-    try {
-      setIsUpdateESQLLoading(true);
-      await performESQLRequest(naturalInput);
-    } finally {
-      setIsUpdateESQLLoading(false);
-    }
-  };
-
-  const handleApiKeyKeyDown = (e) => {
-    if (e.key === GENERATION_KEY) {
-      handleWarmCache();
-    }
-  };
-
-  const handleNaturalTextKeyDown = (e) => {
-    if (e.key === GENERATION_KEY) {
-      handleUpdateESQL();
-    }
+    await performESQLRequest(naturalInput);
   };
 
   const clearESQL = () => {
@@ -303,15 +360,6 @@ const Form = () => {
     });
   };
 
-  const prettifyESQL = async () => {
-    try {
-      setIsPrettifyESQLLoading(true);
-      await performESQLRequest("Prettify the provided ES|QL");
-    } finally {
-      setIsPrettifyESQLLoading(false);
-    }
-  };
-
   const revertUpdate = () => {
     if (history.length > 0) {
       const last = history.pop();
@@ -327,7 +375,6 @@ const Form = () => {
   };
 
   const showStatistics = () => {
-    console.log("All stats:", allStats);
     const csvContent = [
       [
         "TTFT",
@@ -366,10 +413,10 @@ const Form = () => {
     <Box p={4}>
       <VStack spacing={4} align="stretch">
         <Heading>ES|QL Composer</Heading>
-        <Accordion defaultIndex={[0, 1, 2]} allowMultiple>
+        <Accordion defaultIndex={[1, 2]} allowMultiple>
           <AccordionItem backgroundColor={"green.50"}>
             <AccordionButton>
-              <Heading as="h3" size="sm">
+              <Heading as="h3" size="md">
                 <AccordionIcon /> How to Use
               </Heading>
             </AccordionButton>
@@ -425,74 +472,120 @@ const Form = () => {
 
           <AccordionItem backgroundColor={"cyan.50"}>
             <AccordionButton>
-              <Heading as="h3" size="sm">
-                <AccordionIcon /> API Key
+              <Heading as="h3" size="md">
+                <AccordionIcon /> API Configuration
               </Heading>
             </AccordionButton>
             <AccordionPanel>
-              <HStack>
-                {apiKeyWorks === true ? (
-                  <CheckCircleIcon color="green.500" />
-                ) : apiKeyWorks === false ? (
-                  <WarningIcon color="red.500" />
-                ) : null}
-                <Input
-                  placeholder="Anthropic API Key"
-                  value={apiKey}
-                  onChange={(e) => {
-                    setApiKey(e.target.value);
-                    setApiKeyWorks(null);
-                  }}
-                  type="password"
-                  ref={apiKeyRef}
-                  onKeyDown={handleApiKeyKeyDown}
-                  isInvalid={apiKey && apiKeyWorks === false}
-                  isDisabled={apiKey && apiKeyWorks === true}
-                  errorBorderColor="red.300"
-                  flex={1}
-                />
-                <Tooltip
-                  isDisabled={!tooltipsShown}
-                  label="Send a request with the current ES|QL and schema"
+              <form onSubmit={(e) => e.preventDefault()}>
+                <HStack
+                  justify={"space-between"}
+                  align={"stretch"}
+                  spacing={8}
+                  divider={<StackDivider borderColor="gray.200" />}
                 >
-                  <SpinningButton
-                    isLoading={isWarmCacheLoading}
-                    onClick={handleWarmCache}
-                    disabled={!apiKey.length || !esqlGuideText.length || !schemaGuideText.length}
+                  <FormControl as="fieldset" width="200px">
+                    <FormLabel as="legend">Claude 3.5 Model</FormLabel>
+                    <Box p={5} pt={0}>
+                      <Slider
+                        aria-label="Model Selection"
+                        onChange={(val) => setModelSelected(val)}
+                        value={modelSelected}
+                        min={0}
+                        max={1}
+                        step={1}
+                      >
+                        <SliderMark value={0} {...modelSliderlabelStyles}>
+                          Haiku
+                        </SliderMark>
+                        <SliderMark value={1} {...modelSliderlabelStyles}>
+                          Sonnet
+                        </SliderMark>
+                        {/* <SliderMark value={2} {...modelSliderlabelStyles}>
+                        Opus
+                      </SliderMark> */}
+                        <SliderTrack bg="gray.200">
+                          <SliderFilledTrack bg="gold" />
+                        </SliderTrack>
+                        <SliderThumb
+                          boxSize={5 + 2 * modelSelected}
+                          bg="red.50"
+                        >
+                          <Text fontSize="sm">
+                            {"$".repeat(modelSelected + 1)}
+                          </Text>
+                        </SliderThumb>
+                      </Slider>
+                    </Box>
+                    <FormHelperText>
+                      As of October 31st, Haiku 3.5 was still{" "}
+                      <Link
+                        isExternal
+                        href="https://www.anthropic.com/pricing#anthropic-api"
+                      >
+                        <ExternalLinkIcon mx="3px" />
+                        not available
+                      </Link>
+                    </FormHelperText>
+                  </FormControl>
+                  <FormControl
+                    isRequired
+                    isInvalid={apiKey && apiKeyWorks === false}
+                    isDisabled={apiKey && apiKeyWorks === true}
+                    flex={1}
                   >
-                    Warm Cache
-                  </SpinningButton>
-                </Tooltip>
-              </HStack>
-              {warmCacheError && (
-                <Alert status="error">
-                  <AlertIcon />
-                  <Box>
-                    <AlertTitle>{warmCacheError.message}</AlertTitle>
-                    <AlertDescription>
-                      {warmCacheError.response && (
-                        <Text>
-                          Status: {warmCacheError.response.status} -{" "}
-                          {warmCacheError.response.statusText}
-                        </Text>
-                      )}
-                    </AlertDescription>
-                  </Box>
-                  <CloseButton
-                    alignSelf="flex-start"
-                    position="absolute"
-                    right={-1}
-                    top={-1}
-                    onClick={() => setWarmCacheError(null)}
-                  />
-                </Alert>
-              )}
+                    <FormLabel>Anthropic API Key</FormLabel>
+                    <InputGroup>
+                      <Input
+                        placeholder="Anthropic API Key"
+                        value={apiKey}
+                        autoComplete="anthropic-api-key"
+                        onChange={(e) => {
+                          setApiKey(e.target.value);
+                          setApiKeyWorks(null);
+                        }}
+                        type="password"
+                        ref={apiKeyRef}
+                        errorBorderColor="red.300"
+                        flex={1}
+                      />
+                      {apiKeyWorks === true ? (
+                        <InputRightElement>
+                          <CheckIcon color="green.300" />
+                        </InputRightElement>
+                      ) : null}
+                    </InputGroup>
+                    <FormHelperText>
+                      Since we use{" "}
+                      <Link
+                        isExternal
+                        href="https://www.anthropic.com/news/prompt-caching"
+                      >
+                        <ExternalLinkIcon /> beta features of the API
+                      </Link>
+                      , only direct Anthropic access is supported.
+                    </FormHelperText>
+                  </FormControl>
+                  <Tooltip
+                    isDisabled={!tooltipsShown}
+                    label="Perform a test request to the API"
+                  >
+                    <SpinningButton
+                      type="submit"
+                      spinningAction={testAPIKey}
+                      disabled={!apiKey}
+                    >
+                      Test API
+                    </SpinningButton>
+                  </Tooltip>
+                </HStack>
+              </form>
             </AccordionPanel>
           </AccordionItem>
 
           <AccordionItem backgroundColor={"yellow.50"}>
             <AccordionButton>
-              <Heading as="h3" size="sm">
+              <Heading as="h3" size="md">
                 <AccordionIcon /> Reference Guides
               </Heading>
             </AccordionButton>
@@ -504,100 +597,145 @@ const Form = () => {
                 axis="y"
                 resizeHandles={["se"]}
               >
-                <HStack align="stretch" justify="space-between" height="100%">
+                <HStack
+                  justify={"space-between"}
+                  align={"stretch"}
+                  spacing={8}
+                  height={"100%"}
+                  divider={<StackDivider borderColor="gray.200" />}
+                >
                   <VStack align="stretch" justify="flex-start" flex={1}>
-                    <Textarea
-                      placeholder="ES|QL reference"
-                      value={esqlGuideText}
-                      onChange={(e) => setEsqlGuideText(e.target.value)}
+                    <FormControl
+                      isRequired={true}
                       flex={1}
-                      resize="none"
-                    />
+                      display="flex"
+                      flexDirection={"column"}
+                    >
+                      <FormLabel>ES|QL Reference</FormLabel>
+                      <Textarea
+                        placeholder="You can find reference material in the Kibana repo."
+                        value={esqlGuideText}
+                        onChange={(e) => setEsqlGuideText(e.target.value)}
+                        flex={1}
+                        resize={"none"}
+                      />
+                      <HStack justify="space-evenly">
+                        <Button
+                          variant="ghost"
+                          colorScheme="red"
+                          onClick={(e) => loadESQLFile("")}
+                        >
+                          Clear
+                        </Button>
+                      </HStack>
+                    </FormControl>
+                  </VStack>
 
-                    <HStack justify="space-evenly">
-                      <Button
-                        variant="ghost"
-                        colorScheme="red"
-                        onClick={(e) => loadESQLFile("")}
-                      >
-                        Clear
-                      </Button>
-                    </HStack>
-                  </VStack>
                   <VStack align="stretch" justify="flex-start" flex={1}>
-                    <Textarea
-                      placeholder="Your Elasticsearch schema reference"
-                      value={schemaGuideText}
-                      onChange={(e) => setSchemaGuideText(e.target.value)}
+                    <FormControl
+                      isRequired={true}
                       flex={1}
-                      resize="none"
-                    />
-                    <HStack justify="space-evenly">
-                      <Button
-                        variant="ghost"
-                        colorScheme="green"
-                        onClick={(e) => loadSchemaFile("schema-flights.txt")}
-                      >
-                        Flights
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        colorScheme="red"
-                        onClick={(e) => loadSchemaFile("")}
-                      >
-                        Clear
-                      </Button>
-                    </HStack>
+                      display="flex"
+                      flexDirection={"column"}
+                    >
+                      <FormLabel>Schema Description</FormLabel>
+                      <Textarea
+                        placeholder="Your Elasticsearch schema reference"
+                        value={schemaGuideText}
+                        onChange={(e) => setSchemaGuideText(e.target.value)}
+                        flex={1}
+                        resize="none"
+                      />
+                      <HStack justify="space-evenly">
+                        <Button
+                          variant="ghost"
+                          colorScheme="green"
+                          onClick={(e) => loadSchemaFile("schema-flights.txt")}
+                        >
+                          Flights
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          colorScheme="red"
+                          onClick={(e) => loadSchemaFile("")}
+                        >
+                          Clear
+                        </Button>
+                      </HStack>
+                    </FormControl>
                   </VStack>
+                  <Tooltip
+                    isDisabled={!tooltipsShown}
+                    label="Send a request with the current ES|QL and schema"
+                  >
+                    <SpinningButton
+                      spinningAction={handleWarmCache}
+                      disabled={
+                        !apiKey.length ||
+                        !esqlGuideText.length ||
+                        !schemaGuideText.length
+                      }
+                    >
+                      Warm Cache
+                    </SpinningButton>
+                  </Tooltip>
                 </HStack>
               </ResizableBox>
             </AccordionPanel>
           </AccordionItem>
         </Accordion>
-        <HStack>
-          <Input
-            placeholder="Natural Text"
-            value={naturalInput}
-            onChange={handleNaturalTextChange}
-            onKeyDown={handleNaturalTextKeyDown}
-            ref={naturalInputRef}
-            flex={1}
-          />
-          <SpinningButton
-            isLoading={isUpdateESQLLoading}
-            onClick={handleUpdateESQL}
-            disabled={!apiKey || !esqlGuideText || !schemaGuideText || !naturalInput}
-          >
-            {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
-          </SpinningButton>
-          <Tooltip
-            isDisabled={!tooltipsShown}
-            label="Restore the inputs to the state before this button was pressed"
-          >
-            <Button
-              variant="ghost"
-              isDisabled={history.length === 0}
-              colorScheme="red"
-              onClick={(e) => revertUpdate()}
+
+        <form onSubmit={(e) => e.preventDefault()}>
+          <HStack>
+            <FormControl flex={1}>
+              <Input
+                placeholder="Natural Text"
+                value={naturalInput}
+                onChange={handleNaturalTextChange}
+                ref={naturalInputRef}
+                flex={1}
+              />
+            </FormControl>
+            <SpinningButton
+              type="submit"
+              spinningAction={handleUpdateESQL}
+              disabled={
+                !apiKey || !esqlGuideText || !schemaGuideText || !naturalInput
+              }
             >
-              Undo
-            </Button>
-          </Tooltip>
-        </HStack>
+              {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
+            </SpinningButton>
+            <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Restore the inputs to the state before this button was pressed"
+            >
+              <Button
+                variant="ghost"
+                isDisabled={history.length === 0}
+                colorScheme="red"
+                onClick={(e) => revertUpdate()}
+              >
+                Undo
+              </Button>
+            </Tooltip>
+          </HStack>
+        </form>
+
         <HStack align="stretch" justify="flex-start">
           <VStack spacing={0} align="stretch" flex={1}>
-            <Box height={0}>
+            <Box height={0} overflow={"visible"}>
               <Textarea
                 value={esqlCompletion}
+                ref={esqlCompletionRef}
                 readOnly
                 disabled
                 fontFamily={"monospace"}
                 whiteSpace="pre-wrap"
                 style={{
-                  height: "auto",
                   opacity: 0.5,
                   borderColor: "transparent",
                 }}
+                flex={1}
                 transition="height none"
                 spellCheck={false}
                 resize={"none"}
@@ -617,7 +755,7 @@ const Form = () => {
                 onKeyDown={(e) => {
                   if (e.key === COMPLETION_KEY) {
                     e.preventDefault();
-                    handleCompleteESQL();
+                    esqlCompleteButtonRef.current?.click();
                   }
                 }}
               />
@@ -625,6 +763,33 @@ const Form = () => {
           </VStack>
         </HStack>
         <HStack>
+          <Tooltip
+            isDisabled={!tooltipsShown}
+            label="Complete the current line"
+          >
+            <SpinningButton
+              spinningAction={handleCompleteESQL}
+              disabled={
+                !apiKey || !esqlGuideText || !schemaGuideText || !esqlInput
+              }
+              ref={esqlCompleteButtonRef}
+            >
+              Complete
+            </SpinningButton>
+          </Tooltip>
+          <Spacer />
+          <Tooltip isDisabled={!tooltipsShown} label="Pretty print the ES|QL">
+            <SpinningButton
+              spinningAction={() =>
+                performESQLRequest("Prettify the provided ES|QL")
+              }
+              disabled={
+                !apiKey || !esqlGuideText || !schemaGuideText || !esqlInput
+              }
+            >
+              Prettify
+            </SpinningButton>
+          </Tooltip>
           <Tooltip isDisabled={!tooltipsShown} label="Copy ES|QL to Clipboard">
             <Button
               variant="ghost"
@@ -634,15 +799,6 @@ const Form = () => {
             >
               Copy
             </Button>
-          </Tooltip>
-          <Tooltip isDisabled={!tooltipsShown} label="Pretty print the ES|QL">
-            <SpinningButton
-              isLoading={isPrettifyESQLLoading}
-              onClick={(e) => prettifyESQL()}
-              disabled={!apiKey || !esqlGuideText || !schemaGuideText || !esqlInput}
-            >
-              Prettify
-            </SpinningButton>
           </Tooltip>
           <Spacer />
           <Tooltip
