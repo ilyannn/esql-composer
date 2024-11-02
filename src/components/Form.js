@@ -15,10 +15,6 @@ import {
   HStack,
   Heading,
   Button,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatGroup,
   Tooltip,
   useToast,
   Spacer,
@@ -46,8 +42,10 @@ import {
 } from "@chakra-ui/react";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
-import SpinningButton from "./SpinningButton";
 import { CheckIcon, ExternalLinkIcon } from "@chakra-ui/icons";
+
+import SpinningButton from "./SpinningButton";
+import Statistics from './Statistics'; 
 
 import {
   testWithSimpleQuestion,
@@ -69,7 +67,6 @@ const Form = () => {
   const [naturalInput, setNaturalInput] = useState("");
   const [tooltipsShown, setTooltipsShown] = useState(true);
   const [apiKeyWorks, setApiKeyWorks] = useState(null);
-  const [stats, setStats] = useState(null);
   const [allStats, setAllStats] = useState([]);
   const apiKeyRef = useRef(null);
   const naturalInputRef = useRef(null);
@@ -233,7 +230,6 @@ const Form = () => {
         haveESQLLine,
         undefined
       );
-      setStats(data.stats);
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
     } catch (error) {
@@ -298,7 +294,6 @@ const Form = () => {
     await performAPIAction("Cache warming", async () => {
       const data = await warmCache(apiKey, modelSelected, esqlGuideText, schemaGuideText);
 
-      setStats(data.stats);
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
 
@@ -356,7 +351,6 @@ const Form = () => {
         doneESQL
       );
       saveCacheWarmedInfo();
-      setStats(data.stats);
       setAllStats([...allStats, data.stats]);
       setHistory([
         ...history,
@@ -415,43 +409,6 @@ const Form = () => {
     const jsonHistory = JSON.stringify(history, null, 2);
     const newWindow = window.open();
     newWindow.document.write(`<pre>${jsonHistory}</pre>`);
-  };
-
-  const showStatistics = () => {
-    const csvContent = [
-      [
-        "TTFT",
-        "ESQL Time",
-        "Total Time",
-        "Cached",
-        "Uncached",
-        "Saved",
-        "Output",
-        "Model",
-      ],
-      ...allStats.map((stat) => [
-        stat.first_token_time,
-        stat.esql_time,
-        stat.total_time,
-        stat.input_cached,
-        stat.input_uncached,
-        stat.saved_to_cache,
-        stat.output,
-        stat.model,
-      ]),
-    ]
-      .map((e) => e.join(","))
-      .join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "statistics.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   return (
@@ -894,83 +851,11 @@ const Form = () => {
             </Button>
           </Tooltip>
         </HStack>
-        {stats && (
-          <StatGroup>
-            <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Time to first output token"
-            >
-              <Stat>
-                <StatLabel>TTFT</StatLabel>
-                <StatNumber>{stats.first_token_time}ms</StatNumber>
-              </Stat>
-            </Tooltip>
-            <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Time to complete ES|QL generation"
-            >
-              <Stat>
-                <StatLabel>ES|QL Time</StatLabel>
-                <StatNumber>{stats.esql_time}ms</StatNumber>
-              </Stat>
-            </Tooltip>
-            <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Total time the request has taken"
-            >
-              <Stat>
-                <StatLabel>Total Time</StatLabel>
-                <StatNumber>{stats.total_time}ms</StatNumber>
-              </Stat>
-            </Tooltip>
-            <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Input tokens read from the cache"
-            >
-              <Stat>
-                <StatLabel>Cached</StatLabel>
-                <StatNumber>{stats.input_cached}</StatNumber>
-              </Stat>
-            </Tooltip>
-            <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Input tokens not read from the cache"
-            >
-              <Stat>
-                <StatLabel>Uncached</StatLabel>
-                <StatNumber>{stats.input_uncached}</StatNumber>
-              </Stat>
-            </Tooltip>
-            <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Input tokens saved to cache"
-            >
-              <Stat>
-                <StatLabel>Saved</StatLabel>
-                <StatNumber>{stats.saved_to_cache}</StatNumber>
-              </Stat>
-            </Tooltip>
-            <Tooltip isDisabled={!tooltipsShown} label="Output tokens">
-              <Stat>
-                <StatLabel>Output</StatLabel>
-                <StatNumber>{stats.output}</StatNumber>
-              </Stat>
-            </Tooltip>
-            <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Download all statistics in CSV format"
-            >
-              <Button
-                variant="ghost"
-                colorScheme="green"
-                isDisabled={allStats.length === 0}
-                onClick={(e) => showStatistics()}
-              >
-                .csv
-              </Button>
-            </Tooltip>
-          </StatGroup>
-        )}
+
+        <Statistics
+          tooltipsShown={tooltipsShown}
+          stats={allStats}
+        />
       </VStack>
     </Box>
   );
