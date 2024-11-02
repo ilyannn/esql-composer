@@ -349,9 +349,7 @@ const Form = () => {
               <MainArea
                 tooltipsShown={tooltipsShown}
                 isESQLRequestAvailable={
-                  apiKey.length > 0 &&
-                  esqlGuideText.length > 0 &&
-                  schemaGuideText.length > 0
+                  apiKey && esqlGuideText && schemaGuideText
                 }
                 naturalInput={naturalInput}
                 setNaturalInput={setNaturalInput}
