@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef} from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import autosize from "autosize";
-import moment from 'moment';
+import moment from "moment";
 import Anthropic from "@anthropic-ai/sdk";
 import ClockLoader from "react-spinners/ClockLoader";
 
-import { useInterval } from 'usehooks-ts'
+import { useInterval } from "usehooks-ts";
 
 import {
   Box,
@@ -45,7 +45,7 @@ import "react-resizable/css/styles.css";
 import { CheckIcon, ExternalLinkIcon } from "@chakra-ui/icons";
 
 import SpinningButton from "./SpinningButton";
-import Statistics from './Statistics'; 
+import Statistics from "./Statistics";
 
 import {
   testWithSimpleQuestion,
@@ -116,7 +116,11 @@ const Form = () => {
     if (!cacheWarmedInfo) {
       return;
     }
-    if (cacheWarmedInfo.esqlGuideText === esqlGuideText && cacheWarmedInfo.schemaGuideText === schemaGuideText && cacheWarmedInfo.modelSelected === modelSelected) {
+    if (
+      cacheWarmedInfo.esqlGuideText === esqlGuideText &&
+      cacheWarmedInfo.schemaGuideText === schemaGuideText &&
+      cacheWarmedInfo.modelSelected === modelSelected
+    ) {
       return;
     }
     setCacheWarmedInfo(null);
@@ -133,7 +137,7 @@ const Form = () => {
   };
 
   useEffect(updateCacheWarmedText, [cacheWarmedInfo]);
-  useInterval(updateCacheWarmedText, 5 * 1000)
+  useInterval(updateCacheWarmedText, 5 * 1000);
 
   const loadESQLFile = async (filename) => {
     if (!filename) {
@@ -292,7 +296,12 @@ const Form = () => {
 
   const handleWarmCache = async () => {
     await performAPIAction("Cache warming", async () => {
-      const data = await warmCache(apiKey, modelSelected, esqlGuideText, schemaGuideText);
+      const data = await warmCache(
+        apiKey,
+        modelSelected,
+        esqlGuideText,
+        schemaGuideText
+      );
 
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
@@ -415,7 +424,7 @@ const Form = () => {
     <Box p={4}>
       <VStack spacing={4} align="stretch">
         <Heading>ES|QL Composer</Heading>
-        <Accordion defaultIndex={[1, 2]} allowMultiple>
+        <Accordion defaultIndex={[1, 2, 3]} allowMultiple>
           <AccordionItem backgroundColor={"green.50"}>
             <AccordionButton>
               <Heading as="h3" size="md">
@@ -475,113 +484,115 @@ const Form = () => {
           <AccordionItem backgroundColor={"cyan.50"}>
             <AccordionButton>
               <Heading as="h3" size="md">
-                <AccordionIcon /> API Configuration
+                <AccordionIcon /> LLM Access
               </Heading>
             </AccordionButton>
             <AccordionPanel>
-              <form onSubmit={(e) => e.preventDefault()}>
-                <HStack
-                  justify={"space-between"}
-                  align={"stretch"}
-                  spacing={8}
-                  divider={<StackDivider borderColor="gray.200" />}
-                >
-                  <FormControl as="fieldset" width="200px">
-                    <FormLabel as="legend">Claude 3.5 Model</FormLabel>
-                    <Box p={5} pt={0}>
-                      <Slider
-                        aria-label="Model Selection"
-                        onChange={(val) => setModelSelected(val)}
-                        value={modelSelected}
-                        min={0}
-                        max={1}
-                        step={1}
-                      >
-                        <SliderMark value={0} {...modelSliderlabelStyles}>
-                          Haiku
-                        </SliderMark>
-                        <SliderMark value={1} {...modelSliderlabelStyles}>
-                          Sonnet
-                        </SliderMark>
-                        {/* <SliderMark value={2} {...modelSliderlabelStyles}>
+              <VStack align="stretch" justify={"space-between"} spacing={6}>
+                <form onSubmit={(e) => e.preventDefault()}>
+                  <HStack
+                    justify={"space-between"}
+                    align={"stretch"}
+                    spacing={8}
+                    divider={<StackDivider borderColor="gray.200" />}
+                  >
+                    <FormControl as="fieldset" width="200px">
+                      <FormLabel as="legend">Claude 3.5 Model</FormLabel>
+                      <Box p={5} pt={0}>
+                        <Slider
+                          aria-label="Model Selection"
+                          onChange={(val) => setModelSelected(val)}
+                          value={modelSelected}
+                          min={0}
+                          max={1}
+                          step={1}
+                        >
+                          <SliderMark value={0} {...modelSliderlabelStyles}>
+                            Haiku
+                          </SliderMark>
+                          <SliderMark value={1} {...modelSliderlabelStyles}>
+                            Sonnet
+                          </SliderMark>
+                          {/* <SliderMark value={2} {...modelSliderlabelStyles}>
                         Opus
                       </SliderMark> */}
-                        <SliderTrack bg="gray.200">
-                          <SliderFilledTrack bg="gold" />
-                        </SliderTrack>
-                        <SliderThumb
-                          boxSize={5 + 2 * modelSelected}
-                          bg="red.50"
+                          <SliderTrack bg="gray.200">
+                            <SliderFilledTrack bg="gold" />
+                          </SliderTrack>
+                          <SliderThumb
+                            boxSize={5 + 2 * modelSelected}
+                            bg="red.50"
+                          >
+                            <Text fontSize="sm">
+                              {"$".repeat(modelSelected + 1)}
+                            </Text>
+                          </SliderThumb>
+                        </Slider>
+                      </Box>
+                      <FormHelperText>
+                        As of October 31st, Haiku 3.5 was still{" "}
+                        <Link
+                          isExternal
+                          href="https://www.anthropic.com/pricing#anthropic-api"
                         >
-                          <Text fontSize="sm">
-                            {"$".repeat(modelSelected + 1)}
-                          </Text>
-                        </SliderThumb>
-                      </Slider>
-                    </Box>
-                    <FormHelperText>
-                      As of October 31st, Haiku 3.5 was still{" "}
-                      <Link
-                        isExternal
-                        href="https://www.anthropic.com/pricing#anthropic-api"
-                      >
-                        <ExternalLinkIcon mx="3px" />
-                        not available
-                      </Link>
-                    </FormHelperText>
-                  </FormControl>
-                  <FormControl
-                    isRequired
-                    isInvalid={apiKey && apiKeyWorks === false}
-                    isDisabled={apiKey && apiKeyWorks === true}
-                    flex={1}
-                  >
-                    <FormLabel>Anthropic API Key</FormLabel>
-                    <InputGroup>
-                      <Input
-                        placeholder="Enter key here"
-                        value={apiKey}
-                        autoComplete="anthropic-api-key"
-                        onChange={(e) => {
-                          setApiKey(e.target.value);
-                          setApiKeyWorks(null);
-                        }}
-                        type="password"
-                        ref={apiKeyRef}
-                        errorBorderColor="red.300"
-                        flex={1}
-                      />
-                      {apiKeyWorks === true ? (
-                        <InputRightElement>
-                          <CheckIcon color="green.300" />
-                        </InputRightElement>
-                      ) : null}
-                    </InputGroup>
-                    <FormHelperText>
-                      Since we use{" "}
-                      <Link
-                        isExternal
-                        href="https://www.anthropic.com/news/prompt-caching"
-                      >
-                        <ExternalLinkIcon /> beta features of the API
-                      </Link>
-                      , only direct Anthropic access is supported.
-                    </FormHelperText>
-                  </FormControl>
-                  <Tooltip
-                    isDisabled={!tooltipsShown}
-                    label="Perform a test request to the API"
-                  >
-                    <SpinningButton
-                      type="submit"
-                      spinningAction={testAPIKey}
-                      disabled={!apiKey}
+                          <ExternalLinkIcon mx="3px" />
+                          not available
+                        </Link>
+                      </FormHelperText>
+                    </FormControl>
+                    <FormControl
+                      isRequired
+                      isInvalid={apiKey && apiKeyWorks === false}
+                      isDisabled={apiKey && apiKeyWorks === true}
+                      flex={1}
                     >
-                      Test API
-                    </SpinningButton>
-                  </Tooltip>
-                </HStack>
-              </form>
+                      <FormLabel>Anthropic API Key</FormLabel>
+                      <InputGroup>
+                        <Input
+                          placeholder="Enter key here"
+                          value={apiKey}
+                          autoComplete="anthropic-api-key"
+                          onChange={(e) => {
+                            setApiKey(e.target.value);
+                            setApiKeyWorks(null);
+                          }}
+                          type="password"
+                          ref={apiKeyRef}
+                          errorBorderColor="red.300"
+                          flex={1}
+                        />
+                        {apiKeyWorks === true ? (
+                          <InputRightElement>
+                            <CheckIcon color="green.300" />
+                          </InputRightElement>
+                        ) : null}
+                      </InputGroup>
+                      <FormHelperText>
+                        Since we use{" "}
+                        <Link
+                          isExternal
+                          href="https://www.anthropic.com/news/prompt-caching"
+                        >
+                          <ExternalLinkIcon /> beta features of the API
+                        </Link>
+                        , only direct Anthropic access is supported.
+                      </FormHelperText>
+                    </FormControl>
+                    <Tooltip
+                      isDisabled={!tooltipsShown}
+                      label="Perform a test request to the API"
+                    >
+                      <SpinningButton
+                        type="submit"
+                        spinningAction={testAPIKey}
+                        disabled={!apiKey}
+                      >
+                        Test API
+                      </SpinningButton>
+                    </Tooltip>
+                  </HStack>
+                </form>
+              </VStack>
             </AccordionPanel>
           </AccordionItem>
 
@@ -592,23 +603,20 @@ const Form = () => {
               </Heading>
               <Spacer />
               {cacheWarmedText && (
-                      <Tooltip
-                        isDisabled={!tooltipsShown}
-                        label="Time since the current values were put into the cache"
-                      >
-                        <HStack align={"center"} justify={"flex-start"}>
-                          <ClockLoader
-                            color="#49c325"
-                            size={16}
-                            speedMultiplier={0.15}
-                          />
-                          <Text fontSize={"sm"}>
-                            {cacheWarmedText}
-                          </Text>
-                        </HStack>
-                      </Tooltip>
-                    )}
-
+                <Tooltip
+                  isDisabled={!tooltipsShown}
+                  label="Time since the current values were put into the cache"
+                >
+                  <HStack align={"center"} justify={"flex-start"}>
+                    <ClockLoader
+                      color="#49c325"
+                      size={16}
+                      speedMultiplier={0.15}
+                    />
+                    <Text fontSize={"sm"}>{cacheWarmedText}</Text>
+                  </HStack>
+                </Tooltip>
+              )}
             </AccordionButton>
             <AccordionPanel>
               <ResizableBox
@@ -706,156 +714,181 @@ const Form = () => {
               </ResizableBox>
             </AccordionPanel>
           </AccordionItem>
+
+          <AccordionItem>
+            <AccordionButton>
+              <Heading as="h3" size="md">
+                <AccordionIcon />
+              </Heading>
+            </AccordionButton>
+
+            <AccordionPanel>
+              <VStack align={"stretch"} justify={"space-between"} spacing={10}>
+                <VStack align={"stretch"} justify={"space-between"}>
+                  <form onSubmit={(e) => e.preventDefault()}>
+                    <HStack>
+                      <FormControl flex={1}>
+                        <Input
+                          placeholder="Natural Text"
+                          value={naturalInput}
+                          onChange={handleNaturalTextChange}
+                          ref={naturalInputRef}
+                          flex={1}
+                        />
+                      </FormControl>
+                      <SpinningButton
+                        type="submit"
+                        spinningAction={handleUpdateESQL}
+                        disabled={
+                          !apiKey ||
+                          !esqlGuideText ||
+                          !schemaGuideText ||
+                          !naturalInput
+                        }
+                      >
+                        {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
+                      </SpinningButton>
+                      <Tooltip
+                        isDisabled={!tooltipsShown}
+                        label="Restore the inputs to the state before this button was pressed"
+                      >
+                        <Button
+                          variant="ghost"
+                          isDisabled={history.length === 0}
+                          colorScheme="red"
+                          onClick={(e) => revertUpdate()}
+                        >
+                          Undo
+                        </Button>
+                      </Tooltip>
+                    </HStack>
+                  </form>
+
+                  <HStack align="stretch" justify="flex-start">
+                    <VStack spacing={0} align="stretch" flex={1}>
+                      <Box height={0} overflow={"visible"}>
+                        <Textarea
+                          value={esqlCompletion}
+                          ref={esqlCompletionRef}
+                          readOnly
+                          disabled
+                          fontFamily={"monospace"}
+                          whiteSpace="pre-wrap"
+                          style={{
+                            opacity: 0.5,
+                            borderColor: "transparent",
+                          }}
+                          flex={1}
+                          transition="height none"
+                          spellCheck={false}
+                          resize={"none"}
+                        />
+                      </Box>
+                      <Box flex={1}>
+                        <Textarea
+                          placeholder="ES|QL"
+                          value={esqlInput}
+                          ref={esqlInputRef}
+                          onChange={(e) => setEsqlInput(e.target.value)}
+                          fontFamily={"monospace"}
+                          whiteSpace="pre-wrap"
+                          style={{ height: "auto", background: "none" }}
+                          transition="height none"
+                          spellCheck={false}
+                          onKeyDown={(e) => {
+                            if (e.key === COMPLETION_KEY) {
+                              e.preventDefault();
+                              esqlCompleteButtonRef.current?.click();
+                            }
+                          }}
+                        />
+                      </Box>
+                    </VStack>
+                  </HStack>
+                  <HStack>
+                    <Tooltip
+                      isDisabled={!tooltipsShown}
+                      label="Complete the current line"
+                    >
+                      <SpinningButton
+                        spinningAction={handleCompleteESQL}
+                        disabled={
+                          !apiKey ||
+                          !esqlGuideText ||
+                          !schemaGuideText ||
+                          !esqlInput
+                        }
+                        ref={esqlCompleteButtonRef}
+                      >
+                        Complete
+                      </SpinningButton>
+                    </Tooltip>
+                    <Spacer />
+                    <Tooltip
+                      isDisabled={!tooltipsShown}
+                      label="Pretty print the ES|QL"
+                    >
+                      <SpinningButton
+                        spinningAction={() =>
+                          performESQLRequest("Prettify the provided ES|QL")
+                        }
+                        disabled={
+                          !apiKey ||
+                          !esqlGuideText ||
+                          !schemaGuideText ||
+                          !esqlInput
+                        }
+                      >
+                        Prettify
+                      </SpinningButton>
+                    </Tooltip>
+                    <Tooltip
+                      isDisabled={!tooltipsShown}
+                      label="Copy ES|QL to Clipboard"
+                    >
+                      <Button
+                        variant="ghost"
+                        colorScheme="green"
+                        isDisabled={!esqlInput}
+                        onClick={(e) => copyESQL()}
+                      >
+                        Copy
+                      </Button>
+                    </Tooltip>
+                    <Spacer />
+                    <Tooltip
+                      isDisabled={!tooltipsShown}
+                      label="Export history of prompt and request pairs"
+                    >
+                      <Button
+                        variant="ghost"
+                        isDisabled={history.length === 0}
+                        colorScheme="green"
+                        onClick={(e) => showHistory()}
+                      >
+                        History
+                      </Button>
+                    </Tooltip>
+                    <Tooltip
+                      isDisabled={!tooltipsShown}
+                      label="Reset the prompt and ES|QL and being anew."
+                    >
+                      <Button
+                        variant="ghost"
+                        colorScheme="red"
+                        isDisabled={!esqlInput && !naturalInput}
+                        onClick={(e) => clearESQL()}
+                      >
+                        Reset
+                      </Button>
+                    </Tooltip>
+                  </HStack>
+                </VStack>
+                <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
+              </VStack>
+            </AccordionPanel>
+          </AccordionItem>
         </Accordion>
-
-        <form onSubmit={(e) => e.preventDefault()}>
-          <HStack>
-            <FormControl flex={1}>
-              <Input
-                placeholder="Natural Text"
-                value={naturalInput}
-                onChange={handleNaturalTextChange}
-                ref={naturalInputRef}
-                flex={1}
-              />
-            </FormControl>
-            <SpinningButton
-              type="submit"
-              spinningAction={handleUpdateESQL}
-              disabled={
-                !apiKey || !esqlGuideText || !schemaGuideText || !naturalInput
-              }
-            >
-              {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
-            </SpinningButton>
-            <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Restore the inputs to the state before this button was pressed"
-            >
-              <Button
-                variant="ghost"
-                isDisabled={history.length === 0}
-                colorScheme="red"
-                onClick={(e) => revertUpdate()}
-              >
-                Undo
-              </Button>
-            </Tooltip>
-          </HStack>
-        </form>
-
-        <HStack align="stretch" justify="flex-start">
-          <VStack spacing={0} align="stretch" flex={1}>
-            <Box height={0} overflow={"visible"}>
-              <Textarea
-                value={esqlCompletion}
-                ref={esqlCompletionRef}
-                readOnly
-                disabled
-                fontFamily={"monospace"}
-                whiteSpace="pre-wrap"
-                style={{
-                  opacity: 0.5,
-                  borderColor: "transparent",
-                }}
-                flex={1}
-                transition="height none"
-                spellCheck={false}
-                resize={"none"}
-              />
-            </Box>
-            <Box flex={1}>
-              <Textarea
-                placeholder="ES|QL"
-                value={esqlInput}
-                ref={esqlInputRef}
-                onChange={(e) => setEsqlInput(e.target.value)}
-                fontFamily={"monospace"}
-                whiteSpace="pre-wrap"
-                style={{ height: "auto", background: "none" }}
-                transition="height none"
-                spellCheck={false}
-                onKeyDown={(e) => {
-                  if (e.key === COMPLETION_KEY) {
-                    e.preventDefault();
-                    esqlCompleteButtonRef.current?.click();
-                  }
-                }}
-              />
-            </Box>
-          </VStack>
-        </HStack>
-        <HStack>
-          <Tooltip
-            isDisabled={!tooltipsShown}
-            label="Complete the current line"
-          >
-            <SpinningButton
-              spinningAction={handleCompleteESQL}
-              disabled={
-                !apiKey || !esqlGuideText || !schemaGuideText || !esqlInput
-              }
-              ref={esqlCompleteButtonRef}
-            >
-              Complete
-            </SpinningButton>
-          </Tooltip>
-          <Spacer />
-          <Tooltip isDisabled={!tooltipsShown} label="Pretty print the ES|QL">
-            <SpinningButton
-              spinningAction={() =>
-                performESQLRequest("Prettify the provided ES|QL")
-              }
-              disabled={
-                !apiKey || !esqlGuideText || !schemaGuideText || !esqlInput
-              }
-            >
-              Prettify
-            </SpinningButton>
-          </Tooltip>
-          <Tooltip isDisabled={!tooltipsShown} label="Copy ES|QL to Clipboard">
-            <Button
-              variant="ghost"
-              colorScheme="green"
-              isDisabled={!esqlInput}
-              onClick={(e) => copyESQL()}
-            >
-              Copy
-            </Button>
-          </Tooltip>
-          <Spacer />
-          <Tooltip
-            isDisabled={!tooltipsShown}
-            label="Export history of prompt and request pairs"
-          >
-            <Button
-              variant="ghost"
-              isDisabled={history.length === 0}
-              colorScheme="green"
-              onClick={(e) => showHistory()}
-            >
-              History
-            </Button>
-          </Tooltip>
-          <Tooltip
-            isDisabled={!tooltipsShown}
-            label="Reset the prompt and ES|QL and being anew."
-          >
-            <Button
-              variant="ghost"
-              colorScheme="red"
-              isDisabled={!esqlInput && !naturalInput}
-              onClick={(e) => clearESQL()}
-            >
-              Reset
-            </Button>
-          </Tooltip>
-        </HStack>
-
-        <Statistics
-          tooltipsShown={tooltipsShown}
-          stats={allStats}
-        />
       </VStack>
     </Box>
   );
