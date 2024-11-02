@@ -1,6 +1,6 @@
 import autosize from "autosize";
 import moment from "moment";
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { useInterval } from "usehooks-ts";
 
 import {
@@ -12,6 +12,7 @@ import {
   VStack,
   Text,
   useToast,
+  ExpandedIndex,
 } from "@chakra-ui/react";
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -24,7 +25,7 @@ import {
 import { StatisticsRow } from "../common/types";
 
 import CacheWarmedNotice from "./components/CacheWarmedNotice";
-import HowToUseArea from "./HowToUseArea";
+import HowToUseArea, { Config } from "./HowToUseArea";
 import LLMConfigurationArea from "./LLMConfigurationArea";
 import ESQLWorkingArea from "./ESQLWorkingArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
@@ -42,6 +43,7 @@ type HistoryRow = {
 const ESQLComposerMain = () => {
   const toast = useToast();
 
+  const [openedAreas, setOpenedAreas] = useState<number | number[]>([1, 2, 3]);
   const [tooltipsShown, setTooltipsShown] = useState(true);
 
   // Since Haiku 3.5 is not available yet, default to Sonnet 3.5
@@ -66,14 +68,6 @@ const ESQLComposerMain = () => {
   const esqlCompletionRef = useRef<HTMLTextAreaElement>(null);
   const esqlCompleteButtonRef = useRef<HTMLButtonElement>(null);
   const naturalInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const defaultApiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
-    if (defaultApiKey !== undefined) {
-      setApiKey(defaultApiKey);
-      naturalInputRef.current?.focus();
-    }
-  }, []);
 
   useEffect(() => {
     if (!cacheWarmedInfo) {
@@ -101,6 +95,63 @@ const ESQLComposerMain = () => {
 
   useEffect(updateCacheWarmedText, [cacheWarmedInfo]);
   useInterval(updateCacheWarmedText, 5 * 1000);
+
+  const collectConfig = useCallback(() => {
+    return {
+      openedAreas,
+      tooltipsShown,
+      modelSelected,
+      apiKey,
+      esqlGuideText,
+      schemaGuideText,
+    };
+  }, [openedAreas, tooltipsShown, modelSelected, apiKey, esqlGuideText, schemaGuideText]);
+
+  const loadConfig = useCallback(
+    (config: Config) => {
+      if (
+        "openedAreas" in config &&
+        typeof config.openedAreas === "object" &&
+        Array.isArray(config.openedAreas)        
+      ) {
+        setOpenedAreas(config.openedAreas);
+      }
+      if (
+        "tooltipsShown" in config &&
+        typeof config.tooltipsShown === "boolean"
+      ) {
+        setTooltipsShown(config.tooltipsShown);
+      }
+      if (
+        "modelSelected" in config &&
+        typeof config.modelSelected === "number"
+      ) {
+        setModelSelected(config.modelSelected);
+      }
+      if ("apiKey" in config && typeof config.apiKey === "string") {
+        setApiKey(config.apiKey);
+      }
+      if (
+        "esqlGuideText" in config &&
+        typeof config.esqlGuideText === "string"
+      ) {
+        setEsqlGuideText(config.esqlGuideText);
+      }
+      if (
+        "schemaGuideText" in config &&
+        typeof config.schemaGuideText === "string"
+      ) {
+        setSchemaGuideText(config.schemaGuideText);
+      }
+    },
+    [
+      setTooltipsShown,
+      setModelSelected,
+      setApiKey,
+      setEsqlGuideText,
+      setSchemaGuideText,
+    ]
+  );
 
   /**
    * Handles API errors and updates the state of apiKeyWorks.
@@ -137,7 +188,7 @@ const ESQLComposerMain = () => {
             </Link>
           </HStack>
         );
-      } 
+      }
 
       if (
         error instanceof Anthropic.APIError &&
@@ -351,11 +402,13 @@ const ESQLComposerMain = () => {
       <VStack spacing={4} align="stretch">
         <Heading>ES|QL Composer</Heading>
 
-        <Accordion defaultIndex={[1, 2, 3]} allowMultiple>
+        <Accordion index={openedAreas} onChange={setOpenedAreas} allowMultiple>
           <Section label="How to Use" color="green.50">
             <HowToUseArea
               tooltipsShown={tooltipsShown}
               setTooltipsShown={setTooltipsShown}
+              collectConfig={collectConfig}
+              loadConfig={loadConfig}
             />
           </Section>
 

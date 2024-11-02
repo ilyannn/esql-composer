@@ -1,23 +1,49 @@
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
+  Button,
   Checkbox,
   HStack,
   Link,
   ListItem,
+  Text,
   Tooltip,
   UnorderedList,
   VStack,
 } from "@chakra-ui/react";
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import { useLocalStorage } from "usehooks-ts";
 import { COMPLETION_KEY } from "./constants";
+
+const CONFIG_KEY = "config";
 
 interface HowToUseAreaProps {
   tooltipsShown: boolean;
   setTooltipsShown: (value: boolean) => void;
+  collectConfig: () => Config;
+  loadConfig: (config: Config) => void;
+}
+
+export interface Config {
+  [key: string]: any;
 }
 
 const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
-  ({ tooltipsShown, setTooltipsShown }) => {
+  ({ tooltipsShown, setTooltipsShown, collectConfig, loadConfig }) => {
+    const [config, storeConfig, removeConfig] = useLocalStorage<Config>(
+      CONFIG_KEY,
+      {}
+    );
+    const isConfigEmpty = Object.keys(config).length === 0;
+    const loadOnMountPerformed = useRef(false);
+
+    useEffect(() => {
+      if (loadOnMountPerformed.current) {
+        return;
+      }
+      loadConfig(config);
+      loadOnMountPerformed.current = true;
+    }, [config, isConfigEmpty, loadConfig]);
+
     return (
       <HStack justify="space-between" align="stretch">
         <UnorderedList>
@@ -36,21 +62,60 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
             completion (you can't insert it yet).
           </ListItem>
           <ListItem>
-            You can export the history as a JSON or statistics as CSV.
+            <HStack spacing={-0.5} align={"baseline"}>
+            <Text>Button tooltips:</Text>
+              {!tooltipsShown && (
+                <Button
+                  variant="ghost"
+                  colorScheme="green"
+                  onClick={() => setTooltipsShown(true)}
+                >
+                  Show
+                </Button>
+              )}
+              {tooltipsShown && (
+                <Button
+                  variant="ghost"
+                  colorScheme="green"
+                  onClick={() => setTooltipsShown(false)}
+                >
+                  Hide
+                </Button>
+              )}
+            </HStack>
+          </ListItem>
+          <ListItem>
+            <HStack spacing={0.5} align={"baseline"}>
+              <Text>Configuration can be stored in LocalStorage:</Text>
+              <Button
+                variant="ghost"
+                colorScheme="green"
+                onClick={() => storeConfig(collectConfig())}
+              >
+                Save
+              </Button>
+              {!isConfigEmpty && (
+                <Button
+                  variant="ghost"
+                  colorScheme="green"
+                  onClick={() => loadConfig(config)}
+                >
+                  Load
+                </Button>
+              )}
+              {!isConfigEmpty && (
+                <Button
+                  variant="ghost"
+                  colorScheme="red"
+                  onClick={removeConfig}
+                >
+                  Clear
+                </Button>
+              )}
+            </HStack>
           </ListItem>
         </UnorderedList>
         <VStack align="stretch" justify="space-between">
-          <Tooltip
-            isDisabled={!tooltipsShown}
-            label="Turn off the tooltips if they are annoying"
-          >
-            <Checkbox
-              isChecked={tooltipsShown}
-              onChange={(e) => setTooltipsShown(e.target.checked)}
-            >
-              Tooltips
-            </Checkbox>
-          </Tooltip>
           <Link href="https://github.com/ilyannn/esql-composer" isExternal>
             <ExternalLinkIcon mx="3px" /> source
           </Link>
