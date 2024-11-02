@@ -1,13 +1,13 @@
-import { HStack, Text, Tooltip } from "@chakra-ui/react";
-import React from "react";
-import ClockLoader from "react-spinners/ClockLoader";
+import React from 'react';
+import { HStack, Text, Tooltip } from '@chakra-ui/react';
+import ClockLoader from 'react-spinners/ClockLoader';
 
 interface CacheWarmedInfoProps {
   cacheWarmedText: string;
   tooltipsShown: boolean;
 }
 
-const CacheWarmedInfo: React.FC<CacheWarmedInfoProps> = ({
+const CacheWarmedInfo: React.FC<CacheWarmedInfoProps> = React.memo(({
   cacheWarmedText,
   tooltipsShown,
 }) => {
@@ -20,12 +20,12 @@ const CacheWarmedInfo: React.FC<CacheWarmedInfoProps> = ({
       isDisabled={!tooltipsShown}
       label="Time since the current values were put into the cache"
     >
-      <HStack align={"center"} justify={"flex-start"}>
+      <HStack align="center" justify="flex-start">
         <ClockLoader color="#49c325" size={16} speedMultiplier={0.15} />
-        <Text fontSize={"sm"}>{cacheWarmedText}</Text>
+        <Text fontSize="sm">{cacheWarmedText}</Text>
       </HStack>
     </Tooltip>
   );
-};
+});
 
 export default CacheWarmedInfo;

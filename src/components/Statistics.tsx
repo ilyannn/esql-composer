@@ -24,48 +24,52 @@ interface StatisticsProps {
   stats: Array<StatisticsRow>;
 }
 
-const Statistics: React.FC<StatisticsProps> = ({ tooltipsShown, stats }) => {
-  const stat = stats[stats.length - 1];
+const downloadStatistics = (stats: Array<StatisticsRow>) => {
+  const csvContent = [
+    [
+      "TTFT",
+      "ESQL Time",
+      "Total Time",
+      "Uncached",
+      "From Cache",
+      "To Cache",
+      "Output",
+      "Model",
+    ],
+    ...stats.map((stat) => [
+      stat.first_token_time,
+      stat.esql_time,
+      stat.total_time,
+      stat.input_uncached,
+      stat.input_cached,
+      stat.saved_to_cache,
+      stat.output,
+      stat.model,
+    ]),
+  ]
+    .map((e) => e.join(","))
+    .join("\n");
 
-  const downloadStatistics = () => {
-    const csvContent = [
-      [
-        "TTFT",
-        "ESQL Time",
-        "Total Time",
-        "Uncached",
-        "From Cache",
-        "To Cache",
-        "Output",
-        "Model",
-      ],
-      ...stats.map((stat) => [
-        stat.first_token_time,
-        stat.esql_time,
-        stat.total_time,
-        stat.input_uncached,
-        stat.input_cached,
-        stat.saved_to_cache,
-        stat.output,
-        stat.model,
-      ]),
-    ]
-      .map((e) => e.join(","))
-      .join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", "statistics.csv");
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "statistics.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
+const Statistics: React.FC<StatisticsProps> = React.memo(
+  ({ tooltipsShown, stats }) => {
+    if (stats.length === 0) {
+      return null;
+    }
 
-  return (
-    stats.length > 0 && (
+    const stat = stats[stats.length - 1];
+
+    return (
       <StatGroup>
         <Tooltip isDisabled={!tooltipsShown} label="Time to first output token">
           <Stat>
@@ -131,15 +135,14 @@ const Statistics: React.FC<StatisticsProps> = ({ tooltipsShown, stats }) => {
           <Button
             variant="ghost"
             colorScheme="green"
-            isDisabled={stats.length === 0}
-            onClick={(e) => downloadStatistics()}
+            onClick={() => downloadStatistics(stats)}
           >
             .csv
           </Button>
         </Tooltip>
       </StatGroup>
-    )
-  );
-};
+    );
+  }
+);
 
 export default Statistics;
