@@ -1,20 +1,9 @@
 import autosize from "autosize";
 import moment from "moment";
 import { useEffect, useRef, useState } from "react";
-import "react-resizable/css/styles.css";
-import ClockLoader from "react-spinners/ClockLoader";
 import { useInterval } from "usehooks-ts";
 
-import {
-  Accordion,
-  Box,
-  HStack,
-  Heading,
-  Text,
-  Tooltip,
-  VStack,
-  useToast,
-} from "@chakra-ui/react";
+import { Accordion, Box, Heading, VStack, useToast } from "@chakra-ui/react";
 
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -24,6 +13,7 @@ import {
   warmCache,
 } from "../services/requests";
 
+import CacheWarmedInfo from "./CacheWarmedInfo";
 import HowToUse from "./HowToUse";
 import LLMConfiguration from "./LLMConfiguration";
 import MainArea from "./MainArea";
@@ -313,7 +303,6 @@ const Form = () => {
         <Heading>ES|QL Composer</Heading>
 
         <Accordion defaultIndex={[1, 2, 3]} allowMultiple>
-
           <Section label="How to Use" color="green.50">
             <HowToUse
               tooltipsShown={tooltipsShown}
@@ -338,21 +327,10 @@ const Form = () => {
             label="Reference Guides"
             color="yellow.50"
             headerElement={
-              cacheWarmedText && (
-                <Tooltip
-                  isDisabled={!tooltipsShown}
-                  label="Time since the current values were put into the cache"
-                >
-                  <HStack align={"center"} justify={"flex-start"}>
-                    <ClockLoader
-                      color="#49c325"
-                      size={16}
-                      speedMultiplier={0.15}
-                    />
-                    <Text fontSize={"sm"}>{cacheWarmedText}</Text>
-                  </HStack>
-                </Tooltip>
-              )
+              <CacheWarmedInfo
+                cacheWarmedText={cacheWarmedText}
+                tooltipsShown={tooltipsShown}
+              />
             }
           >
             <ReferenceGuides
@@ -393,9 +371,7 @@ const Form = () => {
               <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
             </VStack>
           </Section>
-
         </Accordion>
-
       </VStack>
     </Box>
   );

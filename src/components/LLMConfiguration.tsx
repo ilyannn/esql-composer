@@ -1,25 +1,25 @@
-import React from "react";
+import { CheckIcon, ExternalLinkIcon } from "@chakra-ui/icons";
 import {
-  VStack,
-  HStack,
-  FormControl,
-  FormLabel,
   Box,
-  Slider,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb,
-  SliderMark,
+  FormControl,
   FormHelperText,
-  Link,
-  InputGroup,
+  FormLabel,
+  HStack,
   Input,
+  InputGroup,
   InputRightElement,
-  Tooltip,
+  Link,
+  Slider,
+  SliderFilledTrack,
+  SliderMark,
+  SliderThumb,
+  SliderTrack,
   StackDivider,
   Text,
+  Tooltip,
+  VStack,
 } from "@chakra-ui/react";
-import { ExternalLinkIcon, CheckIcon } from "@chakra-ui/icons";
+import React from "react";
 import SpinningButton from "./SpinningButton";
 
 interface LLMConfigurationProps {

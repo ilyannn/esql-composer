@@ -1,14 +1,14 @@
-import React from "react";
-import {
-  HStack,
-  UnorderedList,
-  ListItem,
-  VStack,
-  Tooltip,
-  Checkbox,
-  Link,
-} from "@chakra-ui/react";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
+import {
+  Checkbox,
+  HStack,
+  Link,
+  ListItem,
+  Tooltip,
+  UnorderedList,
+  VStack,
+} from "@chakra-ui/react";
+import React from "react";
 
 import { COMPLETION_KEY } from "./constants";
 

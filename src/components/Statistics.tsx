@@ -1,12 +1,12 @@
-import React from "react";
 import {
-  StatGroup,
-  Tooltip,
+  Button,
   Stat,
+  StatGroup,
   StatLabel,
   StatNumber,
-  Button,
+  Tooltip,
 } from "@chakra-ui/react";
+import React from "react";
 
 type StatisticsRow = {
   first_token_time: number;

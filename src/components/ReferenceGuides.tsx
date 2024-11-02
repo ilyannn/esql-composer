@@ -1,12 +1,12 @@
 import {
-    Button,
-    FormControl,
-    FormLabel,
-    HStack,
-    StackDivider,
-    Textarea,
-    Tooltip,
-    VStack,
+  Button,
+  FormControl,
+  FormLabel,
+  HStack,
+  StackDivider,
+  Textarea,
+  Tooltip,
+  VStack,
 } from "@chakra-ui/react";
 import axios from "axios";
 import React, { useCallback, useEffect } from "react";
@@ -50,20 +50,23 @@ const ReferenceGuides: React.FC<ReferenceGuidesProps> = ({
       });
   };
 
-  const loadSchemaFile = useCallback(async (filename: string) => {
-    if (!filename) {
-      setSchemaGuideText("");
-      return;
-    }
-    axios
-      .get(filename)
-      .then((response) => {
-        setSchemaGuideText(response.data);
-      })
-      .catch((error) => {
-        console.error(`Error loading ${filename}:`, error);
-      });
-  }, [setSchemaGuideText]);
+  const loadSchemaFile = useCallback(
+    async (filename: string) => {
+      if (!filename) {
+        setSchemaGuideText("");
+        return;
+      }
+      axios
+        .get(filename)
+        .then((response) => {
+          setSchemaGuideText(response.data);
+        })
+        .catch((error) => {
+          console.error(`Error loading ${filename}:`, error);
+        });
+    },
+    [setSchemaGuideText]
+  );
 
   useEffect(() => {
     loadSchemaFile("schema-flights.txt");
