@@ -7,14 +7,9 @@ import { useInterval } from "usehooks-ts";
 
 import {
   Accordion,
-  AccordionButton,
-  AccordionIcon,
-  AccordionItem,
-  AccordionPanel,
   Box,
   HStack,
   Heading,
-  Spacer,
   Text,
   Tooltip,
   VStack,
@@ -33,6 +28,7 @@ import HowToUse from "./HowToUse";
 import LLMConfiguration from "./LLMConfiguration";
 import MainArea from "./MainArea";
 import ReferenceGuides from "./ReferenceGuides";
+import Section from "./Section";
 import Statistics from "./Statistics";
 
 const Form = () => {
@@ -315,48 +311,34 @@ const Form = () => {
     <Box p={4}>
       <VStack spacing={4} align="stretch">
         <Heading>ES|QL Composer</Heading>
+
         <Accordion defaultIndex={[1, 2, 3]} allowMultiple>
-          <AccordionItem backgroundColor={"green.50"}>
-            <AccordionButton>
-              <Heading as="h3" size="md">
-                <AccordionIcon /> How to Use
-              </Heading>
-            </AccordionButton>
-            <AccordionPanel>
-              <HowToUse
-                tooltipsShown={tooltipsShown}
-                setTooltipsShown={setTooltipsShown}
-              />
-            </AccordionPanel>
-          </AccordionItem>
 
-          <AccordionItem backgroundColor={"cyan.50"}>
-            <AccordionButton>
-              <Heading as="h3" size="md">
-                <AccordionIcon /> LLM Access
-              </Heading>
-            </AccordionButton>
-            <AccordionPanel>
-              <LLMConfiguration
-                modelSelected={modelSelected}
-                setModelSelected={setModelSelected}
-                apiKey={apiKey}
-                setApiKey={setApiKey}
-                apiKeyWorks={apiKeyWorks}
-                setApiKeyWorks={setApiKeyWorks}
-                tooltipsShown={tooltipsShown}
-                testAPIKey={testAPIKey}
-              />
-            </AccordionPanel>
-          </AccordionItem>
+          <Section label="How to Use" color="green.50">
+            <HowToUse
+              tooltipsShown={tooltipsShown}
+              setTooltipsShown={setTooltipsShown}
+            />
+          </Section>
 
-          <AccordionItem backgroundColor={"yellow.50"}>
-            <AccordionButton>
-              <Heading as="h3" size="md">
-                <AccordionIcon /> Reference Guides
-              </Heading>
-              <Spacer />
-              {cacheWarmedText && (
+          <Section label="LLM Access" color="cyan.50">
+            <LLMConfiguration
+              modelSelected={modelSelected}
+              setModelSelected={setModelSelected}
+              apiKey={apiKey}
+              setApiKey={setApiKey}
+              apiKeyWorks={apiKeyWorks}
+              setApiKeyWorks={setApiKeyWorks}
+              tooltipsShown={tooltipsShown}
+              testAPIKey={testAPIKey}
+            />
+          </Section>
+
+          <Section
+            label="Reference Guides"
+            color="yellow.50"
+            headerElement={
+              cacheWarmedText && (
                 <Tooltip
                   isDisabled={!tooltipsShown}
                   label="Time since the current values were put into the cache"
@@ -370,61 +352,50 @@ const Form = () => {
                     <Text fontSize={"sm"}>{cacheWarmedText}</Text>
                   </HStack>
                 </Tooltip>
-              )}
-            </AccordionButton>
-            <AccordionPanel>
-              <ReferenceGuides
-                apiKey={apiKey}
-                esqlGuideText={esqlGuideText}
-                setEsqlGuideText={setEsqlGuideText}
-                schemaGuideText={schemaGuideText}
-                setSchemaGuideText={setSchemaGuideText}
-                handleWarmCache={handleWarmCache}
+              )
+            }
+          >
+            <ReferenceGuides
+              apiKey={apiKey}
+              esqlGuideText={esqlGuideText}
+              setEsqlGuideText={setEsqlGuideText}
+              schemaGuideText={schemaGuideText}
+              setSchemaGuideText={setSchemaGuideText}
+              handleWarmCache={handleWarmCache}
+              tooltipsShown={tooltipsShown}
+            />
+          </Section>
+
+          <Section>
+            <VStack align={"stretch"} justify={"space-between"} spacing={10}>
+              <MainArea
                 tooltipsShown={tooltipsShown}
+                isESQLRequestAvailable={
+                  apiKey.length > 0 &&
+                  esqlGuideText.length > 0 &&
+                  schemaGuideText.length > 0
+                }
+                naturalInput={naturalInput}
+                setNaturalInput={setNaturalInput}
+                esqlInput={esqlInput}
+                setEsqlInput={setEsqlInput}
+                esqlCompletion={esqlCompletion}
+                setEsqlCompletion={setEsqlCompletion}
+                history={history}
+                setHistory={setHistory}
+                esqlCompleteButtonRef={esqlCompleteButtonRef}
+                naturalInputRef={naturalInputRef}
+                esqlInputRef={esqlInputRef}
+                esqlCompletionRef={esqlCompletionRef}
+                handleCompleteESQL={handleCompleteESQL}
+                performESQLRequest={performESQLRequest}
               />
-            </AccordionPanel>
-          </AccordionItem>
+              <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
+            </VStack>
+          </Section>
 
-          <AccordionItem>
-            <AccordionButton>
-              <Heading as="h3" size="md">
-                <AccordionIcon />
-              </Heading>
-            </AccordionButton>
-
-            <AccordionPanel>
-              <VStack align={"stretch"} justify={"space-between"} spacing={10}>
-                <MainArea
-                  tooltipsShown={tooltipsShown}
-                  isESQLRequestAvailable={
-                    apiKey.length > 0 &&
-                    esqlGuideText.length > 0 &&
-                    schemaGuideText.length > 0
-                  }
-
-                  naturalInput={naturalInput}
-                  setNaturalInput={setNaturalInput}
-                  esqlInput={esqlInput}
-                  setEsqlInput={setEsqlInput}
-                  esqlCompletion={esqlCompletion}
-                  setEsqlCompletion={setEsqlCompletion}
-
-                  history={history}
-                  setHistory={setHistory}
-
-                  esqlCompleteButtonRef={esqlCompleteButtonRef}
-                  naturalInputRef={naturalInputRef}
-                  esqlInputRef={esqlInputRef}
-                  esqlCompletionRef={esqlCompletionRef}
-
-                  handleCompleteESQL={handleCompleteESQL}
-                  performESQLRequest={performESQLRequest}
-                />
-                <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
-              </VStack>
-            </AccordionPanel>
-          </AccordionItem>
         </Accordion>
+
       </VStack>
     </Box>
   );
