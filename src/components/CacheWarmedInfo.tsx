@@ -3,7 +3,7 @@ import { HStack, Text, Tooltip } from '@chakra-ui/react';
 import ClockLoader from 'react-spinners/ClockLoader';
 
 interface CacheWarmedInfoProps {
-  cacheWarmedText: string;
+  cacheWarmedText: string | null;
   tooltipsShown: boolean;
 }
 

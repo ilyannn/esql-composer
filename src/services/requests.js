@@ -6,7 +6,10 @@ export const warmCache = async (apiKey, modelSelected, esql, schema) => {
     modelSelected,
     esql,
     schema,
-    undefined
+    undefined, 
+    "top flights", 
+    undefined, 
+    undefined, 
   );
 };
 
@@ -195,15 +198,13 @@ FROM logs-endpoint
   let requestText;
 
   if (naturalInput === undefined) {
+    // Completion request
     requestText =
       "Please complete the following ES|QL query at the last token, marked *. Return only the completion:\n";
-  } else if (naturalInput) {
-    requestText = "Prompt: " + naturalInput + "\n";
   } else {
-    requestText =
-      "Prompt: top 10 outbound trafic destinations from process explorer.exe" +
-      "\n";
-  }
+    // Generation/update request
+    requestText = "Prompt: " + naturalInput + "\n";
+  } 
 
   if (esqlInput) {
     requestText += esqlInput;
@@ -219,6 +220,7 @@ FROM logs-endpoint
     ],
   });
 
+  console.log({ system, messages });
   return { system, messages };
 };
 
@@ -252,9 +254,9 @@ export const generateESQLUpdate = async (
   schema,
   esqlInput,
   naturalInput,
-  haveESQLLine = undefined,
-  doneESQL = undefined,
-  haveExplanationLine = undefined
+  haveESQLLine,
+  doneESQL,
+  haveExplanationLine
 ) => {
   const anthropic = createAnthropicInstance(apiKey);
 

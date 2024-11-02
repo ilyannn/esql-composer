@@ -1,9 +1,18 @@
 import autosize from "autosize";
 import moment from "moment";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { useInterval } from "usehooks-ts";
 
-import { Accordion, Box, Heading, VStack, useToast } from "@chakra-ui/react";
+import {
+  Accordion,
+  Box,
+  HStack,
+  Heading,
+  Link,
+  VStack,
+  Text,
+  useToast,
+} from "@chakra-ui/react";
 
 import Anthropic from "@anthropic-ai/sdk";
 
@@ -12,6 +21,7 @@ import {
   testWithSimpleQuestion,
   warmCache,
 } from "../services/requests";
+import { StatisticsRow } from "../services/types";
 
 import CacheWarmedInfo from "./CacheWarmedInfo";
 import HowToUse from "./HowToUse";
@@ -20,6 +30,14 @@ import MainArea from "./MainArea";
 import ReferenceGuides from "./ReferenceGuides";
 import Section from "./Section";
 import Statistics from "./Statistics";
+import { ExternalLinkIcon } from "@chakra-ui/icons";
+
+type HistoryRow = {
+  text: string;
+  esqlInput: string;
+  esql: string;
+  stats: StatisticsRow;
+};
 
 const Form = () => {
   const toast = useToast();
@@ -37,25 +55,23 @@ const Form = () => {
   const [esqlInput, setEsqlInput] = useState("");
   const [esqlCompletion, setEsqlCompletion] = useState("");
 
-  const [allStats, setAllStats] = useState([]);
-  const [history, setHistory] = useState([]);
+  const [allStats, setAllStats] = useState<StatisticsRow[]>([]);
+  const [history, setHistory] = useState<HistoryRow[]>([]);
 
-  const [apiKeyWorks, setApiKeyWorks] = useState(null);
-  const [cacheWarmedInfo, setCacheWarmedInfo] = useState(null);
-  const [cacheWarmedText, setCacheWarmedText] = useState(null);
+  const [apiKeyWorks, setApiKeyWorks] = useState<boolean | null>(null);
+  const [cacheWarmedInfo, setCacheWarmedInfo] = useState<any | null>(null);
+  const [cacheWarmedText, setCacheWarmedText] = useState<string | null>(null);
 
-  const esqlInputRef = useRef(null);
-  const esqlCompletionRef = useRef(null);
-  const esqlCompleteButtonRef = useRef(null);
-  const naturalInputRef = useRef(null);
+  const esqlInputRef = useRef<HTMLTextAreaElement>(null);
+  const esqlCompletionRef = useRef<HTMLTextAreaElement>(null);
+  const esqlCompleteButtonRef = useRef<HTMLButtonElement>(null);
+  const naturalInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const defaultApiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
     if (defaultApiKey !== undefined) {
       setApiKey(defaultApiKey);
-      if (naturalInputRef.current) {
-        naturalInputRef.current.focus();
-      }
+      naturalInputRef.current?.focus();
     }
   }, []);
 
@@ -96,7 +112,10 @@ const Form = () => {
    * @param {Function} action - The function that performs the API call.
    * @returns {Promise<*>} The result of the API call if successful.
    */
-  const performAPIAction = async (label, action) => {
+  const performAPIAction = async (
+    label: string,
+    action: () => Promise<void>
+  ) => {
     try {
       const answer = await action();
       setApiKeyWorks(true);
@@ -106,12 +125,36 @@ const Form = () => {
         setApiKeyWorks(false);
       }
 
-      let title = `${label} error`;
-      let description;
+      let title: ReactNode = <Text>{label} error</Text>;
+      let description: ReactNode = undefined;
 
       if (error instanceof Anthropic.APIError) {
-        description = `${error.status} – ${error.error.error.message}`;
-      } else if (error && typeof error === "object" && "message" in error) {
+        title = (
+          <HStack>
+            {title} <ExternalLinkIcon />
+            <Link isExternal href={`https://http.dog/${error.status}`}>
+              {error.status}
+            </Link>
+          </HStack>
+        );
+      } 
+
+      if (
+        error instanceof Anthropic.APIError &&
+        error.error &&
+        "error" in error.error &&
+        error.error.error &&
+        typeof error.error.error === "object" &&
+        "message" in error.error.error &&
+        typeof error.error.error.message === "string"
+      ) {
+        description = <Text>{error.error.error.message}</Text>;
+      } else if (
+        error &&
+        typeof error === "object" &&
+        "message" in error &&
+        typeof error.message === "string"
+      ) {
         description = error.message;
       }
 
@@ -125,28 +168,26 @@ const Form = () => {
   };
 
   const testAPIKey = async () => {
-    const claudeAnswer = await performAPIAction("API test", () =>
-      testWithSimpleQuestion(apiKey, modelSelected)
-    );
+    await performAPIAction("API test", async () => {
+      const claudeAnswer = await testWithSimpleQuestion(apiKey, modelSelected);
 
-    if (claudeAnswer) {
       toast({
         title: "API test successful",
         description: `Claude says: ${claudeAnswer}`,
         status: "success",
         isClosable: true,
       });
-    }
+    });
   };
 
   const handleWarmCache = async () => {
     await performAPIAction("Cache warming", async () => {
-      const data = await warmCache(
+      const data = (await warmCache(
         apiKey,
         modelSelected,
         esqlGuideText,
         schemaGuideText
-      );
+      )) as any;
 
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
@@ -167,13 +208,13 @@ const Form = () => {
     });
   };
 
-  const performESQLRequest = async (text) => {
+  const performESQLRequest = async (text: string) => {
     await performAPIAction("ES|QL generation", async () => {
       let interpolatedLines = esqlInput.split("\n");
       let lineIndex = -1;
-      const haveESQLLine = (line) => {
+      const haveESQLLine = (line: string) => {
         setApiKeyWorks(true);
-        line = line.trimRight();
+        line = line.trimEnd();
         lineIndex++;
         if (lineIndex >= interpolatedLines.length) {
           interpolatedLines.push(line);
@@ -183,18 +224,22 @@ const Form = () => {
           return;
         }
         setEsqlInput(interpolatedLines.join("\n"));
-        autosize.update(esqlInputRef.current);
+        if (esqlInputRef.current) {
+          autosize.update(esqlInputRef.current);
+        }
       };
       const doneESQL = () => {
         lineIndex++;
         if (lineIndex < interpolatedLines.length) {
           interpolatedLines.splice(lineIndex);
           setEsqlInput(interpolatedLines.join("\n"));
-          autosize.update(esqlInputRef.current);
+          if (esqlInputRef.current) {
+            autosize.update(esqlInputRef.current);
+          }
         }
       };
       setEsqlCompletion("");
-      const data = await generateESQLUpdate(
+      const data = (await generateESQLUpdate(
         apiKey,
         modelSelected,
         esqlGuideText,
@@ -202,8 +247,9 @@ const Form = () => {
         esqlInput,
         text,
         haveESQLLine,
-        doneESQL
-      );
+        doneESQL,
+        undefined
+      )) as any;
       saveCacheWarmedInfo();
       setAllStats([...allStats, data.stats]);
       setHistory([
@@ -248,7 +294,7 @@ const Form = () => {
 
     let newESQLCompletion = "\n".repeat(cursorY) + " ".repeat(cursorX);
 
-    const haveESQLLine = (line) => {
+    const haveESQLLine = (line: string) => {
       newESQLCompletion += line + "\n";
       /*      const updatedCursorPosition = esqlInputRef.current.selectionStart;
           if (updatedCursorPosition > cursorPosition) {
@@ -262,7 +308,9 @@ const Form = () => {
             }
           }*/
       setEsqlCompletion(newESQLCompletion);
-      autosize.update(esqlCompletionRef.current);
+      if (esqlCompletionRef.current) {
+        autosize.update(esqlCompletionRef.current);
+      }
       /*      esqlInputRef.current.setSelectionRange(
             cursorPosition,
             cursorPosition + line.length
@@ -271,7 +319,7 @@ const Form = () => {
     };
 
     try {
-      const data = await generateESQLUpdate(
+      const data = (await generateESQLUpdate(
         apiKey,
         modelSelected,
         esqlGuideText,
@@ -279,8 +327,9 @@ const Form = () => {
         esqlBeforeCursor,
         undefined,
         haveESQLLine,
+        undefined,
         undefined
-      );
+      )) as any;
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
     } catch (error) {
@@ -349,7 +398,7 @@ const Form = () => {
               <MainArea
                 tooltipsShown={tooltipsShown}
                 isESQLRequestAvailable={
-                  apiKey && esqlGuideText && schemaGuideText
+                  (apiKey && esqlGuideText && schemaGuideText) !== ""
                 }
                 naturalInput={naturalInput}
                 setNaturalInput={setNaturalInput}

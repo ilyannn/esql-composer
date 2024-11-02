@@ -9,9 +9,9 @@ import {
 import React from "react";
 
 interface SectionProps {
-  label: string | undefined;
-  color: string | undefined;
-  headerElement: React.ReactNode | undefined;
+  label?: string;
+  color?: string;
+  headerElement?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -22,7 +22,7 @@ const Section: React.FC<SectionProps> = ({
   headerElement,
 }) => {
   return (
-    <AccordionItem backgroundColor={color}>
+    <AccordionItem backgroundColor={color || "white"}>
       <AccordionButton>
         <Heading as="h3" size="md">
           <AccordionIcon /> {label}
