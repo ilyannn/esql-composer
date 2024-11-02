@@ -1,4 +1,4 @@
-import React, { ReactNode, forwardRef } from "react";
+import React, { ReactNode, forwardRef, useState, useCallback } from "react";
 import ScaleLoader from "react-spinners/ScaleLoader";
 import { Button } from "@chakra-ui/react";
 
@@ -8,11 +8,12 @@ interface SpinningButtonProps {
   children: ReactNode;
   type: "button" | "submit" | "reset" | undefined;
 }
+
 const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
   ({ spinningAction, disabled, children, type }, ref) => {
-    const [isLoading, setIsLoading] = React.useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const onClick = async () => {
+    const onClick = useCallback(async () => {
       if (!isLoading) {
         setIsLoading(true);
         try {
@@ -21,7 +22,7 @@ const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
           setIsLoading(false);
         }
       }
-    };
+    }, [isLoading, spinningAction]);
 
     return (
       <Button
@@ -39,4 +40,4 @@ const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
   }
 );
 
-export default SpinningButton;
+export default React.memo(SpinningButton);
