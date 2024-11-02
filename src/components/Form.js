@@ -12,14 +12,10 @@ import {
   AccordionItem,
   AccordionPanel,
   Box,
-  Button,
-  FormControl,
   HStack,
   Heading,
-  Input,
   Spacer,
   Text,
-  Textarea,
   Tooltip,
   VStack,
   useToast,
@@ -35,11 +31,9 @@ import {
 
 import HowToUse from "./HowToUse";
 import LLMConfiguration from "./LLMConfiguration";
+import MainArea from "./MainArea";
 import ReferenceGuides from "./ReferenceGuides";
-import SpinningButton from "./SpinningButton";
 import Statistics from "./Statistics";
-
-import { COMPLETION_KEY } from "./constants";
 
 const Form = () => {
   const toast = useToast();
@@ -77,16 +71,6 @@ const Form = () => {
         naturalInputRef.current.focus();
       }
     }
-
-    // https://github.com/chakra-ui/chakra-ui/issues/670#issuecomment-625770981
-    const esqlInputRefValue = esqlInputRef.current;
-    const esqlCompletionRefValue = esqlCompletionRef.current;
-    autosize(esqlInputRefValue);
-    autosize(esqlCompletionRefValue);
-    return () => {
-      autosize.destroy(esqlInputRefValue);
-      autosize.destroy(esqlCompletionRefValue);
-    };
   }, []);
 
   useEffect(() => {
@@ -115,78 +99,6 @@ const Form = () => {
 
   useEffect(updateCacheWarmedText, [cacheWarmedInfo]);
   useInterval(updateCacheWarmedText, 5 * 1000);
-
-  const handleNaturalTextChange = async (e) => {
-    const text = e.target.value;
-    setNaturalInput(text);
-  };
-
-  const handleCompleteESQL = async () => {
-    if (esqlInputRef.current === null) {
-      return;
-    }
-    const cursorPosition = esqlInputRef.current.selectionStart;
-    if (esqlInputRef.current.selectionEnd !== cursorPosition) {
-      return;
-    }
-    const esqlBeforeCursor = esqlInput.substring(0, cursorPosition);
-    const cursorY = esqlBeforeCursor.split("\n").length - 1;
-    const cursorX =
-      esqlBeforeCursor.length -
-      (cursorY === 0 ? 0 : esqlBeforeCursor.lastIndexOf("\n") + 1);
-
-    let lineEnd = esqlInput.indexOf("\n", cursorPosition);
-    if (lineEnd === -1) {
-      lineEnd = esqlInput.length;
-    }
-    if (lineEnd > cursorPosition) {
-      setEsqlInput(
-        esqlInput.substring(0, cursorPosition) + esqlInput.substring(lineEnd)
-      );
-    }
-    setEsqlCompletion("");
-
-    let newESQLCompletion = "\n".repeat(cursorY) + " ".repeat(cursorX);
-
-    const haveESQLLine = (line) => {
-      newESQLCompletion += line + "\n";
-      /*      const updatedCursorPosition = esqlInputRef.current.selectionStart;
-      if (updatedCursorPosition > cursorPosition) {
-        // User has entered more text in the meantime
-        const enteredText = esqlInput.substring(
-          cursorPosition,
-          updatedCursorPosition
-        );
-        if (!line.startsWith(enteredText)) {
-          return;
-        }
-      }*/
-      setEsqlCompletion(newESQLCompletion);
-      autosize.update(esqlCompletionRef.current);
-      /*      esqlInputRef.current.setSelectionRange(
-        cursorPosition,
-        cursorPosition + line.length
-      );
-*/
-    };
-
-    try {
-      const data = await generateESQLUpdate(
-        apiKey,
-        modelSelected,
-        esqlGuideText,
-        schemaGuideText,
-        esqlBeforeCursor,
-        undefined,
-        haveESQLLine,
-        undefined
-      );
-      setAllStats([...allStats, data.stats]);
-      saveCacheWarmedInfo();
-    } catch (error) {
-      console.error("Completion error:", error);
-    }
-  };
 
   /**
    * Handles API errors and updates the state of apiKeyWorks.
@@ -323,15 +235,71 @@ const Form = () => {
     });
   };
 
-  const handleUpdateESQL = async () => {
-    await performESQLRequest(naturalInput);
-  };
+  const handleCompleteESQL = async () => {
+    if (esqlInputRef.current === null) {
+      return;
+    }
+    const cursorPosition = esqlInputRef.current.selectionStart;
+    if (esqlInputRef.current.selectionEnd !== cursorPosition) {
+      return;
+    }
+    const esqlBeforeCursor = esqlInput.substring(0, cursorPosition);
+    const cursorY = esqlBeforeCursor.split("\n").length - 1;
+    const cursorX =
+      esqlBeforeCursor.length -
+      (cursorY === 0 ? 0 : esqlBeforeCursor.lastIndexOf("\n") + 1);
 
-  const clearESQL = () => {
-    setEsqlInput("");
+    let lineEnd = esqlInput.indexOf("\n", cursorPosition);
+    if (lineEnd === -1) {
+      lineEnd = esqlInput.length;
+    }
+    if (lineEnd > cursorPosition) {
+      setEsqlInput(
+        esqlInput.substring(0, cursorPosition) + esqlInput.substring(lineEnd)
+      );
+    }
     setEsqlCompletion("");
-    setNaturalInput("");
-    setHistory([]);
+
+    let newESQLCompletion = "\n".repeat(cursorY) + " ".repeat(cursorX);
+
+    const haveESQLLine = (line) => {
+      newESQLCompletion += line + "\n";
+      /*      const updatedCursorPosition = esqlInputRef.current.selectionStart;
+          if (updatedCursorPosition > cursorPosition) {
+            // User has entered more text in the meantime
+            const enteredText = esqlInput.substring(
+              cursorPosition,
+              updatedCursorPosition
+            );
+            if (!line.startsWith(enteredText)) {
+              return;
+            }
+          }*/
+      setEsqlCompletion(newESQLCompletion);
+      autosize.update(esqlCompletionRef.current);
+      /*      esqlInputRef.current.setSelectionRange(
+            cursorPosition,
+            cursorPosition + line.length
+          );
+    */
+    };
+
+    try {
+      const data = await generateESQLUpdate(
+        apiKey,
+        modelSelected,
+        esqlGuideText,
+        schemaGuideText,
+        esqlBeforeCursor,
+        undefined,
+        haveESQLLine,
+        undefined
+      );
+      setAllStats([...allStats, data.stats]);
+      saveCacheWarmedInfo();
+    } catch (error) {
+      console.error("Completion error:", error);
+    }
   };
 
   const saveCacheWarmedInfo = () => {
@@ -341,30 +309,6 @@ const Form = () => {
       schemaGuideText,
       modelSelected,
     });
-  };
-
-  const copyESQL = () => {
-    navigator.clipboard.writeText(esqlInput);
-    toast({
-      title: "ES|QL copied to clipboard",
-      status: "success",
-      duration: 750,
-      isClosable: true,
-    });
-  };
-
-  const revertUpdate = () => {
-    if (history.length > 0) {
-      const last = history.pop();
-      setNaturalInput(last.naturalInput);
-      setEsqlInput(last.esqlInput);
-    }
-  };
-
-  const showHistory = () => {
-    const jsonHistory = JSON.stringify(history, null, 2);
-    const newWindow = window.open();
-    newWindow.document.write(`<pre>${jsonHistory}</pre>`);
   };
 
   return (
@@ -450,166 +394,32 @@ const Form = () => {
 
             <AccordionPanel>
               <VStack align={"stretch"} justify={"space-between"} spacing={10}>
-                <VStack align={"stretch"} justify={"space-between"}>
-                  <form onSubmit={(e) => e.preventDefault()}>
-                    <HStack>
-                      <FormControl flex={1}>
-                        <Input
-                          placeholder="Natural Text"
-                          value={naturalInput}
-                          onChange={handleNaturalTextChange}
-                          ref={naturalInputRef}
-                          flex={1}
-                        />
-                      </FormControl>
-                      <SpinningButton
-                        type="submit"
-                        spinningAction={handleUpdateESQL}
-                        disabled={
-                          !apiKey ||
-                          !esqlGuideText ||
-                          !schemaGuideText ||
-                          !naturalInput
-                        }
-                      >
-                        {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
-                      </SpinningButton>
-                      <Tooltip
-                        isDisabled={!tooltipsShown}
-                        label="Restore the inputs to the state before this button was pressed"
-                      >
-                        <Button
-                          variant="ghost"
-                          isDisabled={history.length === 0}
-                          colorScheme="red"
-                          onClick={(e) => revertUpdate()}
-                        >
-                          Undo
-                        </Button>
-                      </Tooltip>
-                    </HStack>
-                  </form>
+                <MainArea
+                  tooltipsShown={tooltipsShown}
+                  isESQLRequestAvailable={
+                    apiKey.length > 0 &&
+                    esqlGuideText.length > 0 &&
+                    schemaGuideText.length > 0
+                  }
 
-                  <HStack align="stretch" justify="flex-start">
-                    <VStack spacing={0} align="stretch" flex={1}>
-                      <Box height={0} overflow={"visible"}>
-                        <Textarea
-                          value={esqlCompletion}
-                          ref={esqlCompletionRef}
-                          readOnly
-                          disabled
-                          fontFamily={"monospace"}
-                          whiteSpace="pre-wrap"
-                          style={{
-                            opacity: 0.5,
-                            borderColor: "transparent",
-                          }}
-                          flex={1}
-                          transition="height none"
-                          spellCheck={false}
-                          resize={"none"}
-                        />
-                      </Box>
-                      <Box flex={1}>
-                        <Textarea
-                          placeholder="ES|QL"
-                          value={esqlInput}
-                          ref={esqlInputRef}
-                          onChange={(e) => setEsqlInput(e.target.value)}
-                          fontFamily={"monospace"}
-                          whiteSpace="pre-wrap"
-                          style={{ height: "auto", background: "none" }}
-                          transition="height none"
-                          spellCheck={false}
-                          onKeyDown={(e) => {
-                            if (e.key === COMPLETION_KEY) {
-                              e.preventDefault();
-                              esqlCompleteButtonRef.current?.click();
-                            }
-                          }}
-                        />
-                      </Box>
-                    </VStack>
-                  </HStack>
-                  <HStack>
-                    <Tooltip
-                      isDisabled={!tooltipsShown}
-                      label="Complete the current line"
-                    >
-                      <SpinningButton
-                        spinningAction={handleCompleteESQL}
-                        disabled={
-                          !apiKey ||
-                          !esqlGuideText ||
-                          !schemaGuideText ||
-                          !esqlInput
-                        }
-                        ref={esqlCompleteButtonRef}
-                      >
-                        Complete
-                      </SpinningButton>
-                    </Tooltip>
-                    <Spacer />
-                    <Tooltip
-                      isDisabled={!tooltipsShown}
-                      label="Pretty print the ES|QL"
-                    >
-                      <SpinningButton
-                        spinningAction={() =>
-                          performESQLRequest("Prettify the provided ES|QL")
-                        }
-                        disabled={
-                          !apiKey ||
-                          !esqlGuideText ||
-                          !schemaGuideText ||
-                          !esqlInput
-                        }
-                      >
-                        Prettify
-                      </SpinningButton>
-                    </Tooltip>
-                    <Tooltip
-                      isDisabled={!tooltipsShown}
-                      label="Copy ES|QL to Clipboard"
-                    >
-                      <Button
-                        variant="ghost"
-                        colorScheme="green"
-                        isDisabled={!esqlInput}
-                        onClick={(e) => copyESQL()}
-                      >
-                        Copy
-                      </Button>
-                    </Tooltip>
-                    <Spacer />
-                    <Tooltip
-                      isDisabled={!tooltipsShown}
-                      label="Export history of prompt and request pairs"
-                    >
-                      <Button
-                        variant="ghost"
-                        isDisabled={history.length === 0}
-                        colorScheme="green"
-                        onClick={(e) => showHistory()}
-                      >
-                        History
-                      </Button>
-                    </Tooltip>
-                    <Tooltip
-                      isDisabled={!tooltipsShown}
-                      label="Reset the prompt and ES|QL and being anew."
-                    >
-                      <Button
-                        variant="ghost"
-                        colorScheme="red"
-                        isDisabled={!esqlInput && !naturalInput}
-                        onClick={(e) => clearESQL()}
-                      >
-                        Reset
-                      </Button>
-                    </Tooltip>
-                  </HStack>
-                </VStack>
+                  naturalInput={naturalInput}
+                  setNaturalInput={setNaturalInput}
+                  esqlInput={esqlInput}
+                  setEsqlInput={setEsqlInput}
+                  esqlCompletion={esqlCompletion}
+                  setEsqlCompletion={setEsqlCompletion}
+
+                  history={history}
+                  setHistory={setHistory}
+
+                  esqlCompleteButtonRef={esqlCompleteButtonRef}
+                  naturalInputRef={naturalInputRef}
+                  esqlInputRef={esqlInputRef}
+                  esqlCompletionRef={esqlCompletionRef}
+
+                  handleCompleteESQL={handleCompleteESQL}
+                  performESQLRequest={performESQLRequest}
+                />
                 <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
               </VStack>
             </AccordionPanel>
