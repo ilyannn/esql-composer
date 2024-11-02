@@ -1,10 +1,8 @@
 import autosize from "autosize";
-import axios from "axios";
 import moment from "moment";
 import { useEffect, useRef, useState } from "react";
-import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
-import { ClockLoader } from "react-spinners/ClockLoader";
+import ClockLoader from "react-spinners/ClockLoader";
 import { useInterval } from "usehooks-ts";
 
 import {
@@ -16,12 +14,10 @@ import {
   Box,
   Button,
   FormControl,
-  FormLabel,
   HStack,
   Heading,
   Input,
   Spacer,
-  StackDivider,
   Text,
   Textarea,
   Tooltip,
@@ -39,6 +35,7 @@ import {
 
 import HowToUse from "./HowToUse";
 import LLMConfiguration from "./LLMConfiguration";
+import ReferenceGuides from "./ReferenceGuides";
 import SpinningButton from "./SpinningButton";
 import Statistics from "./Statistics";
 
@@ -73,8 +70,6 @@ const Form = () => {
   const naturalInputRef = useRef(null);
 
   useEffect(() => {
-    loadSchemaFile("schema-flights.txt");
-
     const defaultApiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
     if (defaultApiKey !== undefined) {
       setApiKey(defaultApiKey);
@@ -120,36 +115,6 @@ const Form = () => {
 
   useEffect(updateCacheWarmedText, [cacheWarmedInfo]);
   useInterval(updateCacheWarmedText, 5 * 1000);
-
-  const loadESQLFile = async (filename) => {
-    if (!filename) {
-      setEsqlGuideText("");
-      return;
-    }
-    axios
-      .get(filename)
-      .then((response) => {
-        setEsqlGuideText(response.data);
-      })
-      .catch((error) => {
-        console.error(`Error loading ${filename}:`, error);
-      });
-  };
-
-  const loadSchemaFile = async (filename) => {
-    if (!filename) {
-      setSchemaGuideText("");
-      return;
-    }
-    axios
-      .get(filename)
-      .then((response) => {
-        setSchemaGuideText(response.data);
-      })
-      .catch((error) => {
-        console.error(`Error loading ${filename}:`, error);
-      });
-  };
 
   const handleNaturalTextChange = async (e) => {
     const text = e.target.value;
@@ -464,99 +429,15 @@ const Form = () => {
               )}
             </AccordionButton>
             <AccordionPanel>
-              <ResizableBox
-                width={Infinity}
-                height={200}
-                minConstraints={[Infinity, 200]}
-                axis="y"
-                resizeHandles={["se"]}
-              >
-                <HStack
-                  justify={"space-between"}
-                  align={"stretch"}
-                  spacing={8}
-                  height={"100%"}
-                  divider={<StackDivider borderColor="gray.200" />}
-                >
-                  <VStack align="stretch" justify="flex-start" flex={1}>
-                    <FormControl
-                      isRequired={true}
-                      flex={1}
-                      display="flex"
-                      flexDirection={"column"}
-                    >
-                      <FormLabel>ES|QL Reference</FormLabel>
-                      <Textarea
-                        placeholder="Put reference material here."
-                        value={esqlGuideText}
-                        onChange={(e) => setEsqlGuideText(e.target.value)}
-                        flex={1}
-                        resize={"none"}
-                      />
-                      <HStack justify="space-evenly">
-                        <Button
-                          variant="ghost"
-                          colorScheme="red"
-                          onClick={(e) => loadESQLFile("")}
-                        >
-                          Clear
-                        </Button>
-                      </HStack>
-                    </FormControl>
-                  </VStack>
-
-                  <VStack align="stretch" justify="flex-start" flex={1}>
-                    <FormControl
-                      isRequired={true}
-                      flex={1}
-                      display="flex"
-                      flexDirection={"column"}
-                    >
-                      <FormLabel>Schema Description</FormLabel>
-                      <Textarea
-                        placeholder="Your Elasticsearch schema reference"
-                        value={schemaGuideText}
-                        onChange={(e) => setSchemaGuideText(e.target.value)}
-                        flex={1}
-                        resize="none"
-                      />
-                      <HStack justify="space-evenly">
-                        <Button
-                          variant="ghost"
-                          colorScheme="green"
-                          onClick={(e) => loadSchemaFile("schema-flights.txt")}
-                        >
-                          Flights
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          colorScheme="red"
-                          onClick={(e) => loadSchemaFile("")}
-                        >
-                          Clear
-                        </Button>
-                      </HStack>
-                    </FormControl>
-                  </VStack>
-                  <VStack align="center" justify="flex-start">
-                    <Tooltip
-                      isDisabled={!tooltipsShown}
-                      label="Send a request with the current ES|QL and schema"
-                    >
-                      <SpinningButton
-                        spinningAction={handleWarmCache}
-                        disabled={
-                          !apiKey.length ||
-                          !esqlGuideText.length ||
-                          !schemaGuideText.length
-                        }
-                      >
-                        Warm Cache
-                      </SpinningButton>
-                    </Tooltip>
-                  </VStack>
-                </HStack>
-              </ResizableBox>
+              <ReferenceGuides
+                apiKey={apiKey}
+                esqlGuideText={esqlGuideText}
+                setEsqlGuideText={setEsqlGuideText}
+                schemaGuideText={schemaGuideText}
+                setSchemaGuideText={setSchemaGuideText}
+                handleWarmCache={handleWarmCache}
+                tooltipsShown={tooltipsShown}
+              />
             </AccordionPanel>
           </AccordionItem>
 
