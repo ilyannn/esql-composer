@@ -23,26 +23,17 @@ import {
   AccordionItem,
   AccordionIcon,
   AccordionPanel,
-  Link,
   FormControl,
   FormLabel,
-  FormHelperText,
-  InputRightElement,
-  InputGroup,
-  Slider,
-  SliderMark,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb,
   StackDivider,
   Text,
 } from "@chakra-ui/react";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
-import { CheckIcon, ExternalLinkIcon } from "@chakra-ui/icons";
 
 import SpinningButton from "./SpinningButton";
 import Statistics from "./Statistics";
+import LLMConfiguration from "./LLMConfiguration";
 
 import {
   testWithSimpleQuestion,
@@ -65,7 +56,6 @@ const Form = () => {
   const [tooltipsShown, setTooltipsShown] = useState(true);
   const [apiKeyWorks, setApiKeyWorks] = useState(null);
   const [allStats, setAllStats] = useState([]);
-  const apiKeyRef = useRef(null);
   const naturalInputRef = useRef(null);
   const esqlInputRef = useRef(null);
   const esqlCompletionRef = useRef(null);
@@ -76,13 +66,6 @@ const Form = () => {
   // Since Haiku 3.5 is not available yet.
   const [modelSelected, setModelSelected] = useState(1);
 
-  const modelSliderlabelStyles = {
-    mt: "3",
-    ml: "-3",
-    fontSize: "sm",
-    fontFamily: "monospace",
-  };
-
   useEffect(() => {
     // Load the contents of esql.txt and schema.txt
     loadSchemaFile("schema-flights.txt");
@@ -91,10 +74,6 @@ const Form = () => {
       setApiKey(defaultApiKey);
       if (naturalInputRef.current) {
         naturalInputRef.current.focus();
-      }
-    } else {
-      if (apiKeyRef.current) {
-        apiKeyRef.current.focus();
       }
     }
 
@@ -443,111 +422,16 @@ const Form = () => {
               </Heading>
             </AccordionButton>
             <AccordionPanel>
-              <VStack align="stretch" justify={"space-between"} spacing={6}>
-                <form onSubmit={(e) => e.preventDefault()}>
-                  <HStack
-                    justify={"space-between"}
-                    align={"stretch"}
-                    spacing={8}
-                    divider={<StackDivider borderColor="gray.200" />}
-                  >
-                    <FormControl as="fieldset" width="200px">
-                      <FormLabel as="legend">Claude 3.5 Model</FormLabel>
-                      <Box p={5} pt={0}>
-                        <Slider
-                          aria-label="Model Selection"
-                          onChange={(val) => setModelSelected(val)}
-                          value={modelSelected}
-                          min={0}
-                          max={1}
-                          step={1}
-                        >
-                          <SliderMark value={0} {...modelSliderlabelStyles}>
-                            Haiku
-                          </SliderMark>
-                          <SliderMark value={1} {...modelSliderlabelStyles}>
-                            Sonnet
-                          </SliderMark>
-                          {/* <SliderMark value={2} {...modelSliderlabelStyles}>
-                        Opus
-                      </SliderMark> */}
-                          <SliderTrack bg="gray.200">
-                            <SliderFilledTrack bg="gold" />
-                          </SliderTrack>
-                          <SliderThumb
-                            boxSize={5 + 2 * modelSelected}
-                            bg="red.50"
-                          >
-                            <Text fontSize="sm">
-                              {"$".repeat(modelSelected + 1)}
-                            </Text>
-                          </SliderThumb>
-                        </Slider>
-                      </Box>
-                      <FormHelperText>
-                        As of October 31st, Haiku 3.5 was still{" "}
-                        <Link
-                          isExternal
-                          href="https://www.anthropic.com/pricing#anthropic-api"
-                        >
-                          <ExternalLinkIcon mx="3px" />
-                          not available
-                        </Link>
-                      </FormHelperText>
-                    </FormControl>
-                    <FormControl
-                      isRequired
-                      isInvalid={apiKey && apiKeyWorks === false}
-                      isDisabled={apiKey && apiKeyWorks === true}
-                      flex={1}
-                    >
-                      <FormLabel>Anthropic API Key</FormLabel>
-                      <InputGroup>
-                        <Input
-                          placeholder="Enter key here"
-                          value={apiKey}
-                          autoComplete="anthropic-api-key"
-                          onChange={(e) => {
-                            setApiKey(e.target.value);
-                            setApiKeyWorks(null);
-                          }}
-                          type="password"
-                          ref={apiKeyRef}
-                          errorBorderColor="red.300"
-                          flex={1}
-                        />
-                        {apiKeyWorks === true ? (
-                          <InputRightElement>
-                            <CheckIcon color="green.300" />
-                          </InputRightElement>
-                        ) : null}
-                      </InputGroup>
-                      <FormHelperText>
-                        Since we use{" "}
-                        <Link
-                          isExternal
-                          href="https://www.anthropic.com/news/prompt-caching"
-                        >
-                          <ExternalLinkIcon /> beta features of the API
-                        </Link>
-                        , only direct Anthropic access is supported.
-                      </FormHelperText>
-                    </FormControl>
-                    <Tooltip
-                      isDisabled={!tooltipsShown}
-                      label="Perform a test request to the API"
-                    >
-                      <SpinningButton
-                        type="submit"
-                        spinningAction={testAPIKey}
-                        disabled={!apiKey}
-                      >
-                        Test API
-                      </SpinningButton>
-                    </Tooltip>
-                  </HStack>
-                </form>
-              </VStack>
+              <LLMConfiguration
+                modelSelected={modelSelected}
+                setModelSelected={setModelSelected}
+                apiKey={apiKey}
+                setApiKey={setApiKey}
+                apiKeyWorks={apiKeyWorks}
+                setApiKeyWorks={setApiKeyWorks}
+                tooltipsShown={tooltipsShown}
+                testAPIKey={testAPIKey}
+              />
             </AccordionPanel>
           </AccordionItem>
 
