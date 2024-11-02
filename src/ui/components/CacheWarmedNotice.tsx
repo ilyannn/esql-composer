@@ -2,12 +2,12 @@ import React from 'react';
 import { HStack, Text, Tooltip } from '@chakra-ui/react';
 import ClockLoader from 'react-spinners/ClockLoader';
 
-interface CacheWarmedInfoProps {
+interface CacheWarmedNoticeProps {
   cacheWarmedText: string | null;
   tooltipsShown: boolean;
 }
 
-const CacheWarmedInfo: React.FC<CacheWarmedInfoProps> = React.memo(({
+const CacheWarmedNotice: React.FC<CacheWarmedNoticeProps> = React.memo(({
   cacheWarmedText,
   tooltipsShown,
 }) => {
@@ -28,4 +28,4 @@ const CacheWarmedInfo: React.FC<CacheWarmedInfoProps> = React.memo(({
   );
 });
 
-export default CacheWarmedInfo;
+export default CacheWarmedNotice;

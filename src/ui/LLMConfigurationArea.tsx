@@ -20,9 +20,9 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import React from "react";
-import SpinningButton from "./SpinningButton";
+import SpinningButton from "./components/SpinningButton";
 
-interface LLMConfigurationProps {
+interface LLMConfigurationAreaProps {
   modelSelected: number;
   setModelSelected: (value: number) => void;
   apiKey: string;
@@ -33,7 +33,7 @@ interface LLMConfigurationProps {
   testAPIKey: () => Promise<void>;
 }
 
-const LLMConfiguration: React.FC<LLMConfigurationProps> = ({
+const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
   modelSelected,
   setModelSelected,
   apiKey,
@@ -153,4 +153,4 @@ const LLMConfiguration: React.FC<LLMConfigurationProps> = ({
   );
 };
 
-export default LLMConfiguration;
+export default LLMConfigurationArea;

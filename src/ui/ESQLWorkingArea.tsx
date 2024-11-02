@@ -13,11 +13,11 @@ import {
 import autosize from "autosize";
 import React, { useEffect } from "react";
 
-import SpinningButton from "./SpinningButton";
+import SpinningButton from "./components/SpinningButton";
 
 import { COMPLETION_KEY } from "./constants";
 
-interface MainAreaProps {
+interface ESQLWorkingAreaProps {
   tooltipsShown: boolean;
   isESQLRequestAvailable: boolean;
 
@@ -40,7 +40,7 @@ interface MainAreaProps {
   performESQLRequest: (action: string) => Promise<void>;
 }
 
-const MainArea: React.FC<MainAreaProps> = ({
+const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   tooltipsShown,
   isESQLRequestAvailable,
 
@@ -270,4 +270,4 @@ const MainArea: React.FC<MainAreaProps> = ({
   );
 };
 
-export default MainArea;
+export default ESQLWorkingArea;

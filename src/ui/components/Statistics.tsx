@@ -8,7 +8,7 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 
-import { StatisticsRow } from "../services/types";
+import { StatisticsRow } from "../../common/types";
 
 interface StatisticsProps {
   tooltipsShown: boolean;

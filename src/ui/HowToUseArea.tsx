@@ -11,12 +11,12 @@ import {
 import React from "react";
 import { COMPLETION_KEY } from "./constants";
 
-interface HowToUseProps {
+interface HowToUseAreaProps {
   tooltipsShown: boolean;
   setTooltipsShown: (value: boolean) => void;
 }
 
-const HowToUse: React.FC<HowToUseProps> = React.memo(
+const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
   ({ tooltipsShown, setTooltipsShown }) => {
     return (
       <HStack justify="space-between" align="stretch">
@@ -60,4 +60,4 @@ const HowToUse: React.FC<HowToUseProps> = React.memo(
   }
 );
 
-export default HowToUse;
+export default HowToUseArea;

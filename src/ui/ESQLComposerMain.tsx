@@ -21,15 +21,15 @@ import {
   testWithSimpleQuestion,
   warmCache,
 } from "../services/requests";
-import { StatisticsRow } from "../services/types";
+import { StatisticsRow } from "../common/types";
 
-import CacheWarmedInfo from "./CacheWarmedInfo";
-import HowToUse from "./HowToUse";
-import LLMConfiguration from "./LLMConfiguration";
-import MainArea from "./MainArea";
-import ReferenceGuides from "./ReferenceGuides";
-import Section from "./Section";
-import Statistics from "./Statistics";
+import CacheWarmedNotice from "./components/CacheWarmedNotice";
+import HowToUseArea from "./HowToUseArea";
+import LLMConfigurationArea from "./LLMConfigurationArea";
+import ESQLWorkingArea from "./ESQLWorkingArea";
+import ReferenceGuidesArea from "./ReferenceGuidesArea";
+import Section from "./components/Section";
+import Statistics from "./components/Statistics";
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 
 type HistoryRow = {
@@ -39,7 +39,7 @@ type HistoryRow = {
   stats: StatisticsRow;
 };
 
-const Form = () => {
+const ESQLComposerMain = () => {
   const toast = useToast();
 
   const [tooltipsShown, setTooltipsShown] = useState(true);
@@ -353,14 +353,14 @@ const Form = () => {
 
         <Accordion defaultIndex={[1, 2, 3]} allowMultiple>
           <Section label="How to Use" color="green.50">
-            <HowToUse
+            <HowToUseArea
               tooltipsShown={tooltipsShown}
               setTooltipsShown={setTooltipsShown}
             />
           </Section>
 
           <Section label="LLM Access" color="cyan.50">
-            <LLMConfiguration
+            <LLMConfigurationArea
               modelSelected={modelSelected}
               setModelSelected={setModelSelected}
               apiKey={apiKey}
@@ -376,13 +376,13 @@ const Form = () => {
             label="Reference Guides"
             color="yellow.50"
             headerElement={
-              <CacheWarmedInfo
+              <CacheWarmedNotice
                 cacheWarmedText={cacheWarmedText}
                 tooltipsShown={tooltipsShown}
               />
             }
           >
-            <ReferenceGuides
+            <ReferenceGuidesArea
               apiKey={apiKey}
               esqlGuideText={esqlGuideText}
               setEsqlGuideText={setEsqlGuideText}
@@ -395,7 +395,7 @@ const Form = () => {
 
           <Section>
             <VStack align={"stretch"} justify={"space-between"} spacing={10}>
-              <MainArea
+              <ESQLWorkingArea
                 tooltipsShown={tooltipsShown}
                 isESQLRequestAvailable={
                   (apiKey && esqlGuideText && schemaGuideText) !== ""
@@ -424,4 +424,4 @@ const Form = () => {
   );
 };
 
-export default Form;
+export default ESQLComposerMain;

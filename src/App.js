@@ -1,10 +1,10 @@
 import { ChakraProvider } from '@chakra-ui/react';
-import Form from './components/Form';
+import ESQLComposerMain from './ui/ESQLComposerMain';
 
 function App() {
   return (
     <ChakraProvider>
-      <Form />
+      <ESQLComposerMain />
     </ChakraProvider>
   );
 }

@@ -14,9 +14,9 @@ import React, { useCallback, useEffect } from "react";
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
 
-import SpinningButton from "./SpinningButton";
+import SpinningButton from "./components/SpinningButton";
 
-interface ReferenceGuidesProps {
+interface ReferenceGuidesAreaProps {
   esqlGuideText: string;
   setEsqlGuideText: (value: string) => void;
   schemaGuideText: string;
@@ -26,7 +26,7 @@ interface ReferenceGuidesProps {
   apiKey: string;
 }
 
-const ReferenceGuides: React.FC<ReferenceGuidesProps> = ({
+const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   esqlGuideText,
   setEsqlGuideText,
   schemaGuideText,
@@ -170,4 +170,4 @@ const ReferenceGuides: React.FC<ReferenceGuidesProps> = ({
   );
 };
 
-export default ReferenceGuides;
+export default ReferenceGuidesArea;
