@@ -1,74 +1,80 @@
-import { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import autosize from "autosize";
+import axios from "axios";
 import moment from "moment";
-import Anthropic from "@anthropic-ai/sdk";
-import ClockLoader from "react-spinners/ClockLoader";
-
+import { useEffect, useRef, useState } from "react";
+import { ResizableBox } from "react-resizable";
+import "react-resizable/css/styles.css";
+import { ClockLoader } from "react-spinners/ClockLoader";
 import { useInterval } from "usehooks-ts";
 
 import {
-  Box,
-  Input,
-  Textarea,
-  VStack,
-  HStack,
-  Heading,
-  Button,
-  Tooltip,
-  useToast,
-  Spacer,
   Accordion,
   AccordionButton,
-  AccordionItem,
   AccordionIcon,
+  AccordionItem,
   AccordionPanel,
+  Box,
+  Button,
   FormControl,
   FormLabel,
+  HStack,
+  Heading,
+  Input,
+  Spacer,
   StackDivider,
   Text,
+  Textarea,
+  Tooltip,
+  VStack,
+  useToast,
 } from "@chakra-ui/react";
-import { ResizableBox } from "react-resizable";
-import "react-resizable/css/styles.css";
 
-import SpinningButton from "./SpinningButton";
-import Statistics from "./Statistics";
-import LLMConfiguration from "./LLMConfiguration";
+import Anthropic from "@anthropic-ai/sdk";
 
 import {
+  generateESQLUpdate,
   testWithSimpleQuestion,
   warmCache,
-  generateESQLUpdate,
 } from "../services/requests";
 
-import { COMPLETION_KEY } from "./constants";
 import HowToUse from "./HowToUse";
+import LLMConfiguration from "./LLMConfiguration";
+import SpinningButton from "./SpinningButton";
+import Statistics from "./Statistics";
+
+import { COMPLETION_KEY } from "./constants";
 
 const Form = () => {
+  const toast = useToast();
+
+  const [tooltipsShown, setTooltipsShown] = useState(true);
+
+  // Since Haiku 3.5 is not available yet, default to Sonnet 3.5
+  const [modelSelected, setModelSelected] = useState(1);
   const [apiKey, setApiKey] = useState("");
-  const [cacheWarmedInfo, setCacheWarmedInfo] = useState(null);
-  const [cacheWarmedText, setCacheWarmedText] = useState(null);
+
   const [esqlGuideText, setEsqlGuideText] = useState("");
   const [schemaGuideText, setSchemaGuideText] = useState("");
+
+  const [naturalInput, setNaturalInput] = useState("");
   const [esqlInput, setEsqlInput] = useState("");
   const [esqlCompletion, setEsqlCompletion] = useState("");
-  const [naturalInput, setNaturalInput] = useState("");
-  const [tooltipsShown, setTooltipsShown] = useState(true);
-  const [apiKeyWorks, setApiKeyWorks] = useState(null);
+
   const [allStats, setAllStats] = useState([]);
-  const naturalInputRef = useRef(null);
+  const [history, setHistory] = useState([]);
+
+  const [apiKeyWorks, setApiKeyWorks] = useState(null);
+  const [cacheWarmedInfo, setCacheWarmedInfo] = useState(null);
+  const [cacheWarmedText, setCacheWarmedText] = useState(null);
+
   const esqlInputRef = useRef(null);
   const esqlCompletionRef = useRef(null);
   const esqlCompleteButtonRef = useRef(null);
-  const toast = useToast();
-  const [history, setHistory] = useState([]);
-
-  // Since Haiku 3.5 is not available yet.
-  const [modelSelected, setModelSelected] = useState(1);
+  const naturalInputRef = useRef(null);
 
   useEffect(() => {
-    // Load the contents of esql.txt and schema.txt
     loadSchemaFile("schema-flights.txt");
+
     const defaultApiKey = process.env.REACT_APP_ANTHROPIC_API_KEY;
     if (defaultApiKey !== undefined) {
       setApiKey(defaultApiKey);
