@@ -15,13 +15,18 @@ import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
 
 import SpinningButton from "./components/SpinningButton";
+import TokenCountNotice from "./components/TokenCountNotice";
 
 interface ReferenceGuidesAreaProps {
   esqlGuideText: string;
   setEsqlGuideText: (value: string) => void;
+  esqlGuideTokenCount: number | null;
   schemaGuideText: string;
   setSchemaGuideText: (value: string) => void;
+  schemaGuideTokenCount: number | null;
   handleWarmCache: () => Promise<void>;
+  handleReduceSize: () => Promise<void>;
+  handleGetTokenCount: () => Promise<void>;
   tooltipsShown: boolean;
   apiKey: string;
 }
@@ -29,9 +34,13 @@ interface ReferenceGuidesAreaProps {
 const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   esqlGuideText,
   setEsqlGuideText,
+  esqlGuideTokenCount,
   schemaGuideText,
   setSchemaGuideText,
+  schemaGuideTokenCount,
   handleWarmCache,
+  handleReduceSize,
+  handleGetTokenCount,
   tooltipsShown,
   apiKey,
 }) => {
@@ -94,7 +103,10 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             display="flex"
             flexDirection={"column"}
           >
-            <FormLabel>ES|QL Reference</FormLabel>
+            <HStack justify={"space-between"}>
+              <FormLabel>ES|QL Reference</FormLabel>
+              <TokenCountNotice charCount={esqlGuideText.length} tokenCount={esqlGuideTokenCount} />
+            </HStack>
             <Textarea
               placeholder="Put reference material here."
               value={esqlGuideText}
@@ -121,7 +133,10 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             display="flex"
             flexDirection={"column"}
           >
-            <FormLabel>Schema Description</FormLabel>
+            <HStack justify={"space-between"}>
+              <FormLabel>Schema Description</FormLabel>
+              <TokenCountNotice charCount={schemaGuideText.length} tokenCount={schemaGuideTokenCount} />
+            </HStack>
             <Textarea
               placeholder="Your Elasticsearch schema reference"
               value={schemaGuideText}
@@ -147,7 +162,40 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             </HStack>
           </FormControl>
         </VStack>
-        <VStack align="center" justify="flex-start">
+        <VStack align="stretch" justify="flex-start">
+          <Tooltip
+            isDisabled={!tooltipsShown}
+            label="Query the API to learn the token count"
+          >
+            <SpinningButton
+              type="button"
+              spinningAction={handleGetTokenCount}
+              gratisAction={true}
+              disabled={
+                !apiKey.length ||
+                !esqlGuideText.length ||
+                !schemaGuideText.length
+              }
+            >
+              Count Tokens
+            </SpinningButton>
+          </Tooltip>
+          <Tooltip
+            isDisabled={!tooltipsShown}
+            label="Ask the LLM to reduce the size of the guides"
+          >
+            <SpinningButton
+              type="button"
+              spinningAction={handleReduceSize}
+              disabled={
+                !apiKey.length ||
+                !esqlGuideText.length ||
+                !schemaGuideText.length
+              }
+            >
+              Reduce Size
+            </SpinningButton>
+          </Tooltip>
           <Tooltip
             isDisabled={!tooltipsShown}
             label="Send a request with the current ES|QL and schema"

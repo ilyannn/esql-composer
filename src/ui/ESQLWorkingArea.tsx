@@ -155,7 +155,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             <Button
               variant="ghost"
               isDisabled={history.length === 0}
-              colorScheme="red"
+              colorScheme="green"
               onClick={(e) => revertUpdate()}
             >
               Undo

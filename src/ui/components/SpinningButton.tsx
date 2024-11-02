@@ -1,5 +1,5 @@
 import React, { ReactNode, forwardRef, useState, useCallback } from "react";
-import ScaleLoader from "react-spinners/ScaleLoader";
+import { PacmanLoader, ScaleLoader } from "react-spinners";
 import { Button } from "@chakra-ui/react";
 
 interface SpinningButtonProps {
@@ -7,10 +7,11 @@ interface SpinningButtonProps {
   disabled?: boolean;
   children: ReactNode;
   type: "button" | "submit" | "reset" | undefined;
+  gratisAction?: boolean;
 }
 
 const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
-  ({ spinningAction, disabled, children, type }, ref) => {
+  ({ spinningAction, disabled, children, type, gratisAction }, ref) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const onClick = useCallback(async () => {
@@ -31,8 +32,15 @@ const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
         onClick={onClick}
         isLoading={isLoading}
         isDisabled={disabled}
-        spinner={<ScaleLoader height={25} margin={4} color="white" />}
+        spinner={
+          gratisAction === true ? (
+            <PacmanLoader size={15} color="blue" speedMultiplier={2}/>
+          ) : (
+            <ScaleLoader height={25} margin={4} color="white" />
+          )
+        }
         colorScheme="blue"
+        variant={gratisAction === true ? "outline" : "solid"}
       >
         {children}
       </Button>

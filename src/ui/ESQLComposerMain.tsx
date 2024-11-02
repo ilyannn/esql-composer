@@ -9,29 +9,30 @@ import {
   HStack,
   Heading,
   Link,
-  VStack,
   Text,
+  VStack,
   useToast,
-  ExpandedIndex,
 } from "@chakra-ui/react";
 
 import Anthropic from "@anthropic-ai/sdk";
 
+import { StatisticsRow } from "../common/types";
 import {
+  countTokens,
   generateESQLUpdate,
+  reduceSize,
   testWithSimpleQuestion,
   warmCache,
 } from "../services/requests";
-import { StatisticsRow } from "../common/types";
 
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 import CacheWarmedNotice from "./components/CacheWarmedNotice";
-import HowToUseArea, { Config } from "./HowToUseArea";
-import LLMConfigurationArea from "./LLMConfigurationArea";
-import ESQLWorkingArea from "./ESQLWorkingArea";
-import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import Section from "./components/Section";
 import Statistics from "./components/Statistics";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
+import ESQLWorkingArea from "./ESQLWorkingArea";
+import HowToUseArea, { Config } from "./HowToUseArea";
+import LLMConfigurationArea from "./LLMConfigurationArea";
+import ReferenceGuidesArea from "./ReferenceGuidesArea";
 
 type HistoryRow = {
   text: string;
@@ -52,6 +53,8 @@ const ESQLComposerMain = () => {
 
   const [esqlGuideText, setEsqlGuideText] = useState("");
   const [schemaGuideText, setSchemaGuideText] = useState("");
+  const [esqlGuideTokenCount, setEsqlGuideTokenCount] = useState<number | null>(null);
+  const [schemaGuideTokenCount, setSchemaGuideTokenCount] = useState<number | null>(null);
 
   const [naturalInput, setNaturalInput] = useState("");
   const [esqlInput, setEsqlInput] = useState("");
@@ -68,6 +71,14 @@ const ESQLComposerMain = () => {
   const esqlCompletionRef = useRef<HTMLTextAreaElement>(null);
   const esqlCompleteButtonRef = useRef<HTMLButtonElement>(null);
   const naturalInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setEsqlGuideTokenCount(null);
+  }, [esqlGuideText]);
+
+  useEffect(() => {
+    setSchemaGuideTokenCount(null);
+  }, [schemaGuideText]);
 
   useEffect(() => {
     if (!cacheWarmedInfo) {
@@ -105,14 +116,21 @@ const ESQLComposerMain = () => {
       esqlGuideText,
       schemaGuideText,
     };
-  }, [openedAreas, tooltipsShown, modelSelected, apiKey, esqlGuideText, schemaGuideText]);
+  }, [
+    openedAreas,
+    tooltipsShown,
+    modelSelected,
+    apiKey,
+    esqlGuideText,
+    schemaGuideText,
+  ]);
 
   const loadConfig = useCallback(
     (config: Config) => {
       if (
         "openedAreas" in config &&
         typeof config.openedAreas === "object" &&
-        Array.isArray(config.openedAreas)        
+        Array.isArray(config.openedAreas)
       ) {
         setOpenedAreas(config.openedAreas);
       }
@@ -259,6 +277,53 @@ const ESQLComposerMain = () => {
     });
   };
 
+  const handleReduceSize = async () => {
+    let oldSize: number | undefined = undefined;
+
+    await performAPIAction("Token Counting", async () => {
+      oldSize = await countTokens(apiKey, modelSelected, esqlGuideText);
+    });
+
+    await performAPIAction("Size reduction", async () => {
+      let newESQGuideText = "";
+
+      const processLine = (line: string) => {
+        newESQGuideText += line + "\n";
+        setEsqlGuideText(newESQGuideText);
+      };
+
+      const data = (await reduceSize(
+        apiKey,
+        modelSelected,
+        esqlGuideText,
+        schemaGuideText,
+        processLine,
+      )) as any;
+
+      setAllStats([...allStats, data.stats]);
+      saveCacheWarmedInfo();
+
+      const newSize = await countTokens(apiKey, modelSelected, newESQGuideText);
+      setEsqlGuideTokenCount(newSize);
+
+      const percentage = oldSize ? ((newSize / oldSize - 1) * 100).toFixed(0) : undefined;
+      toast({
+        title: "Size reduction successful",
+        description: `ES|QL guide size has changed from ${oldSize} to ${newSize} tokens (${percentage}% change).`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    });
+  };
+
+  const handleGetTokenCount = async () => {
+    await performAPIAction("Token Counting", async () => {
+      setEsqlGuideTokenCount(await countTokens(apiKey, modelSelected, esqlGuideText));
+      setSchemaGuideTokenCount(await countTokens(apiKey, modelSelected, schemaGuideText));
+    });
+  }
+
   const performESQLRequest = async (text: string) => {
     await performAPIAction("ES|QL generation", async () => {
       let interpolatedLines = esqlInput.split("\n");
@@ -284,11 +349,11 @@ const ESQLComposerMain = () => {
         if (lineIndex < interpolatedLines.length) {
           interpolatedLines.splice(lineIndex);
           setEsqlInput(interpolatedLines.join("\n"));
-          if (esqlInputRef.current) {
-            autosize.update(esqlInputRef.current);
-          }
         }
-      };
+        if (esqlInputRef.current) {
+          autosize.update(esqlInputRef.current);
+        }
+    };
       setEsqlCompletion("");
       const data = (await generateESQLUpdate(
         apiKey,
@@ -439,10 +504,14 @@ const ESQLComposerMain = () => {
               apiKey={apiKey}
               esqlGuideText={esqlGuideText}
               setEsqlGuideText={setEsqlGuideText}
+              esqlGuideTokenCount={esqlGuideTokenCount}
               schemaGuideText={schemaGuideText}
               setSchemaGuideText={setSchemaGuideText}
+              schemaGuideTokenCount={schemaGuideTokenCount}
               handleWarmCache={handleWarmCache}
               tooltipsShown={tooltipsShown}
+              handleReduceSize={handleReduceSize}
+              handleGetTokenCount={handleGetTokenCount}
             />
           </Section>
 

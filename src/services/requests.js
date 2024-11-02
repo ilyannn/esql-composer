@@ -6,10 +6,10 @@ export const warmCache = async (apiKey, modelSelected, esql, schema) => {
     modelSelected,
     esql,
     schema,
-    undefined, 
-    "top flights", 
-    undefined, 
-    undefined, 
+    undefined,
+    "top flights",
+    undefined,
+    undefined
   );
 };
 
@@ -128,17 +128,17 @@ SC
     );
   } else {
     systemTexts.push(
-      `Your task is to convert the natural language prompts to ES|QL. For each request (between input tags) please answer with a nicely formatted ES|QL query for the completion. The current query, if any, is given from the second line. Here are some examples:
+      `Your task is to convert the natural language prompts to ES|QL. The current query, if any, is given from the second line. For each request (in this example between <input> and </input> tags) please answer with a nicely formatted ES|QL query for the completion inside the <esql> and </esql> tags.  Here are some examples:
 <example>
 <input>
 Prompt: event codes by occurrence
 <input>
 <output>
-\`\`\`esql
+<esql>
 FROM logs-* 
 | STATS event_code_count = COUNT(event.code) BY event.code 
 | SORT event_code_count DESC 
-\`\`\`
+</esql>
 
 This query shows the event codes sorted by occurrence count in descending order.
 </output>
@@ -149,7 +149,7 @@ This query shows the event codes sorted by occurrence count in descending order.
 Prompt: top outbound trafic from process curl.exe
 </input>
 <output>
-\`\`\`esql
+<esql>
 FROM logs-endpoint 
 | WHERE process.name == "curl.exe" 
 | STATS bytes = SUM(destination.bytes) BY destination.address 
@@ -157,7 +157,7 @@ FROM logs-endpoint
 | SORT kb DESC 
 | LIMIT 10
 | KEEP kb,destination.address
-\`\`\`
+</esql>
 </output>
 </example>
 
@@ -173,7 +173,7 @@ FROM logs-endpoint
 | KEEP kb,destination.address
 </input>
 <output>
-\`\`\`esql
+<esql>
 FROM logs-endpoint 
 | WHERE process.name == "explorer.exe" 
 | STATS bytes = SUM(destination.bytes) BY destination.address 
@@ -181,7 +181,7 @@ FROM logs-endpoint
 | SORT kb DESC 
 | LIMIT 5
 | KEEP kb,destination.address
-\`\`\`
+</esql>
 </output>
 </example>
 `
@@ -204,7 +204,7 @@ FROM logs-endpoint
   } else {
     // Generation/update request
     requestText = "Prompt: " + naturalInput + "\n";
-  } 
+  }
 
   if (esqlInput) {
     requestText += esqlInput;
@@ -220,7 +220,6 @@ FROM logs-endpoint
     ],
   });
 
-  console.log({ system, messages });
   return { system, messages };
 };
 
@@ -232,8 +231,8 @@ FROM logs-endpoint
  * @param {Object} schema - The schema for the ESQL query.
  * @param {string} esqlInput - The ESQL input.
  * @param {string|undefined} naturalInput - The natural language input. Undefined for completion requests.
- * @param {Function} [haveESQLLine] - Optional callback function to handle ESQL lines.
- * @param {Function} [haveExplanationLine] - Optional callback function to handle explanation lines.
+ * @param {Function|undefined} [haveESQLLine] - Optional callback function to handle ESQL lines.
+ * @param {Function|undefined} [haveExplanationLine] - Optional callback function to handle explanation lines.
  * @returns {Promise<Object>} - A promise that resolves to an object containing statistics about the request.
  * @property {string} result.text - The completed text from the API.
  * @property {string} result.esql - The ESQL result from the API.
@@ -256,7 +255,9 @@ export const generateESQLUpdate = async (
   naturalInput,
   haveESQLLine,
   doneESQL,
-  haveExplanationLine
+  haveExplanationLine,
+  maxTokens = 256,
+  processESQLLines = true,
 ) => {
   const anthropic = createAnthropicInstance(apiKey);
 
@@ -268,25 +269,34 @@ export const generateESQLUpdate = async (
   let currentLine = "";
   let result = {};
 
-  const processLine = (line) => {
-    if (line.startsWith("```esql") && isInsideEsql === undefined) {
-      isInsideEsql = true;
-    } else if (line.startsWith("```") && isInsideEsql === true) {
-      isInsideEsql = false;
-      doneESQL?.();
-      esql_time = Date.now() - requestTime;
-    } else if (isInsideEsql) {
-      haveESQLLine?.(line);
-    } else {
-      haveExplanationLine?.(line);
-    }
-  };
+  let processLine;
+
+  if (processESQLLines) {
+    processLine = (line) => {
+      console.log(line)
+      if (line.startsWith("<esql>") && isInsideEsql === undefined) {
+        isInsideEsql = true;
+      } else if (line.startsWith("</esql>") && isInsideEsql === true) {
+        isInsideEsql = false;
+        doneESQL?.();
+        esql_time = Date.now() - requestTime;
+      } else if (isInsideEsql) {
+        haveESQLLine?.(line);
+      } else {
+        haveExplanationLine?.(line);
+      }
+    };
+  } else if (haveExplanationLine) {
+    processLine = haveExplanationLine;
+  } else {
+    processLine = () => {};
+  }
 
   const stream = anthropic.messages
     .stream({
       stream: true,
       model: MODEL_LIST[modelSelected],
-      max_tokens: 256,
+      max_tokens: maxTokens,
       ...prepareRequest(esql, schema, esqlInput, naturalInput),
     })
     .on("text", (textDelta, _) => {
@@ -310,7 +320,7 @@ export const generateESQLUpdate = async (
           currentLine = "";
         }
         if (isInsideEsql) {
-          processLine("```");
+          processLine("</esql>");
         }
       } else if (event.type === "message_start") {
         const usage = event.message.usage;
@@ -332,4 +342,37 @@ export const generateESQLUpdate = async (
   result.stats.first_token_time = first_token_time;
   result.stats.esql_time = esql_time;
   return result;
+};
+
+export const reduceSize = async (
+  apiKey,
+  modelSelected,
+  esql,
+  schema,
+  processLine
+) => {
+  return await generateESQLUpdate(
+    apiKey,
+    modelSelected,
+    esql,
+    schema,
+    undefined,
+    `Please remove unnecessary information from the provided Elasticsearch Query Language guide which will be used for the ES|QL generation task. Keep relevant information such as list of function names intact but reduce the number of redundant descriptions. Keep enough examples to be able to answer all questions. You will be the consumer of the reduced guide, so feel free to use any tricks that can be helpful. Output the new guide between <esql> and </esql> tags and put any other information outside. Aim at 40% reduction. Here is the old guide again:\n\n<esql>\n${esql}\n</esql>`,
+    processLine,
+    undefined,
+    undefined,
+    8192,
+  );
+};
+
+export const countTokens = async (apiKey, modelSelected, text) => {
+  const client = createAnthropicInstance(apiKey);
+
+  const response = await client.beta.messages.countTokens({
+    betas: ["token-counting-2024-11-01"],
+    model: MODEL_LIST[modelSelected],
+    messages: [{ role: "user", content: text }],
+  });
+
+  return response.input_tokens;
 };

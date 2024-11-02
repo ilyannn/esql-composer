@@ -1,12 +1,10 @@
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   Button,
-  Checkbox,
   HStack,
   Link,
   ListItem,
   Text,
-  Tooltip,
   UnorderedList,
   VStack,
 } from "@chakra-ui/react";
@@ -62,6 +60,9 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
             completion (you can't insert it yet).
           </ListItem>
           <ListItem>
+            Blue buttons perform Anthropic API requests (unfilled buttons = gratis, filled = paid).
+          </ListItem>
+          <ListItem>
             <HStack spacing={-0.5} align={"baseline"}>
             <Text>Button tooltips:</Text>
               {!tooltipsShown && (
@@ -70,7 +71,7 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
                   colorScheme="green"
                   onClick={() => setTooltipsShown(true)}
                 >
-                  Show
+                  Enable
                 </Button>
               )}
               {tooltipsShown && (
@@ -79,7 +80,7 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
                   colorScheme="green"
                   onClick={() => setTooltipsShown(false)}
                 >
-                  Hide
+                  Disable
                 </Button>
               )}
             </HStack>
