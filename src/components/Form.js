@@ -23,9 +23,6 @@ import {
   AccordionItem,
   AccordionIcon,
   AccordionPanel,
-  ListItem,
-  UnorderedList,
-  Checkbox,
   Link,
   FormControl,
   FormLabel,
@@ -53,8 +50,8 @@ import {
   generateESQLUpdate,
 } from "../services/requests";
 
-const GENERATION_KEY = "Enter";
-const COMPLETION_KEY = "`";
+import { COMPLETION_KEY } from "./constants";
+import HowToUse from "./HowToUse";
 
 const Form = () => {
   const [apiKey, setApiKey] = useState("");
@@ -432,52 +429,10 @@ const Form = () => {
               </Heading>
             </AccordionButton>
             <AccordionPanel>
-              <HStack justify="space-between" align="stretch">
-                <UnorderedList>
-                  <ListItem>
-                    Enter your Anthropic API key in the input field below.
-                  </ListItem>
-                  <ListItem>
-                    Add the ES|QL language and Elasticsearch schema reference
-                    guides.
-                  </ListItem>
-                  <ListItem>
-                    Optionally, warm the cache before sending other requests.
-                  </ListItem>
-                  <ListItem>
-                    Input some natural text and press{" "}
-                    <kbd>{GENERATION_KEY}</kbd> to convert it to ES|QL.
-                  </ListItem>
-                  <ListItem>
-                    Press <kbd>{COMPLETION_KEY}</kbd> in the ES|QL area to show
-                    a completion (you can't insert it yet).
-                  </ListItem>
-                  <ListItem>
-                    You can export the history as a JSON or statistics as CSV.
-                  </ListItem>
-                </UnorderedList>
-                <VStack align="stretch" justify="space-between">
-                  <Tooltip
-                    isDisabled={!tooltipsShown}
-                    label="Turn off the tooltips if they are annoying"
-                  >
-                    <Checkbox
-                      isChecked={tooltipsShown}
-                      onChange={(e) => {
-                        setTooltipsShown(e.target.checked);
-                      }}
-                    >
-                      Tooltips
-                    </Checkbox>
-                  </Tooltip>
-                  <Link
-                    href="https://github.com/ilyannn/esql-composer"
-                    isExternal
-                  >
-                    <ExternalLinkIcon mx="3px" /> source
-                  </Link>
-                </VStack>
-              </HStack>
+              <HowToUse
+                tooltipsShown={tooltipsShown}
+                setTooltipsShown={setTooltipsShown}
+              />
             </AccordionPanel>
           </AccordionItem>
 
