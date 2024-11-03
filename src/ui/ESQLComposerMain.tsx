@@ -23,7 +23,7 @@ import {
   reduceSize,
   testWithSimpleQuestion,
   warmCache,
-} from "../services/requests";
+} from "../services/api";
 
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import CacheWarmedNotice from "./components/CacheWarmedNotice";
@@ -242,7 +242,10 @@ const ESQLComposerMain = () => {
 
   const testAPIKey = async () => {
     await performAPIAction("API test", async () => {
-      const claudeAnswer = await testWithSimpleQuestion(apiKey, modelSelected);
+      const claudeAnswer = await testWithSimpleQuestion({
+        apiKey,
+        modelSelected,
+      });
 
       toast({
         title: "API test successful",
@@ -255,12 +258,12 @@ const ESQLComposerMain = () => {
 
   const handleWarmCache = async () => {
     await performAPIAction("Cache warming", async () => {
-      const data = (await warmCache(
+      const data = await warmCache({
         apiKey,
         modelSelected,
         esqlGuideText,
-        schemaGuideText
-      )) as any;
+        schemaGuideText,
+      });
 
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
@@ -285,7 +288,11 @@ const ESQLComposerMain = () => {
     let oldSize: number | undefined = undefined;
 
     await performAPIAction("Token Counting", async () => {
-      oldSize = await countTokens(apiKey, modelSelected, esqlGuideText);
+      oldSize = await countTokens({
+        apiKey,
+        modelSelected,
+        text: esqlGuideText,
+      });
     });
 
     await performAPIAction("Size reduction", async () => {
@@ -296,18 +303,22 @@ const ESQLComposerMain = () => {
         setEsqlGuideText(newESQGuideText);
       };
 
-      const data = (await reduceSize(
+      const data = (await reduceSize({
         apiKey,
         modelSelected,
         esqlGuideText,
         schemaGuideText,
-        processLine
-      )) as any;
+        processLine,
+      })) as any;
 
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
 
-      const newSize = await countTokens(apiKey, modelSelected, newESQGuideText);
+      const newSize = await countTokens({
+        apiKey,
+        modelSelected,
+        text: newESQGuideText,
+      });
       setEsqlGuideTokenCount(newSize);
 
       const percentage = oldSize
@@ -326,10 +337,10 @@ const ESQLComposerMain = () => {
   const handleGetTokenCount = async () => {
     await performAPIAction("Token Counting", async () => {
       setEsqlGuideTokenCount(
-        await countTokens(apiKey, modelSelected, esqlGuideText)
+        await countTokens({ apiKey, modelSelected, text: esqlGuideText })
       );
       setSchemaGuideTokenCount(
-        await countTokens(apiKey, modelSelected, schemaGuideText)
+        await countTokens({ apiKey, modelSelected, text: schemaGuideText })
       );
     });
   };
@@ -365,17 +376,16 @@ const ESQLComposerMain = () => {
         }
       };
       setEsqlCompletion("");
-      const data = (await generateESQLUpdate(
+      const data = (await generateESQLUpdate({
         apiKey,
         modelSelected,
         esqlGuideText,
         schemaGuideText,
         esqlInput,
-        text,
+        naturalInput: text,
         haveESQLLine,
         doneESQL,
-        undefined
-      )) as any;
+      })) as any;
       saveCacheWarmedInfo();
       setAllStats([...allStats, data.stats]);
       setHistory([
@@ -445,17 +455,14 @@ const ESQLComposerMain = () => {
     };
 
     try {
-      const data = (await generateESQLUpdate(
+      const data = (await generateESQLUpdate({
         apiKey,
         modelSelected,
         esqlGuideText,
         schemaGuideText,
-        esqlBeforeCursor,
-        undefined,
+        esqlInput: esqlBeforeCursor,
         haveESQLLine,
-        undefined,
-        undefined
-      )) as any;
+      })) as any;
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
     } catch (error) {

@@ -1,16 +1,45 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-export const warmCache = async (apiKey, modelSelected, esql, schema) => {
-  return await generateESQLUpdate(
-    apiKey,
-    modelSelected,
-    esql,
-    schema,
-    undefined,
-    "top flights",
-    undefined,
-    undefined
-  );
+import { StatisticsRow } from "../common/types";
+import {
+  PromptCachingBetaTextBlockParam,
+  PromptCachingBetaMessageParam,
+} from "@anthropic-ai/sdk/resources/beta/prompt-caching";
+
+export type APIConfig = {
+  apiKey: string;
+  modelSelected: number;
+};
+
+export type ReferenceConfig = {
+  esqlGuideText: string;
+  schemaGuideText: string;
+};
+
+export type PromptConfig = {
+  esqlInput?: string;
+  naturalInput?: string;
+};
+
+export type WarmCacheInput = APIConfig & ReferenceConfig;
+
+export type GenerateUpdateInput = APIConfig &
+  ReferenceConfig &
+  PromptConfig & {
+    haveESQLLine?: (line: string) => void;
+    doneESQL?: () => void;
+    haveExplanationLine?: (line: string) => void;
+    maxTokens?: number;
+    processESQLLines?: boolean;
+  };
+
+export type ReduceSizeInput = APIConfig &
+  ReferenceConfig & {
+    processLine: (line: string) => void;
+  };
+
+export type GenerateUpdateOutput = {
+  stats: StatisticsRow;
 };
 
 export const MODEL_LIST = [
@@ -18,8 +47,18 @@ export const MODEL_LIST = [
   "claude-3-5-sonnet-latest",
 ];
 
-export const testWithSimpleQuestion = async (apiKey, modelSelected) => {
-  const anthropic = createAnthropicInstance(apiKey);
+const createAnthropicInstance = (apiKey: string) => {
+  return new Anthropic({
+    apiKey,
+    defaultHeaders: { "anthropic-beta": "prompt-caching-2024-07-31" },
+    dangerouslyAllowBrowser: true,
+  });
+};
+
+export const testWithSimpleQuestion = async (
+  input: APIConfig
+): Promise<string> => {
+  const anthropic = createAnthropicInstance(input.apiKey);
 
   const response = await anthropic.messages.create({
     messages: [
@@ -28,27 +67,26 @@ export const testWithSimpleQuestion = async (apiKey, modelSelected) => {
         content: [{ type: "text", text: "Are you an LLM?" }],
       },
     ],
-    model: MODEL_LIST[modelSelected],
+    model: MODEL_LIST[input.modelSelected],
     max_tokens: 256,
   });
-
-  return response.content[0].text;
+  const block = response.content[0];
+  if (block.type !== "text") {
+    return "";
+  }
+  return block.text;
 };
 
-const createAnthropicInstance = (apiKey) => {
-  return new Anthropic({
-    apiKey,
-    defaultHeaders: { "anthropic-beta": "prompt-caching-2024-07-31" },
-    dangerouslyAllowBrowser: true,
+export const warmCache = async (params: WarmCacheInput): Promise<any> => {
+  return await generateESQLUpdate({
+    ...params,
+    esqlInput: "top flights",
   });
 };
 
-const prepareRequest = (
-  esqlGuideText,
-  schemaGuideText,
-  esqlInput,
-  naturalInput
-) => {
+const prepareRequest = (input: ReferenceConfig & PromptConfig) => {
+  const { esqlGuideText, schemaGuideText, esqlInput, naturalInput } = input;
+
   const systemTexts = [
     "You are an AI assistant specialized in Elasticsearch Query Language (ES|QL). You'll help the user compose ES|QL queries. Here's some reference material on ES|QL.",
     esqlGuideText,
@@ -188,13 +226,15 @@ FROM logs-endpoint
     );
   }
 
-  const system = systemTexts.map((content) => ({
-    type: "text",
-    text: content,
-  }));
+  const system: PromptCachingBetaTextBlockParam[] = systemTexts.map(
+    (content) => ({
+      type: "text",
+      text: content,
+    })
+  );
+
   system[system.length - 1].cache_control = { type: "ephemeral" };
 
-  const messages = [];
   let requestText;
 
   if (naturalInput === undefined) {
@@ -210,15 +250,17 @@ FROM logs-endpoint
     requestText += esqlInput;
   }
 
-  messages.push({
-    role: "user",
-    content: [
-      {
-        type: "text",
-        text: requestText,
-      },
-    ],
-  });
+  const messages: PromptCachingBetaMessageParam[] = [
+    {
+      role: "user",
+      content: [
+        {
+          type: "text",
+          text: requestText,
+        },
+      ],
+    },
+  ];
 
   return { system, messages };
 };
@@ -247,33 +289,32 @@ FROM logs-endpoint
  * @property {number} result.stats.text_completion_time - The time taken to complete the prompt.
  */
 export const generateESQLUpdate = async (
-  apiKey,
-  modelSelected,
-  esql,
-  schema,
-  esqlInput,
-  naturalInput,
-  haveESQLLine,
-  doneESQL,
-  haveExplanationLine,
-  maxTokens = 256,
-  processESQLLines = true,
-) => {
-  const anthropic = createAnthropicInstance(apiKey);
+  input: GenerateUpdateInput
+): Promise<GenerateUpdateOutput> => {
+  const anthropic = createAnthropicInstance(input.apiKey);
+  const {
+    modelSelected,
+    naturalInput,
+    haveESQLLine,
+    doneESQL,
+    haveExplanationLine,
+    maxTokens,
+    processESQLLines,
+  } = input;
 
   const requestTime = Date.now();
   const isCompletionRequest = naturalInput === undefined;
-  let first_token_time = null;
-  let esql_time = null;
+  let first_token_time: number | null = null;
+  let esql_time: number | null = null;
   let isInsideEsql = isCompletionRequest ? true : undefined;
   let currentLine = "";
-  let result = {};
+  let stats: { [key: string]: string | number | null} = {};
 
   let processLine;
 
-  if (processESQLLines) {
-    processLine = (line) => {
-      console.log(line)
+  if (processESQLLines !== false) {
+    processLine = (line: string) => {
+      console.log(line);
       if (line.startsWith("<esql>") && isInsideEsql === undefined) {
         isInsideEsql = true;
       } else if (line.startsWith("</esql>") && isInsideEsql === true) {
@@ -292,12 +333,12 @@ export const generateESQLUpdate = async (
     processLine = () => {};
   }
 
-  const stream = anthropic.messages
+  const stream = anthropic.beta.promptCaching.messages
     .stream({
       stream: true,
       model: MODEL_LIST[modelSelected],
-      max_tokens: maxTokens,
-      ...prepareRequest(esql, schema, esqlInput, naturalInput),
+      max_tokens: maxTokens ?? 256,
+      ...prepareRequest(input),
     })
     .on("text", (textDelta, _) => {
       if (!first_token_time) {
@@ -309,7 +350,7 @@ export const generateESQLUpdate = async (
       }
       if (currentLine.includes("\n")) {
         const lines = currentLine.split("\n");
-        currentLine = lines.pop();
+        currentLine = lines.pop()!;
         lines.forEach(processLine);
       }
     })
@@ -324,54 +365,54 @@ export const generateESQLUpdate = async (
         }
       } else if (event.type === "message_start") {
         const usage = event.message.usage;
-        result.stats = {
+        stats = {
           model: event.message.model,
           start_time: Date.now() - requestTime,
-          input_cached: usage.cache_read_input_tokens,
+          input_cached: usage.cache_read_input_tokens || 0,
           input_uncached: usage.input_tokens,
-          saved_to_cache: usage.cache_creation_input_tokens,
+          saved_to_cache: usage.cache_creation_input_tokens || 0,
         };
       } else if (event.type === "message_delta") {
-        result.stats.output = event.usage.output_tokens;
+        stats.output = event.usage.output_tokens;
       }
     });
 
   await stream.finalMessage();
 
-  result.stats.total_time = Date.now() - requestTime;
-  result.stats.first_token_time = first_token_time;
-  result.stats.esql_time = esql_time;
-  return result;
+  stats.total_time = Date.now() - requestTime;
+  stats.first_token_time = first_token_time;
+  stats.esql_time = esql_time;
+  return {
+    stats: stats as StatisticsRow,
+  };
 };
 
-export const reduceSize = async (
-  apiKey,
-  modelSelected,
-  esql,
-  schema,
-  processLine
-) => {
-  return await generateESQLUpdate(
+export const reduceSize = async (input: ReduceSizeInput) => {
+  const { apiKey, modelSelected, esqlGuideText, schemaGuideText, processLine } =
+    input;
+
+  return await generateESQLUpdate({
     apiKey,
     modelSelected,
-    esql,
-    schema,
-    undefined,
-    `Please remove unnecessary information from the provided Elasticsearch Query Language guide which will be used for the ES|QL generation task. Keep relevant information such as list of function names intact but reduce the number of redundant descriptions. Keep enough examples to be able to answer all questions. You will be the consumer of the reduced guide, so feel free to use any tricks that can be helpful. Output the new guide between <esql> and </esql> tags and put any other information outside. Aim at 40% reduction. Here is the old guide again:\n\n<esql>\n${esql}\n</esql>`,
-    processLine,
-    undefined,
-    undefined,
-    8192,
-  );
+    esqlGuideText,
+    schemaGuideText,
+    naturalInput: `Please remove unnecessary information from the provided Elasticsearch Query Language guide which will be used for the ES|QL generation task. Keep relevant information such as list of function names intact but reduce the number of redundant descriptions. Keep enough examples to be able to answer all questions. You will be the consumer of the reduced guide, so feel free to use any tricks that can be helpful. Output the new guide between <esql> and </esql> tags and put any other information outside. Aim at 40% reduction. Here is the old guide again:\n\n<esql>\n${esqlGuideText}\n</esql>`,
+    haveESQLLine: processLine,
+    maxTokens: 8192,
+  });
 };
 
-export const countTokens = async (apiKey, modelSelected, text) => {
-  const client = createAnthropicInstance(apiKey);
+export type CountTokensInput = APIConfig & {
+  text: string;
+};
+
+export const countTokens = async (params: CountTokensInput) => {
+  const client = createAnthropicInstance(params.apiKey);
 
   const response = await client.beta.messages.countTokens({
     betas: ["token-counting-2024-11-01"],
-    model: MODEL_LIST[modelSelected],
-    messages: [{ role: "user", content: text }],
+    model: MODEL_LIST[params.modelSelected],
+    messages: [{ role: "user", content: params.text }],
   });
 
   return response.input_tokens;
