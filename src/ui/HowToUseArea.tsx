@@ -46,10 +46,7 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
       <HStack justify="space-between" align="stretch">
         <UnorderedList>
           <ListItem>
-            Enter your Anthropic API key in the input field below.
-          </ListItem>
-          <ListItem>
-            Add the ES|QL language and Elasticsearch schema reference materials.
+            Add an Anthropic API key and the reference materials in the fields.
           </ListItem>
           <ListItem>
             Input some natural text and press <kbd>Enter</kbd> to convert it to
@@ -57,7 +54,7 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
           </ListItem>
           <ListItem>
             Press <kbd>{COMPLETION_KEY}</kbd> in the ES|QL area to show a
-            completion (you can't insert it yet).
+            completion, press again to insert.
           </ListItem>
           <ListItem>
             Blue buttons perform Anthropic API requests (unfilled buttons = gratis, filled = paid).

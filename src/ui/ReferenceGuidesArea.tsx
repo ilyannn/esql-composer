@@ -9,7 +9,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import axios from "axios";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback } from "react";
 
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
@@ -76,10 +76,6 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
     },
     [setSchemaGuideText]
   );
-
-  useEffect(() => {
-    loadSchemaFile("schema-flights.txt");
-  }, [loadSchemaFile]);
 
   return (
     <ResizableBox

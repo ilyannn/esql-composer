@@ -53,8 +53,12 @@ const ESQLComposerMain = () => {
 
   const [esqlGuideText, setEsqlGuideText] = useState("");
   const [schemaGuideText, setSchemaGuideText] = useState("");
-  const [esqlGuideTokenCount, setEsqlGuideTokenCount] = useState<number | null>(null);
-  const [schemaGuideTokenCount, setSchemaGuideTokenCount] = useState<number | null>(null);
+  const [esqlGuideTokenCount, setEsqlGuideTokenCount] = useState<number | null>(
+    null
+  );
+  const [schemaGuideTokenCount, setSchemaGuideTokenCount] = useState<
+    number | null
+  >(null);
 
   const [naturalInput, setNaturalInput] = useState("");
   const [esqlInput, setEsqlInput] = useState("");
@@ -297,7 +301,7 @@ const ESQLComposerMain = () => {
         modelSelected,
         esqlGuideText,
         schemaGuideText,
-        processLine,
+        processLine
       )) as any;
 
       setAllStats([...allStats, data.stats]);
@@ -306,7 +310,9 @@ const ESQLComposerMain = () => {
       const newSize = await countTokens(apiKey, modelSelected, newESQGuideText);
       setEsqlGuideTokenCount(newSize);
 
-      const percentage = oldSize ? ((newSize / oldSize - 1) * 100).toFixed(0) : undefined;
+      const percentage = oldSize
+        ? ((newSize / oldSize - 1) * 100).toFixed(0)
+        : undefined;
       toast({
         title: "Size reduction successful",
         description: `ES|QL guide size has changed from ${oldSize} to ${newSize} tokens (${percentage}% change).`,
@@ -319,10 +325,14 @@ const ESQLComposerMain = () => {
 
   const handleGetTokenCount = async () => {
     await performAPIAction("Token Counting", async () => {
-      setEsqlGuideTokenCount(await countTokens(apiKey, modelSelected, esqlGuideText));
-      setSchemaGuideTokenCount(await countTokens(apiKey, modelSelected, schemaGuideText));
+      setEsqlGuideTokenCount(
+        await countTokens(apiKey, modelSelected, esqlGuideText)
+      );
+      setSchemaGuideTokenCount(
+        await countTokens(apiKey, modelSelected, schemaGuideText)
+      );
     });
-  }
+  };
 
   const performESQLRequest = async (text: string) => {
     await performAPIAction("ES|QL generation", async () => {
@@ -353,7 +363,7 @@ const ESQLComposerMain = () => {
         if (esqlInputRef.current) {
           autosize.update(esqlInputRef.current);
         }
-    };
+      };
       setEsqlCompletion("");
       const data = (await generateESQLUpdate(
         apiKey,
@@ -477,7 +487,7 @@ const ESQLComposerMain = () => {
             />
           </Section>
 
-          <Section label="LLM Access" color="cyan.50">
+          <Section label="LLM Configuration" color="cyan.50">
             <LLMConfigurationArea
               modelSelected={modelSelected}
               setModelSelected={setModelSelected}
@@ -539,6 +549,10 @@ const ESQLComposerMain = () => {
               />
               <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
             </VStack>
+          </Section>
+
+          <Section label="Elasticsearch" color="purple.50">
+            <Text>Coming soon...</Text>
           </Section>
         </Accordion>
       </VStack>
