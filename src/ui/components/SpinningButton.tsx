@@ -31,7 +31,7 @@ const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
         type={type}
         onClick={onClick}
         isLoading={isLoading}
-        isDisabled={disabled}
+        isDisabled={disabled || false}
         spinner={
           gratisAction === true ? (
             <PacmanLoader size={15} color="blue" speedMultiplier={2}/>

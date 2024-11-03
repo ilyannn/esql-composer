@@ -133,37 +133,37 @@ const ESQLComposerMain = () => {
     (config: Config) => {
       if (
         "openedAreas" in config &&
-        typeof config.openedAreas === "object" &&
-        Array.isArray(config.openedAreas)
+        typeof config["openedAreas"] === "object" &&
+        Array.isArray(config["openedAreas"])
       ) {
-        setOpenedAreas(config.openedAreas);
+        setOpenedAreas(config["openedAreas"]);
       }
       if (
         "tooltipsShown" in config &&
-        typeof config.tooltipsShown === "boolean"
+        typeof config["tooltipsShown"] === "boolean"
       ) {
-        setTooltipsShown(config.tooltipsShown);
+        setTooltipsShown(config["tooltipsShown"]);
       }
       if (
         "modelSelected" in config &&
-        typeof config.modelSelected === "number"
+        typeof config["modelSelected"] === "number"
       ) {
-        setModelSelected(config.modelSelected);
+        setModelSelected(config["modelSelected"]);
       }
-      if ("apiKey" in config && typeof config.apiKey === "string") {
-        setApiKey(config.apiKey);
+      if ("apiKey" in config && typeof config["apiKey"] === "string") {
+        setApiKey(config["apiKey"]);
       }
       if (
         "esqlGuideText" in config &&
-        typeof config.esqlGuideText === "string"
+        typeof config["esqlGuideText"] === "string"
       ) {
-        setEsqlGuideText(config.esqlGuideText);
+        setEsqlGuideText(config["esqlGuideText"]);
       }
       if (
         "schemaGuideText" in config &&
-        typeof config.schemaGuideText === "string"
+        typeof config["schemaGuideText"] === "string"
       ) {
-        setSchemaGuideText(config.schemaGuideText);
+        setSchemaGuideText(config["schemaGuideText"]);
       }
     },
     [

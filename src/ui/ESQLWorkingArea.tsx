@@ -156,7 +156,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
               variant="ghost"
               isDisabled={history.length === 0}
               colorScheme="green"
-              onClick={(e) => revertUpdate()}
+              onClick={() => revertUpdate()}
             >
               Undo
             </Button>
@@ -233,7 +233,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             variant="ghost"
             colorScheme="green"
             isDisabled={!esqlInput}
-            onClick={(e) => copyESQL()}
+            onClick={() => copyESQL()}
           >
             Copy
           </Button>
@@ -247,7 +247,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             variant="ghost"
             isDisabled={history.length === 0}
             colorScheme="green"
-            onClick={(e) => showHistory()}
+            onClick={() => showHistory()}
           >
             History
           </Button>
@@ -260,7 +260,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             variant="ghost"
             colorScheme="red"
             isDisabled={!esqlInput && !naturalInput}
-            onClick={(e) => clearESQL()}
+            onClick={() => clearESQL()}
           >
             Reset
           </Button>

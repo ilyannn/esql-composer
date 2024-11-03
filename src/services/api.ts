@@ -308,7 +308,18 @@ export const generateESQLUpdate = async (
   let esql_time: number | null = null;
   let isInsideEsql = isCompletionRequest ? true : undefined;
   let currentLine = "";
-  let stats: { [key: string]: string | number | null} = {};
+
+  let message_start_stats = null as {
+    model: string;
+    start_time: number;
+    input_cached: number;
+    input_uncached: number;
+    saved_to_cache: number;
+  } | null;
+
+  let message_delta_stats: {
+    output: number;
+  } = { output: 0 };
 
   let processLine;
 
@@ -365,7 +376,7 @@ export const generateESQLUpdate = async (
         }
       } else if (event.type === "message_start") {
         const usage = event.message.usage;
-        stats = {
+        message_start_stats = {
           model: event.message.model,
           start_time: Date.now() - requestTime,
           input_cached: usage.cache_read_input_tokens || 0,
@@ -373,17 +384,28 @@ export const generateESQLUpdate = async (
           saved_to_cache: usage.cache_creation_input_tokens || 0,
         };
       } else if (event.type === "message_delta") {
-        stats.output = event.usage.output_tokens;
+        message_delta_stats = { output: event.usage.output_tokens };
       }
     });
 
   await stream.finalMessage();
 
-  stats.total_time = Date.now() - requestTime;
-  stats.first_token_time = first_token_time;
-  stats.esql_time = esql_time;
+  if (message_start_stats === null) {
+    throw new Error("No message_start event received");
+  }
+
   return {
-    stats: stats as StatisticsRow,
+    stats: {
+      model: message_start_stats.model,
+      input_cached: message_start_stats.input_cached,
+      input_uncached: message_start_stats.input_uncached,
+      saved_to_cache: message_start_stats.saved_to_cache,  
+      output: message_delta_stats.output,
+
+      first_token_time: first_token_time || Infinity,
+      esql_time: esql_time || Infinity,
+      total_time: Date.now() - requestTime,
+    },
   };
 };
 
