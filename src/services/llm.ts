@@ -6,26 +6,26 @@ import {
   PromptCachingBetaMessageParam,
 } from "@anthropic-ai/sdk/resources/beta/prompt-caching";
 
-export type APIConfig = {
+export type LLMOptions = {
   apiKey: string;
   modelSelected: number;
 };
 
-export type ReferenceConfig = {
+export type ReferenceOptions = {
   esqlGuideText: string;
   schemaGuideText: string;
 };
 
-export type PromptConfig = {
+export type PromptOptions = {
   esqlInput?: string;
   naturalInput?: string;
 };
 
-export type WarmCacheInput = APIConfig & ReferenceConfig;
+export type WarmCacheInput = LLMOptions & ReferenceOptions;
 
-export type GenerateUpdateInput = APIConfig &
-  ReferenceConfig &
-  PromptConfig & {
+export type GenerateUpdateInput = LLMOptions &
+  ReferenceOptions &
+  PromptOptions & {
     haveESQLLine?: (line: string) => void;
     doneESQL?: () => void;
     haveExplanationLine?: (line: string) => void;
@@ -33,8 +33,8 @@ export type GenerateUpdateInput = APIConfig &
     processESQLLines?: boolean;
   };
 
-export type ReduceSizeInput = APIConfig &
-  ReferenceConfig & {
+export type ReduceSizeInput = LLMOptions &
+  ReferenceOptions & {
     processLine: (line: string) => void;
   };
 
@@ -56,7 +56,7 @@ const createAnthropicInstance = (apiKey: string) => {
 };
 
 export const testWithSimpleQuestion = async (
-  input: APIConfig
+  input: LLMOptions
 ): Promise<string> => {
   const anthropic = createAnthropicInstance(input.apiKey);
 
@@ -84,7 +84,7 @@ export const warmCache = async (params: WarmCacheInput): Promise<any> => {
   });
 };
 
-const prepareRequest = (input: ReferenceConfig & PromptConfig) => {
+const prepareRequest = (input: ReferenceOptions & PromptOptions) => {
   const { esqlGuideText, schemaGuideText, esqlInput, naturalInput } = input;
 
   const systemTexts = [
@@ -424,7 +424,7 @@ export const reduceSize = async (input: ReduceSizeInput) => {
   });
 };
 
-export type CountTokensInput = APIConfig & {
+export type CountTokensInput = LLMOptions & {
   text: string;
 };
 

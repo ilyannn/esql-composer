@@ -23,7 +23,7 @@ import {
   reduceSize,
   testWithSimpleQuestion,
   warmCache,
-} from "../services/api";
+} from "../services/llm";
 
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import CacheWarmedNotice from "./components/CacheWarmedNotice";
@@ -33,6 +33,7 @@ import ESQLWorkingArea from "./ESQLWorkingArea";
 import HowToUseArea, { Config } from "./HowToUseArea";
 import LLMConfigurationArea from "./LLMConfigurationArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
+import QueryResultArea from "./QueryResultArea";
 
 type HistoryRow = {
   text: string;
@@ -532,7 +533,7 @@ const ESQLComposerMain = () => {
             />
           </Section>
 
-          <Section>
+          <Section label="ES|QL Query">
             <VStack align={"stretch"} justify={"space-between"} spacing={10}>
               <ESQLWorkingArea
                 tooltipsShown={tooltipsShown}
@@ -558,8 +559,8 @@ const ESQLComposerMain = () => {
             </VStack>
           </Section>
 
-          <Section label="Elasticsearch" color="purple.50">
-            <Text>Coming soon...</Text>
+          <Section label="Results" color="purple.50">
+            <QueryResultArea query={esqlInput}></QueryResultArea>
           </Section>
         </Accordion>
       </VStack>
