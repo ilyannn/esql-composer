@@ -63,7 +63,6 @@ const ESQLComposerMain = () => {
 
   const [naturalInput, setNaturalInput] = useState("");
   const [esqlInput, setEsqlInput] = useState("");
-  const [esqlCompletion, setEsqlCompletion] = useState("");
 
   const [queryAPIData, setQueryAPIData] = useState<TableData | null>(null);
   const [queryAPIDataAutoUpdate, setQueryAPIDataAutoUpdate] = useState(false);
@@ -83,7 +82,6 @@ const ESQLComposerMain = () => {
   const [cacheWarmedText, setCacheWarmedText] = useState<string | null>(null);
 
   const esqlInputRef = useRef<HTMLTextAreaElement>(null);
-  const esqlCompletionRef = useRef<HTMLTextAreaElement>(null);
   const esqlCompleteButtonRef = useRef<HTMLButtonElement>(null);
   const naturalInputRef = useRef<HTMLInputElement>(null);
 
@@ -510,8 +508,6 @@ const ESQLComposerMain = () => {
           }
         };
 
-        setEsqlCompletion("");
-
         const data = await generateESQLUpdate({
           apiKey: anthropicAPIKey,
           modelSelected,
@@ -543,6 +539,7 @@ const ESQLComposerMain = () => {
         if (naturalInputRef.current?.value === text) {
           naturalInputRef.current?.setSelectionRange(0, naturalInput.length);
         }
+
         if (queryAPIDataAutoUpdate) {
           setQueryAPIDataHasScheduledUpdate(true);
         }
@@ -565,35 +562,45 @@ const ESQLComposerMain = () => {
   );
 
   const handleCompleteESQL = async () => {
-    if (esqlInputRef.current === null) {
-      return;
-    }
-    const cursorPosition = esqlInputRef.current.selectionStart;
-    if (esqlInputRef.current.selectionEnd !== cursorPosition) {
-      return;
-    }
-    const esqlBeforeCursor = esqlInput.substring(0, cursorPosition);
-    const cursorY = esqlBeforeCursor.split("\n").length - 1;
-    const cursorX =
-      esqlBeforeCursor.length -
-      (cursorY === 0 ? 0 : esqlBeforeCursor.lastIndexOf("\n") + 1);
+    await performAnthropicAPIAction("ES|QL completion", async () => {
+      if (esqlInputRef.current === null) {
+        return;
+      }
 
-    let lineEnd = esqlInput.indexOf("\n", cursorPosition);
-    if (lineEnd === -1) {
-      lineEnd = esqlInput.length;
-    }
-    if (lineEnd > cursorPosition) {
-      setEsqlInput(
-        esqlInput.substring(0, cursorPosition) + esqlInput.substring(lineEnd)
-      );
-    }
-    setEsqlCompletion("");
+      const cursorPosition = esqlInputRef.current.selectionStart;
+      const esqlBeforeCursor = esqlInput.substring(0, cursorPosition);
 
-    let newESQLCompletion = "\n".repeat(cursorY) + " ".repeat(cursorX);
+      let lineEnd = esqlInput.indexOf("\n", cursorPosition);
+      if (lineEnd === -1) {
+        lineEnd = esqlInput.length;
+      }
+      if (lineEnd > cursorPosition) {
+        setEsqlInput(
+          esqlInput.substring(0, cursorPosition) + esqlInput.substring(lineEnd)
+        );
+        if (esqlInputRef.current) {
+          autosize.update(esqlInputRef.current);
+          esqlInputRef.current.setSelectionRange(
+            cursorPosition,
+            cursorPosition,
+          );
+        }
+      }
 
-    const haveESQLLine = (line: string) => {
-      newESQLCompletion += line + "\n";
-      /*      const updatedCursorPosition = esqlInputRef.current.selectionStart;
+      const haveESQLLine = (line: string) => {
+        setEsqlInput(
+          esqlInput.substring(0, cursorPosition) +
+            line +
+            esqlInput.substring(lineEnd)
+        );
+        if (esqlInputRef.current) {
+          autosize.update(esqlInputRef.current);
+          esqlInputRef.current.setSelectionRange(
+            cursorPosition + line.length,
+            cursorPosition + line.length
+          );
+        }
+        /*      const updatedCursorPosition = esqlInputRef.current.selectionStart;
           if (updatedCursorPosition > cursorPosition) {
             // User has entered more text in the meantime
             const enteredText = esqlInput.substring(
@@ -604,18 +611,8 @@ const ESQLComposerMain = () => {
               return;
             }
           }*/
-      setEsqlCompletion(newESQLCompletion);
-      if (esqlCompletionRef.current) {
-        autosize.update(esqlCompletionRef.current);
-      }
-      /*      esqlInputRef.current.setSelectionRange(
-            cursorPosition,
-            cursorPosition + line.length
-          );
-    */
-    };
+      };
 
-    try {
       const data = (await generateESQLUpdate({
         apiKey: anthropicAPIKey,
         modelSelected,
@@ -626,9 +623,10 @@ const ESQLComposerMain = () => {
       })) as any;
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
-    } catch (error) {
-      console.error("Completion error:", error);
-    }
+      if (queryAPIDataAutoUpdate) {
+        setQueryAPIDataHasScheduledUpdate(true);
+      }
+    });
   };
 
   const fetchQueryData = useCallback(async () => {
@@ -755,12 +753,10 @@ const ESQLComposerMain = () => {
                 setNaturalInput={setNaturalInput}
                 esqlInput={esqlInput}
                 setEsqlInput={setEsqlInput}
-                esqlCompletion={esqlCompletion}
                 history={history}
                 esqlCompleteButtonRef={esqlCompleteButtonRef}
                 naturalInputRef={naturalInputRef}
                 esqlInputRef={esqlInputRef}
-                esqlCompletionRef={esqlCompletionRef}
                 handleCompleteESQL={handleCompleteESQL}
                 performESQLRequest={performESQLRequest}
                 isQueryAPIAvailable={
@@ -769,7 +765,6 @@ const ESQLComposerMain = () => {
                 resetESQL={() => {
                   setNaturalInput("");
                   setEsqlInput("");
-                  setEsqlCompletion("");
                   setQueryAPIData(null);
                   setQueryAPIDataAutoUpdate(false);
                 }}

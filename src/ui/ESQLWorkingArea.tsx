@@ -27,14 +27,12 @@ interface ESQLWorkingAreaProps {
   setNaturalInput: (value: string) => void;
   esqlInput: string;
   setEsqlInput: (value: string) => void;
-  esqlCompletion: string;
 
   history: HistoryRow[];
   resetESQL: () => void;
 
   naturalInputRef: React.RefObject<HTMLInputElement>;
   esqlInputRef: React.RefObject<HTMLTextAreaElement>;
-  esqlCompletionRef: React.RefObject<HTMLTextAreaElement>;
   esqlCompleteButtonRef: React.RefObject<HTMLButtonElement>;
 
   handleCompleteESQL: () => Promise<void>;
@@ -51,14 +49,12 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   setNaturalInput,
   esqlInput,
   setEsqlInput,
-  esqlCompletion,
 
   history,
   resetESQL,
 
   naturalInputRef,
   esqlInputRef,
-  esqlCompletionRef,
   esqlCompleteButtonRef,
 
   handleCompleteESQL,
@@ -110,22 +106,15 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   useEffect(() => {
     // https://github.com/chakra-ui/chakra-ui/issues/670#issuecomment-625770981
     const esqlInputRefValue = esqlInputRef.current;
-    const esqlCompletionRefValue = esqlCompletionRef.current;
     if (esqlInputRefValue) {
       autosize(esqlInputRefValue);
-    }
-    if (esqlCompletionRefValue) {
-      autosize(esqlCompletionRefValue);
     }
     return () => {
       if (esqlInputRefValue) {
         autosize.destroy(esqlInputRefValue);
       }
-      if (esqlCompletionRefValue) {
-        autosize.destroy(esqlCompletionRefValue);
-      }
     };
-  }, [esqlInputRef, esqlCompletionRef]);
+  }, [esqlInputRef]);
 
   return (
     <VStack align={"stretch"} justify={"space-between"}>
@@ -165,24 +154,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
 
       <HStack align="stretch" justify="flex-start">
         <VStack spacing={0} align="stretch" flex={1}>
-          <Box height={0} overflow={"visible"}>
-            <Textarea
-              value={esqlCompletion}
-              ref={esqlCompletionRef}
-              readOnly
-              disabled
-              fontFamily={"monospace"}
-              whiteSpace="pre-wrap"
-              style={{
-                opacity: 0.5,
-                borderColor: "transparent",
-              }}
-              flex={1}
-              transition="height none"
-              spellCheck={false}
-              resize={"none"}
-            />
-          </Box>
           <Box flex={1}>
             <Textarea
               placeholder="ES|QL"
