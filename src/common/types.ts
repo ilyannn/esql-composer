@@ -8,3 +8,10 @@ export type StatisticsRow = {
   output: number;
   model: string;
 };
+
+export type HistoryRow = {
+  text: string;
+  esqlInput: string;
+  esql: string;
+  stats: StatisticsRow;
+};

@@ -11,7 +11,7 @@ export interface Column {
 
 export interface TableData {
   columns: Column[];
-  values: Array<Array<string | number | null>>;
+  values: Array<Array<string | number | boolean | null>>;
 }
 
 export class QueryAPIError extends Error {
@@ -40,7 +40,7 @@ function isTableData(data: any): data is TableData {
         Array.isArray(row) &&
         row.every(
           (val) =>
-            typeof val === "string" || typeof val === "number" || val === null
+            typeof val === "string" || typeof val === "number" || typeof val === "boolean"  || val === null
         )
     )
   );
@@ -62,7 +62,7 @@ export const performESQLQuery = async ({
   });
 
   const answer = await response.json();
-
+ 
   if ("error" in answer) {
     throw new QueryAPIError(response.status, answer.error);
   }

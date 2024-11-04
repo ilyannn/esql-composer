@@ -13,6 +13,8 @@ import {
 import autosize from "autosize";
 import React, { useEffect } from "react";
 
+import type { HistoryRow } from "../common/types";
+
 import SpinningButton from "./components/SpinningButton";
 
 import { COMPLETION_KEY } from "./constants";
@@ -27,7 +29,7 @@ interface ESQLWorkingAreaProps {
   setEsqlInput: (value: string) => void;
   esqlCompletion: string;
 
-  history: any[];
+  history: HistoryRow[];
   resetESQL: () => void;
 
   naturalInputRef: React.RefObject<HTMLInputElement>;
@@ -38,7 +40,6 @@ interface ESQLWorkingAreaProps {
   handleCompleteESQL: () => Promise<void>;
   performESQLRequest: (action: string) => Promise<void>;
   isQueryAPIAvailable: boolean;
-  queryAPIDataAutoUpdate: boolean;
   fetchQueryData: () => Promise<void>;
 }
 
@@ -63,7 +64,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   handleCompleteESQL,
   performESQLRequest,
   isQueryAPIAvailable,
-  queryAPIDataAutoUpdate,
   fetchQueryData,
 }) => {
   const toast = useToast();
@@ -85,8 +85,10 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   const revertUpdate = () => {
     if (history.length > 0) {
       const last = history.pop();
-      setNaturalInput(last.naturalInput);
-      setEsqlInput(last.esqlInput);
+      if (last) {
+        setNaturalInput(last.text);
+        setEsqlInput(last.esqlInput);
+      }
     }
   };
 

@@ -17,7 +17,8 @@ import {
 
 import Anthropic from "@anthropic-ai/sdk";
 
-import { StatisticsRow } from "../common/types";
+import type { HistoryRow, StatisticsRow } from "../common/types";
+
 import {
   countTokens,
   generateESQLUpdate,
@@ -38,13 +39,6 @@ import LLMConfigurationArea from "./LLMConfigurationArea";
 import QueryAPIConfigurationArea from "./QueryAPIConfigurationArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import QueryResultArea from "./QueryResultArea";
-
-type HistoryRow = {
-  text: string;
-  esqlInput: string;
-  esql: string;
-  stats: StatisticsRow;
-};
 
 const ESQLComposerMain = () => {
   const toast = useToast();
@@ -779,7 +773,6 @@ const ESQLComposerMain = () => {
                   setQueryAPIData(null);
                   setQueryAPIDataAutoUpdate(false);
                 }}
-                queryAPIDataAutoUpdate={queryAPIDataAutoUpdate}
                 fetchQueryData={fetchQueryData}
               />
               <QueryResultArea
