@@ -87,13 +87,12 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
               </Slider>
             </Box>
             <FormHelperText>
-              As of November 1st, Haiku 3.5 was still{" "}
               <Link
                 isExternal
                 href="https://www.anthropic.com/pricing#anthropic-api"
               >
                 <ExternalLinkIcon mx="3px" />
-                not available
+                Compare model pricing.
               </Link>
             </FormHelperText>
           </FormControl>

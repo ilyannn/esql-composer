@@ -46,8 +46,7 @@ const ESQLComposerMain = () => {
   const [openedAreas, setOpenedAreas] = useState<number | number[]>([1, 2, 3]);
   const [tooltipsShown, setTooltipsShown] = useState(true);
 
-  // Since Haiku 3.5 is not available yet, default to Sonnet 3.5
-  const [modelSelected, setModelSelected] = useState(1);
+  const [modelSelected, setModelSelected] = useState(0);
   const [anthropicAPIKey, setAnthropicAPIKey] = useState("");
   const [queryAPIURL, setQueryAPIURL] = useState("");
   const [queryAPIKey, setQueryAPIKey] = useState("");
