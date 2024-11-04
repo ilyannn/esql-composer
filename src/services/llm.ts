@@ -325,7 +325,6 @@ export const generateESQLUpdate = async (
 
   if (processESQLLines !== false) {
     processLine = (line: string) => {
-      console.log(line);
       if (line.startsWith("<esql>") && isInsideEsql === undefined) {
         isInsideEsql = true;
       } else if (line.startsWith("</esql>") && isInsideEsql === true) {

@@ -26,10 +26,9 @@ interface ESQLWorkingAreaProps {
   esqlInput: string;
   setEsqlInput: (value: string) => void;
   esqlCompletion: string;
-  setEsqlCompletion: (value: string) => void;
 
   history: any[];
-  setHistory: (value: any[]) => void;
+  resetESQL: () => void;
 
   naturalInputRef: React.RefObject<HTMLInputElement>;
   esqlInputRef: React.RefObject<HTMLTextAreaElement>;
@@ -39,6 +38,7 @@ interface ESQLWorkingAreaProps {
   handleCompleteESQL: () => Promise<void>;
   performESQLRequest: (action: string) => Promise<void>;
   isQueryAPIAvailable: boolean;
+  queryAPIDataAutoUpdate: boolean;
   fetchQueryData: () => Promise<void>;
 }
 
@@ -51,10 +51,9 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   esqlInput,
   setEsqlInput,
   esqlCompletion,
-  setEsqlCompletion,
 
   history,
-  setHistory,
+  resetESQL,
 
   naturalInputRef,
   esqlInputRef,
@@ -64,6 +63,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   handleCompleteESQL,
   performESQLRequest,
   isQueryAPIAvailable,
+  queryAPIDataAutoUpdate,
   fetchQueryData,
 }) => {
   const toast = useToast();
@@ -76,13 +76,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
       duration: 750,
       isClosable: true,
     });
-  };
-
-  const clearESQL = () => {
-    setEsqlInput("");
-    setEsqlCompletion("");
-    setNaturalInput("");
-    setHistory([]);
   };
 
   const handleUpdateESQL = async () => {
@@ -218,6 +211,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
         >
           Fetch Data
         </SpinningButton>
+        <Spacer />
         <Tooltip isDisabled={!tooltipsShown} label="Complete the current line">
           <SpinningButton
             type="submit"
@@ -228,7 +222,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             Complete
           </SpinningButton>
         </Tooltip>
-        <Spacer />
         <Tooltip isDisabled={!tooltipsShown} label="Pretty print the ES|QL">
           <SpinningButton
             type="submit"
@@ -240,6 +233,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             Prettify
           </SpinningButton>
         </Tooltip>
+        <Spacer />
         <Tooltip isDisabled={!tooltipsShown} label="Copy ES|QL to Clipboard">
           <Button
             variant="ghost"
@@ -250,7 +244,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             Copy
           </Button>
         </Tooltip>
-        <Spacer />
         <Tooltip
           isDisabled={!tooltipsShown}
           label="Export history of prompt and request pairs"
@@ -272,7 +265,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             variant="ghost"
             colorScheme="red"
             isDisabled={!esqlInput && !naturalInput}
-            onClick={() => clearESQL()}
+            onClick={() => resetESQL()}
           >
             Reset
           </Button>

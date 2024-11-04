@@ -72,6 +72,8 @@ const ESQLComposerMain = () => {
   const [esqlCompletion, setEsqlCompletion] = useState("");
 
   const [queryAPIData, setQueryAPIData] = useState<TableData | null>(null);
+  const [queryAPIDataAutoUpdate, setQueryAPIDataAutoUpdate] = useState(false);
+  const [queryAPIDataHasScheduledUpdate, setQueryAPIDataHasScheduledUpdate] = useState(false);
 
   const [allStats, setAllStats] = useState<StatisticsRow[]>([]);
   const [history, setHistory] = useState<HistoryRow[]>([]);
@@ -179,7 +181,6 @@ const ESQLComposerMain = () => {
         setAnthropicAPIKey(config["anthropicAPIKey"]);
         setAnthropicAPIKeyWorks(null);
       }
-      console.log("anthropicAPIKeyWorks", config["anthropicAPIKeyWorks"]);
       if (
         "anthropicAPIKeyWorks" in config &&
         typeof config["anthropicAPIKeyWorks"] === "boolean"
@@ -238,7 +239,7 @@ const ESQLComposerMain = () => {
    * @param {Function} action - The function that performs the API call.
    * @returns {Promise<*>} The result of the API call if successful.
    */
-  const performAnthropicAPIAction = async (
+  const performAnthropicAPIAction = useCallback(async (
     label: string,
     action: () => Promise<void>
   ) => {
@@ -290,9 +291,9 @@ const ESQLComposerMain = () => {
         isClosable: true,
       });
     }
-  };
+  }, [toast, setAnthropicAPIKeyWorks]);
 
-  const performQueryAPIAction = async (
+  const performQueryAPIAction = useCallback(async (
     label: string,
     action: () => Promise<void>
   ) => {
@@ -342,7 +343,7 @@ const ESQLComposerMain = () => {
         isClosable: true,
       });
     }
-  };
+  }, [toast, setQueryAPIKeyWorks]);
 
   const testAnthropicAPIKey = async () => {
     await performAnthropicAPIAction("API test", async () => {
@@ -438,7 +439,7 @@ const ESQLComposerMain = () => {
     });
   };
 
-  const handleGetTokenCount = async () => {
+  const handleGetTokenCount = useCallback(async () => {
     await performAnthropicAPIAction("Token Counting", async () => {
       setEsqlGuideTokenCount(
         await countTokens({
@@ -455,12 +456,22 @@ const ESQLComposerMain = () => {
         })
       );
     });
-  };
+  }, [performAnthropicAPIAction, anthropicAPIKey, modelSelected, esqlGuideText, schemaGuideText]);
 
-  const performESQLRequest = async (text: string) => {
+  const saveCacheWarmedInfo = useCallback(() => {
+    setCacheWarmedInfo({
+      date: Date.now(),
+      esqlGuideText,
+      schemaGuideText,
+      modelSelected,
+    });
+  }, [esqlGuideText, schemaGuideText, modelSelected]);
+
+  const performESQLRequest = useCallback(async (text: string) => {
     await performAnthropicAPIAction("ES|QL generation", async () => {
       let interpolatedLines = esqlInput.split("\n");
       let lineIndex = -1;
+
       const haveESQLLine = (line: string) => {
         setAnthropicAPIKeyWorks(true);
         line = line.trimEnd();
@@ -477,6 +488,7 @@ const ESQLComposerMain = () => {
           autosize.update(esqlInputRef.current);
         }
       };
+
       const doneESQL = () => {
         lineIndex++;
         if (lineIndex < interpolatedLines.length) {
@@ -487,8 +499,10 @@ const ESQLComposerMain = () => {
           autosize.update(esqlInputRef.current);
         }
       };
+
       setEsqlCompletion("");
-      const data = (await generateESQLUpdate({
+
+      const data = await generateESQLUpdate({
         apiKey: anthropicAPIKey,
         modelSelected,
         esqlGuideText,
@@ -497,9 +511,11 @@ const ESQLComposerMain = () => {
         naturalInput: text,
         haveESQLLine,
         doneESQL,
-      })) as any;
+      });
+
       saveCacheWarmedInfo();
       setAllStats([...allStats, data.stats]);
+
       setHistory([
         ...history,
         {
@@ -509,11 +525,19 @@ const ESQLComposerMain = () => {
           stats: data.stats,
         },
       ]);
+
+      if (esqlInputRef.current) {
+        autosize.update(esqlInputRef.current);
+      }
+
       if (naturalInputRef.current?.value === text) {
         naturalInputRef.current?.setSelectionRange(0, naturalInput.length);
       }
+      if (queryAPIDataAutoUpdate) {
+        setQueryAPIDataHasScheduledUpdate(true);
+      }
     });
-  };
+  }, [performAnthropicAPIAction, esqlInput, anthropicAPIKey, modelSelected, esqlGuideText, schemaGuideText, saveCacheWarmedInfo, allStats, history, naturalInput.length, queryAPIDataAutoUpdate, setQueryAPIDataHasScheduledUpdate] );
 
   const handleCompleteESQL = async () => {
     if (esqlInputRef.current === null) {
@@ -582,25 +606,16 @@ const ESQLComposerMain = () => {
     }
   };
 
-  const saveCacheWarmedInfo = () => {
-    setCacheWarmedInfo({
-      date: Date.now(),
-      esqlGuideText,
-      schemaGuideText,
-      modelSelected,
-    });
-  };
-
-  const fetchQueryData = async (query: string) => {
-    performQueryAPIAction("ES|QL query", async () => {
+  const fetchQueryData = useCallback(async () => {
+    await performQueryAPIAction("ES|QL query", async () => {
       const response = await performESQLQuery({
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
-        query,
+        query: esqlInput,
       });
       setQueryAPIData(response);
     });
-  };
+  }, [queryAPIURL, queryAPIKey, esqlInput, performQueryAPIAction]);
 
   const handleShowInfo = async () => {
     await performQueryAPIAction("Show info", async () => {
@@ -631,6 +646,13 @@ const ESQLComposerMain = () => {
       });
     });
   };
+
+  useEffect(() => {
+    if (queryAPIDataHasScheduledUpdate) {
+      setQueryAPIDataHasScheduledUpdate(false);
+      fetchQueryData();
+    }
+  }, [queryAPIDataHasScheduledUpdate, fetchQueryData, esqlInput]);
 
   return (
     <Box p={4}>
@@ -710,9 +732,7 @@ const ESQLComposerMain = () => {
                 esqlInput={esqlInput}
                 setEsqlInput={setEsqlInput}
                 esqlCompletion={esqlCompletion}
-                setEsqlCompletion={setEsqlCompletion}
                 history={history}
-                setHistory={setHistory}
                 esqlCompleteButtonRef={esqlCompleteButtonRef}
                 naturalInputRef={naturalInputRef}
                 esqlInputRef={esqlInputRef}
@@ -722,12 +742,28 @@ const ESQLComposerMain = () => {
                 isQueryAPIAvailable={
                   queryAPIURL.length > 0 && queryAPIKey.length > 0
                 }
-                fetchQueryData={() => fetchQueryData(esqlInput)}
+                resetESQL={() => {
+                  setNaturalInput("");
+                  setEsqlInput("");
+                  setEsqlCompletion("");
+                  setQueryAPIData(null);
+                  setQueryAPIDataAutoUpdate(false);
+                }}
+                queryAPIDataAutoUpdate={queryAPIDataAutoUpdate}
+                fetchQueryData={fetchQueryData}
               />
-              <QueryResultArea data={queryAPIData} />
-
+              <QueryResultArea
+                data={queryAPIData}
+                tooltipsShown={tooltipsShown}
+                clearData={() => {
+                  setQueryAPIDataAutoUpdate(false);
+                  setQueryAPIData(null);
+                }}
+                autoUpdate={queryAPIDataAutoUpdate}
+                setAutoUpdate={setQueryAPIDataAutoUpdate}
+              />
               <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
-            </VStack>
+              </VStack>
           </Section>
         </Accordion>
       </VStack>
