@@ -65,24 +65,24 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
             </TableCaption>
             <Thead>
               <Tr>
-                {data.columns.map((col) => (
-                  <Th>{col.name}</Th>
+                {data.columns.map((col, colIndex) => (
+                  <Th key={colIndex}>{col.name}</Th>
                 ))}
               </Tr>
             </Thead>
             <Tbody>
-              {data.values.map((row) => (
-                <Tr>
-                  {row.map((val) => (
-                    <Td>{val}</Td>
+              {data.values.map((row, rowIndex) => (
+                <Tr key={rowIndex}>
+                  {row.map((val, colIndex) => (
+                    <Td key={colIndex}>{val}</Td>
                   ))}
                 </Tr>
               ))}
             </Tbody>
             <Tfoot>
               <Tr>
-                {data.columns.map((col) => (
-                  <Th>{col.type}</Th>
+                {data.columns.map((col, colIndex) => (
+                  <Th key={colIndex}>{col.type}</Th>
                 ))}
               </Tr>
             </Tfoot>

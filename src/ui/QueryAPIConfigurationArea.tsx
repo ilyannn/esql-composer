@@ -113,7 +113,7 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
               spinningAction={handleShowInfo}
               disabled={!apiKey}
             >
-              Show Info
+              Test
             </SpinningButton>
           </Tooltip>
         </HStack>

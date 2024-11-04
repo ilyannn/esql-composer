@@ -55,8 +55,10 @@ const createAnthropicInstance = (apiKey: string) => {
   });
 };
 
-export const testWithSimpleQuestion = async (
-  input: LLMOptions
+export const testWithSimpleUtterance = async (
+  input: LLMOptions & {
+    utterance: string;
+  }
 ): Promise<string> => {
   const anthropic = createAnthropicInstance(input.apiKey);
 
@@ -64,7 +66,7 @@ export const testWithSimpleQuestion = async (
     messages: [
       {
         role: "user",
-        content: [{ type: "text", text: "Are you an LLM?" }],
+        content: [{ type: "text", text: input.utterance }],
       },
     ],
     model: MODEL_LIST[input.modelSelected],

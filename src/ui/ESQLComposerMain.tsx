@@ -22,7 +22,7 @@ import {
   countTokens,
   generateESQLUpdate,
   reduceSize,
-  testWithSimpleQuestion,
+  testWithSimpleUtterance,
   warmCache,
 } from "../services/llm";
 
@@ -73,7 +73,8 @@ const ESQLComposerMain = () => {
 
   const [queryAPIData, setQueryAPIData] = useState<TableData | null>(null);
   const [queryAPIDataAutoUpdate, setQueryAPIDataAutoUpdate] = useState(false);
-  const [queryAPIDataHasScheduledUpdate, setQueryAPIDataHasScheduledUpdate] = useState(false);
+  const [queryAPIDataHasScheduledUpdate, setQueryAPIDataHasScheduledUpdate] =
+    useState(false);
 
   const [allStats, setAllStats] = useState<StatisticsRow[]>([]);
   const [history, setHistory] = useState<HistoryRow[]>([]);
@@ -239,122 +240,130 @@ const ESQLComposerMain = () => {
    * @param {Function} action - The function that performs the API call.
    * @returns {Promise<*>} The result of the API call if successful.
    */
-  const performAnthropicAPIAction = useCallback(async (
-    label: string,
-    action: () => Promise<void>
-  ) => {
-    try {
-      await action();
-      setAnthropicAPIKeyWorks(true);
-      return;
-    } catch (error) {
-      let title: ReactNode = <Text>{label} error</Text>;
-      let description: ReactNode = undefined;
+  const performAnthropicAPIAction = useCallback(
+    async (label: string, action: () => Promise<void>) => {
+      try {
+        await action();
+        setAnthropicAPIKeyWorks(true);
+        return;
+      } catch (error) {
+        let title: ReactNode = <Text>{label} error</Text>;
+        let description: ReactNode = undefined;
 
-      if (error instanceof Anthropic.APIError) {
-        title = (
-          <HStack>
-            {title} <ExternalLinkIcon />
-            <Link isExternal href={`https://http.dog/${error.status}`}>
-              {error.status}
-            </Link>
-          </HStack>
-        );
+        if (error instanceof Anthropic.APIError) {
+          title = (
+            <HStack>
+              {title} <ExternalLinkIcon />
+              <Link isExternal href={`https://http.dog/${error.status}`}>
+                {error.status}
+              </Link>
+            </HStack>
+          );
+        }
+
+        if (error instanceof Anthropic.APIError && error.status === 401) {
+          setAnthropicAPIKeyWorks(false);
+          description = <Text>Please check your Anthropic API key.</Text>;
+        } else if (
+          error instanceof Anthropic.APIError &&
+          error.error &&
+          "error" in error.error &&
+          error.error.error &&
+          typeof error.error.error === "object" &&
+          "message" in error.error.error &&
+          typeof error.error.error.message === "string"
+        ) {
+          description = <Text>{error.error.error.message}</Text>;
+        } else if (
+          error &&
+          typeof error === "object" &&
+          "message" in error &&
+          typeof error.message === "string"
+        ) {
+          description = error.message;
+        }
+
+        toast({
+          title,
+          description,
+          status: "error",
+          isClosable: true,
+        });
       }
+    },
+    [toast, setAnthropicAPIKeyWorks]
+  );
 
-      if (error instanceof Anthropic.APIError && error.status === 401) {
-        setAnthropicAPIKeyWorks(false);
-        description = <Text>Please check your Anthropic API key.</Text>;
-      } else if (
-        error instanceof Anthropic.APIError &&
-        error.error &&
-        "error" in error.error &&
-        error.error.error &&
-        typeof error.error.error === "object" &&
-        "message" in error.error.error &&
-        typeof error.error.error.message === "string"
-      ) {
-        description = <Text>{error.error.error.message}</Text>;
-      } else if (
-        error &&
-        typeof error === "object" &&
-        "message" in error &&
-        typeof error.message === "string"
-      ) {
-        description = error.message;
+  const performQueryAPIAction = useCallback(
+    async (label: string, action: () => Promise<void>) => {
+      try {
+        await action();
+        setQueryAPIKeyWorks(true);
+        return;
+      } catch (error) {
+        let title: ReactNode = <Text>{label} error</Text>;
+        let description: ReactNode = undefined;
+
+        if (
+          error &&
+          typeof error === "object" &&
+          "status" in error &&
+          typeof error.status === "number"
+        ) {
+          title = (
+            <HStack>
+              {title} <ExternalLinkIcon />
+              <Link isExternal href={`https://http.dog/${error.status}`}>
+                {error.status}
+              </Link>
+            </HStack>
+          );
+        }
+
+        if (error instanceof QueryAPIError && error.isAuthorizationError) {
+          setQueryAPIKeyWorks(false);
+          description = <Text>Please check your Elasticsearch API key.</Text>;
+        } else if (
+          error &&
+          typeof error === "object" &&
+          "error" in error &&
+          error.error &&
+          typeof error.error === "object"
+        ) {
+          description = <Text>{String(error.error)}</Text>;
+        } else {
+          description = String(error);
+        }
+
+        toast({
+          title,
+          description,
+          status: "error",
+          isClosable: true,
+        });
       }
-
-      toast({
-        title,
-        description,
-        status: "error",
-        isClosable: true,
-      });
-    }
-  }, [toast, setAnthropicAPIKeyWorks]);
-
-  const performQueryAPIAction = useCallback(async (
-    label: string,
-    action: () => Promise<void>
-  ) => {
-    try {
-      await action();
-      setQueryAPIKeyWorks(true);
-      return;
-    } catch (error) {
-      let title: ReactNode = <Text>{label} error</Text>;
-      let description: ReactNode = undefined;
-
-      if (
-        error &&
-        typeof error === "object" &&
-        "status" in error &&
-        typeof error.status === "number"
-      ) {
-        title = (
-          <HStack>
-            {title} <ExternalLinkIcon />
-            <Link isExternal href={`https://http.dog/${error.status}`}>
-              {error.status}
-            </Link>
-          </HStack>
-        );
-      }
-
-      if (error instanceof QueryAPIError && error.isAuthorizationError) {
-        setQueryAPIKeyWorks(false);
-        description = <Text>Please check your Elasticsearch API key.</Text>;
-      } else if (
-        error &&
-        typeof error === "object" &&
-        "error" in error &&
-        error.error &&
-        typeof error.error === "object"
-      ) {
-        description = <Text>{String(error.error)}</Text>;
-      } else {
-        description = String(error);
-      }
-
-      toast({
-        title,
-        description,
-        status: "error",
-        isClosable: true,
-      });
-    }
-  }, [toast, setQueryAPIKeyWorks]);
+    },
+    [toast, setQueryAPIKeyWorks]
+  );
 
   const testAnthropicAPIKey = async () => {
-    await performAnthropicAPIAction("API test", async () => {
-      const claudeAnswer = await testWithSimpleQuestion({
+    await performAnthropicAPIAction("Anthropic API test", async () => {
+      const utterance = "Hi, Claude";
+      const claudeAnswer = await testWithSimpleUtterance({
         apiKey: anthropicAPIKey,
         modelSelected,
+        utterance,
       });
 
       toast({
-        title: "API test successful",
-        description: `Claude says: ${claudeAnswer}`,
+        title: "Anthropic API test successful",
+
+        description: (
+          <VStack align="stretch" spacing={0} justify={"flex-end"}>
+            <Text> You say: {utterance}</Text>
+            <Text> Claude says: {claudeAnswer}</Text>
+          </VStack>
+        ),
         status: "success",
         isClosable: true,
       });
@@ -456,7 +465,13 @@ const ESQLComposerMain = () => {
         })
       );
     });
-  }, [performAnthropicAPIAction, anthropicAPIKey, modelSelected, esqlGuideText, schemaGuideText]);
+  }, [
+    performAnthropicAPIAction,
+    anthropicAPIKey,
+    modelSelected,
+    esqlGuideText,
+    schemaGuideText,
+  ]);
 
   const saveCacheWarmedInfo = useCallback(() => {
     setCacheWarmedInfo({
@@ -467,77 +482,93 @@ const ESQLComposerMain = () => {
     });
   }, [esqlGuideText, schemaGuideText, modelSelected]);
 
-  const performESQLRequest = useCallback(async (text: string) => {
-    await performAnthropicAPIAction("ES|QL generation", async () => {
-      let interpolatedLines = esqlInput.split("\n");
-      let lineIndex = -1;
+  const performESQLRequest = useCallback(
+    async (text: string) => {
+      await performAnthropicAPIAction("ES|QL generation", async () => {
+        let interpolatedLines = esqlInput.split("\n");
+        let lineIndex = -1;
 
-      const haveESQLLine = (line: string) => {
-        setAnthropicAPIKeyWorks(true);
-        line = line.trimEnd();
-        lineIndex++;
-        if (lineIndex >= interpolatedLines.length) {
-          interpolatedLines.push(line);
-        } else if (interpolatedLines[lineIndex] !== line) {
-          interpolatedLines[lineIndex] = line;
-        } else {
-          return;
-        }
-        setEsqlInput(interpolatedLines.join("\n"));
-        if (esqlInputRef.current) {
-          autosize.update(esqlInputRef.current);
-        }
-      };
-
-      const doneESQL = () => {
-        lineIndex++;
-        if (lineIndex < interpolatedLines.length) {
-          interpolatedLines.splice(lineIndex);
+        const haveESQLLine = (line: string) => {
+          setAnthropicAPIKeyWorks(true);
+          line = line.trimEnd();
+          lineIndex++;
+          if (lineIndex >= interpolatedLines.length) {
+            interpolatedLines.push(line);
+          } else if (interpolatedLines[lineIndex] !== line) {
+            interpolatedLines[lineIndex] = line;
+          } else {
+            return;
+          }
           setEsqlInput(interpolatedLines.join("\n"));
-        }
+          if (esqlInputRef.current) {
+            autosize.update(esqlInputRef.current);
+          }
+        };
+
+        const doneESQL = () => {
+          lineIndex++;
+          if (lineIndex < interpolatedLines.length) {
+            interpolatedLines.splice(lineIndex);
+            setEsqlInput(interpolatedLines.join("\n"));
+          }
+          if (esqlInputRef.current) {
+            autosize.update(esqlInputRef.current);
+          }
+        };
+
+        setEsqlCompletion("");
+
+        const data = await generateESQLUpdate({
+          apiKey: anthropicAPIKey,
+          modelSelected,
+          esqlGuideText,
+          schemaGuideText,
+          esqlInput,
+          naturalInput: text,
+          haveESQLLine,
+          doneESQL,
+        });
+
+        saveCacheWarmedInfo();
+        setAllStats([...allStats, data.stats]);
+
+        setHistory([
+          ...history,
+          {
+            text,
+            esqlInput,
+            esql: interpolatedLines.join("\n"),
+            stats: data.stats,
+          },
+        ]);
+
         if (esqlInputRef.current) {
           autosize.update(esqlInputRef.current);
         }
-      };
 
-      setEsqlCompletion("");
-
-      const data = await generateESQLUpdate({
-        apiKey: anthropicAPIKey,
-        modelSelected,
-        esqlGuideText,
-        schemaGuideText,
-        esqlInput,
-        naturalInput: text,
-        haveESQLLine,
-        doneESQL,
+        if (naturalInputRef.current?.value === text) {
+          naturalInputRef.current?.setSelectionRange(0, naturalInput.length);
+        }
+        if (queryAPIDataAutoUpdate) {
+          setQueryAPIDataHasScheduledUpdate(true);
+        }
       });
-
-      saveCacheWarmedInfo();
-      setAllStats([...allStats, data.stats]);
-
-      setHistory([
-        ...history,
-        {
-          text,
-          esqlInput,
-          esql: interpolatedLines.join("\n"),
-          stats: data.stats,
-        },
-      ]);
-
-      if (esqlInputRef.current) {
-        autosize.update(esqlInputRef.current);
-      }
-
-      if (naturalInputRef.current?.value === text) {
-        naturalInputRef.current?.setSelectionRange(0, naturalInput.length);
-      }
-      if (queryAPIDataAutoUpdate) {
-        setQueryAPIDataHasScheduledUpdate(true);
-      }
-    });
-  }, [performAnthropicAPIAction, esqlInput, anthropicAPIKey, modelSelected, esqlGuideText, schemaGuideText, saveCacheWarmedInfo, allStats, history, naturalInput.length, queryAPIDataAutoUpdate, setQueryAPIDataHasScheduledUpdate] );
+    },
+    [
+      performAnthropicAPIAction,
+      esqlInput,
+      anthropicAPIKey,
+      modelSelected,
+      esqlGuideText,
+      schemaGuideText,
+      saveCacheWarmedInfo,
+      allStats,
+      history,
+      naturalInput.length,
+      queryAPIDataAutoUpdate,
+      setQueryAPIDataHasScheduledUpdate,
+    ]
+  );
 
   const handleCompleteESQL = async () => {
     if (esqlInputRef.current === null) {
@@ -618,7 +649,7 @@ const ESQLComposerMain = () => {
   }, [queryAPIURL, queryAPIKey, esqlInput, performQueryAPIAction]);
 
   const handleShowInfo = async () => {
-    await performQueryAPIAction("Show info", async () => {
+    await performQueryAPIAction("Elasticsearch API test", async () => {
       const response = await performESQLQuery({
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
@@ -634,11 +665,10 @@ const ESQLComposerMain = () => {
       const date = response.values[0][dateColumn] as string;
       const formattedMoment = moment(date).fromNow();
       toast({
-        title: "API test successful",
+        title: "Elasticsearch API test successful",
         description: (
           <Text>
-            {" "}
-            Elasticsearch version {version}, built {formattedMoment}.{" "}
+            SHOW INFO: version {version}, built {formattedMoment}.{" "}
           </Text>
         ),
         status: "success",
@@ -763,7 +793,7 @@ const ESQLComposerMain = () => {
                 setAutoUpdate={setQueryAPIDataAutoUpdate}
               />
               <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
-              </VStack>
+            </VStack>
           </Section>
         </Accordion>
       </VStack>

@@ -142,7 +142,7 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
               spinningAction={testAPIKey}
               disabled={!apiKey}
             >
-              Are you an LLM?
+              Test
             </SpinningButton>
           </Tooltip>
         </HStack>
