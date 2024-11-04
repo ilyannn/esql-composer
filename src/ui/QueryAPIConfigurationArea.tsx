@@ -1,6 +1,5 @@
 import { CheckIcon, ExternalLinkIcon } from "@chakra-ui/icons";
 import {
-  Box,
   FormControl,
   FormHelperText,
   FormLabel,
@@ -9,46 +8,34 @@ import {
   InputGroup,
   InputRightElement,
   Link,
-  Slider,
-  SliderFilledTrack,
-  SliderMark,
-  SliderThumb,
-  SliderTrack,
   StackDivider,
-  Text,
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
 import React from "react";
 import SpinningButton from "./components/SpinningButton";
 
-interface LLMConfigurationAreaProps {
-  modelSelected: number;
-  setModelSelected: (value: number) => void;
+interface QueryAPIConfigurationAreaProps {
+  apiURL: string;
+  setApiURL: (value: string) => void;
   apiKey: string;
   setApiKey: (value: string) => void;
   apiKeyWorks: boolean | null;
   setApiKeyWorks: (value: boolean | null) => void;
   tooltipsShown: boolean;
-  testAPIKey: () => Promise<void>;
+  handleShowInfo: () => Promise<void>;
 }
 
-const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
-  modelSelected,
-  setModelSelected,
+const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
+  apiURL,
+  setApiURL,
   apiKey,
   setApiKey,
   apiKeyWorks,
   setApiKeyWorks,
   tooltipsShown,
-  testAPIKey,
+  handleShowInfo,
 }) => {
-  const modelSliderlabelStyles = {
-    mt: "3",
-    ml: "-3",
-    fontSize: "sm",
-  };
-
   return (
     <VStack align="stretch" justify="space-between" spacing={6}>
       <form onSubmit={(e) => e.preventDefault()}>
@@ -58,57 +45,42 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
           spacing={8}
           divider={<StackDivider borderColor="gray.200" />}
         >
-          <FormControl as="fieldset" width="200px">
-            <FormLabel as="legend">Claude 3.5 Model</FormLabel>
-            <Box p={5} pt={0}>
-              <Slider
-                aria-label="Model Selection"
-                onChange={(val) => setModelSelected(val)}
-                value={modelSelected}
-                min={0}
-                max={1}
-                step={1}
-              >
-                <SliderMark value={0} {...modelSliderlabelStyles}>
-                  Haiku
-                </SliderMark>
-                <SliderMark value={1} {...modelSliderlabelStyles}>
-                  Sonnet
-                </SliderMark>
-                {/* <SliderMark value={2} {...modelSliderlabelStyles}>
-                  Opus
-                </SliderMark> */}
-                <SliderTrack bg="gray.200">
-                  <SliderFilledTrack bg="gold" />
-                </SliderTrack>
-                <SliderThumb boxSize={5 + 2 * modelSelected} bg="red.50">
-                  <Text fontSize="sm">{"$".repeat(modelSelected + 1)}</Text>
-                </SliderThumb>
-              </Slider>
-            </Box>
+          <FormControl flex={1}>
+            <FormLabel>Elasticsearch URL</FormLabel>
+            <InputGroup>
+              <Input
+                type="url"
+                placeholder="Enter URL here"
+                value={apiURL}
+                autoComplete="elasticsearch-api-url"
+                onChange={(e) => {
+                  setApiURL(e.target.value);
+                  setApiKeyWorks(null);
+                }}
+                flex={1}
+              />
+            </InputGroup>
             <FormHelperText>
-              As of November 1st, Haiku 3.5 was still{" "}
+              Please make sure CORS{" "}
               <Link
                 isExternal
-                href="https://www.anthropic.com/pricing#anthropic-api"
+                href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-application-security.html#search-application-security-cors"
               >
-                <ExternalLinkIcon mx="3px" />
-                not available
+                <ExternalLinkIcon /> allows access.
               </Link>
             </FormHelperText>
           </FormControl>
           <FormControl
-            isRequired
             isInvalid={apiKey.length !== 0 && apiKeyWorks === false}
             flex={1}
           >
-            <FormLabel>Anthropic API Key</FormLabel>
+            <FormLabel>Elasticsearch API Key</FormLabel>
             <InputGroup>
               <Input
                 type="password"
                 placeholder="Enter key here"
                 value={apiKey}
-                autoComplete="anthropic-api-key"
+                autoComplete="elasticsearch-api-key"
                 onChange={(e) => {
                   setApiKey(e.target.value);
                   setApiKeyWorks(null);
@@ -123,14 +95,12 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
               ) : null}
             </InputGroup>
             <FormHelperText>
-              Since we use{" "}
               <Link
                 isExternal
-                href="https://www.anthropic.com/news/prompt-caching"
+                href="https://www.elastic.co/guide/en/kibana/8.15/api-keys.html"
               >
-                <ExternalLinkIcon /> beta features
+                <ExternalLinkIcon /> How to create an API key in Kibana.
               </Link>
-              , only direct access is supported.
             </FormHelperText>
           </FormControl>
           <Tooltip
@@ -139,10 +109,11 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
           >
             <SpinningButton
               type="submit"
-              spinningAction={testAPIKey}
+              targets="es"
+              spinningAction={handleShowInfo}
               disabled={!apiKey}
             >
-              Are you an LLM?
+              Show Info
             </SpinningButton>
           </Tooltip>
         </HStack>
@@ -151,4 +122,4 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
   );
 };
 
-export default LLMConfigurationArea;
+export default QueryAPIConfigurationArea;

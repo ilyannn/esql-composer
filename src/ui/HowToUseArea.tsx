@@ -1,6 +1,7 @@
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   Button,
+  Highlight,
   HStack,
   Link,
   ListItem,
@@ -57,11 +58,21 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
             completion, press again to insert.
           </ListItem>
           <ListItem>
-            Blue buttons perform Anthropic API requests (unfilled buttons = gratis, filled = paid).
+            Optionally, connect your Elasticsearch instance to fetch data from
+            it.
+          </ListItem>
+          <ListItem>
+            <Highlight query={"blue"} styles={{ px: '2', py: '1', rounded: 'md', bg: 'blue.100' }}>
+              Blue buttons for LLM requests (unfilled = gratis),
+            </Highlight>
+            {" "}
+            <Highlight query={"teal"} styles={{ px: '2', py: '1', rounded: 'md', bg: 'teal.100' }}>
+            teal for Elasticsearch.
+            </Highlight>
           </ListItem>
           <ListItem>
             <HStack spacing={-0.5} align={"baseline"}>
-            <Text>Button tooltips:</Text>
+              <Text>Button tooltips are {tooltipsShown ? " enabled": " disabled"}:</Text>
               {!tooltipsShown && (
                 <Button
                   variant="ghost"

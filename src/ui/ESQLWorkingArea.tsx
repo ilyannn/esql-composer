@@ -38,6 +38,8 @@ interface ESQLWorkingAreaProps {
 
   handleCompleteESQL: () => Promise<void>;
   performESQLRequest: (action: string) => Promise<void>;
+  isQueryAPIAvailable: boolean;
+  fetchQueryData: () => Promise<void>;
 }
 
 const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
@@ -61,6 +63,8 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
 
   handleCompleteESQL,
   performESQLRequest,
+  isQueryAPIAvailable,
+  fetchQueryData,
 }) => {
   const toast = useToast();
 
@@ -206,6 +210,14 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
         </VStack>
       </HStack>
       <HStack>
+        <SpinningButton
+          targets="es"
+          spinningAction={fetchQueryData}
+          type="submit"
+          disabled={!isQueryAPIAvailable || !esqlInput}
+        >
+          Fetch Data
+        </SpinningButton>
         <Tooltip isDisabled={!tooltipsShown} label="Complete the current line">
           <SpinningButton
             type="submit"
