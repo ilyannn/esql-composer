@@ -61,13 +61,22 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
               />
             </InputGroup>
             <FormHelperText>
-              Please make sure CORS{" "}
+              Make sure CORS{" "}
               <Link
                 isExternal
                 href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-application-security.html#search-application-security-cors"
               >
-                <ExternalLinkIcon /> allows access.
+                <ExternalLinkIcon /> allows access
               </Link>
+              {" or "}
+              <Link
+                isExternal
+                href="https://github.com/elastic/elasticsearch-js/tree/main/docs/examples/proxy"
+              >
+                <ExternalLinkIcon />
+                use proxy
+              </Link>
+              .
             </FormHelperText>
           </FormControl>
           <FormControl
