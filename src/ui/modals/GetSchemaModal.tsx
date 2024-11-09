@@ -63,9 +63,10 @@ const GetSchemaModal: React.FC<GetSchemaModalProps> = ({ isOpen, onClose }) => {
             </FormControl>
             <FormControl>
               <FormLabel>Max number of documents</FormLabel>
-              <Flex pr={"30px"}>
+              <Flex >
                 <NumberInput
-                min={0} allowMouseWheel
+                  min={0}
+                  allowMouseWheel
                   maxW="100px"
                   mr="2rem"
                   value={maxDocs}
@@ -84,15 +85,15 @@ const GetSchemaModal: React.FC<GetSchemaModalProps> = ({ isOpen, onClose }) => {
                   focusThumbOnChange={false}
                   value={maxDocs}
                   onChange={setMaxDocs}
-                  >
-                    <SliderTrack
-                  >
-                    <SliderFilledTrack 
-                    />
-                    </SliderTrack>
+                  mr={"20px"}
+                  ml={"10px"}
+                >
+                  <SliderTrack>
+                    <SliderFilledTrack />
+                  </SliderTrack>
                   <SliderThumb
                     fontSize="sm"
-                    boxSize="32px"                  
+                    boxSize="32px"
                     children={maxDocs}
                   />
                 </Slider>
