@@ -13,6 +13,7 @@ import {
   Text,
   VStack,
   useToast,
+  useDisclosure,
 } from "@chakra-ui/react";
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -39,6 +40,7 @@ import LLMConfigurationArea from "./LLMConfigurationArea";
 import QueryAPIConfigurationArea from "./QueryAPIConfigurationArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import QueryResultArea from "./QueryResultArea";
+import GetSchemaModal from "./modals/GetSchemaModal";
 
 const ESQLComposerMain = () => {
   const toast = useToast();
@@ -83,6 +85,12 @@ const ESQLComposerMain = () => {
   const esqlInputRef = useRef<HTMLTextAreaElement>(null);
   const esqlCompleteButtonRef = useRef<HTMLButtonElement>(null);
   const naturalInputRef = useRef<HTMLInputElement>(null);
+
+  const isElasticsearchAPIAvailable = (queryAPIURL && queryAPIKey) !== "";
+  const isESQLRequestAvailable =
+    (anthropicAPIKey && esqlGuideText && schemaGuideText) !== "";
+
+  const getSchemaProps = useDisclosure();
 
   useEffect(() => {
     setEsqlGuideTokenCount(null);
@@ -581,7 +589,7 @@ const ESQLComposerMain = () => {
           autosize.update(esqlInputRef.current);
           esqlInputRef.current.setSelectionRange(
             cursorPosition,
-            cursorPosition,
+            cursorPosition
           );
         }
       }
@@ -727,7 +735,8 @@ const ESQLComposerMain = () => {
             }
           >
             <ReferenceGuidesArea
-              apiKey={anthropicAPIKey}
+              isESQLRequestAvailable={isESQLRequestAvailable}
+              isElasticsearchAPIAvailable={isElasticsearchAPIAvailable}
               esqlGuideText={esqlGuideText}
               setEsqlGuideText={setEsqlGuideText}
               esqlGuideTokenCount={esqlGuideTokenCount}
@@ -738,6 +747,7 @@ const ESQLComposerMain = () => {
               tooltipsShown={tooltipsShown}
               handleReduceSize={handleReduceSize}
               handleGetTokenCount={handleGetTokenCount}
+              handleRetrieveSchemaFromES={getSchemaProps.onOpen}
             />
           </Section>
 
@@ -745,9 +755,7 @@ const ESQLComposerMain = () => {
             <VStack align={"stretch"} justify={"space-between"} spacing={10}>
               <ESQLWorkingArea
                 tooltipsShown={tooltipsShown}
-                isESQLRequestAvailable={
-                  (anthropicAPIKey && esqlGuideText && schemaGuideText) !== ""
-                }
+                isESQLRequestAvailable={isESQLRequestAvailable}
                 naturalInput={naturalInput}
                 setNaturalInput={setNaturalInput}
                 esqlInput={esqlInput}
@@ -758,9 +766,7 @@ const ESQLComposerMain = () => {
                 esqlInputRef={esqlInputRef}
                 handleCompleteESQL={handleCompleteESQL}
                 performESQLRequest={performESQLRequest}
-                isQueryAPIAvailable={
-                  queryAPIURL.length > 0 && queryAPIKey.length > 0
-                }
+                isQueryAPIAvailable={isElasticsearchAPIAvailable}
                 resetESQL={() => {
                   setNaturalInput("");
                   setEsqlInput("");
@@ -784,6 +790,10 @@ const ESQLComposerMain = () => {
           </Section>
         </Accordion>
       </VStack>
+        <GetSchemaModal
+              isOpen={getSchemaProps.isOpen}
+              onClose={getSchemaProps.onClose}
+            />
     </Box>
   );
 };

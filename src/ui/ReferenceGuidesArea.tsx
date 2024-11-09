@@ -28,7 +28,9 @@ interface ReferenceGuidesAreaProps {
   handleReduceSize: () => Promise<void>;
   handleGetTokenCount: () => Promise<void>;
   tooltipsShown: boolean;
-  apiKey: string;
+  isESQLRequestAvailable: boolean;
+  isElasticsearchAPIAvailable: boolean;
+  handleRetrieveSchemaFromES: () => void;
 }
 
 const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
@@ -42,7 +44,9 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   handleReduceSize,
   handleGetTokenCount,
   tooltipsShown,
-  apiKey,
+  isESQLRequestAvailable,
+  isElasticsearchAPIAvailable,
+  handleRetrieveSchemaFromES
 }) => {
   const loadESQLFile = async (filename: string) => {
     if (!filename) {
@@ -92,7 +96,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
         height={"100%"}
         divider={<StackDivider borderColor="gray.200" />}
       >
-        <VStack align="stretch" justify="flex-start" flex={1}>
+        <VStack align="stretch" justify="flex-start" flex={1} spacing={3}>
           <FormControl
             isRequired={true}
             flex={1}
@@ -101,7 +105,10 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
           >
             <HStack justify={"space-between"}>
               <FormLabel>ES|QL Reference</FormLabel>
-              <TokenCountNotice charCount={esqlGuideText.length} tokenCount={esqlGuideTokenCount} />
+              <TokenCountNotice
+                charCount={esqlGuideText.length}
+                tokenCount={esqlGuideTokenCount}
+              />
             </HStack>
             <Textarea
               placeholder="Put reference material here."
@@ -110,19 +117,19 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
               flex={1}
               resize={"none"}
             />
-            <HStack justify="space-evenly">
-              <Button
-                variant="ghost"
-                colorScheme="red"
-                onClick={() => loadESQLFile("")}
-              >
-                Clear
-              </Button>
-            </HStack>
           </FormControl>
+          <HStack justify="space-evenly">
+            <Button
+              variant="ghost"
+              colorScheme="red"
+              onClick={() => loadESQLFile("")}
+            >
+              Clear
+            </Button>
+          </HStack>
         </VStack>
 
-        <VStack align="stretch" justify="flex-start" flex={1}>
+        <VStack align="stretch" justify="flex-start" flex={1} spacing={3}>
           <FormControl
             isRequired={true}
             flex={1}
@@ -131,7 +138,10 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
           >
             <HStack justify={"space-between"}>
               <FormLabel>Schema Description</FormLabel>
-              <TokenCountNotice charCount={schemaGuideText.length} tokenCount={schemaGuideTokenCount} />
+              <TokenCountNotice
+                charCount={schemaGuideText.length}
+                tokenCount={schemaGuideTokenCount}
+              />
             </HStack>
             <Textarea
               placeholder="Your Elasticsearch schema reference"
@@ -140,23 +150,32 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
               flex={1}
               resize="none"
             />
-            <HStack justify="space-evenly">
-              <Button
-                variant="ghost"
-                colorScheme="green"
-                onClick={() => loadSchemaFile("schema-flights.txt")}
-              >
-                Flights
-              </Button>
-              <Button
-                variant="ghost"
-                colorScheme="red"
-                onClick={() => loadSchemaFile("")}
-              >
-                Clear
-              </Button>
-            </HStack>
           </FormControl>
+          <HStack justify="space-evenly">
+            <Button
+              variant="ghost"
+              colorScheme="green"
+              type="button"
+              disabled={!isElasticsearchAPIAvailable}
+              onClick={async () => handleRetrieveSchemaFromES()}
+            >
+              From ES...
+            </Button>
+            <Button
+              variant="ghost"
+              colorScheme="green"
+              onClick={() => loadSchemaFile("schema-flights.txt")}
+            >
+              Demo
+            </Button>
+            <Button
+              variant="ghost"
+              colorScheme="red"
+              onClick={() => loadSchemaFile("")}
+            >
+              Clear
+            </Button>
+          </HStack>
         </VStack>
         <VStack align="stretch" justify="flex-start">
           <Tooltip
@@ -167,29 +186,9 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
               type="button"
               spinningAction={handleGetTokenCount}
               gratisAction={true}
-              disabled={
-                !apiKey.length ||
-                !esqlGuideText.length ||
-                !schemaGuideText.length
-              }
+              disabled={!isESQLRequestAvailable}
             >
               Count Tokens
-            </SpinningButton>
-          </Tooltip>
-          <Tooltip
-            isDisabled={!tooltipsShown}
-            label="Ask the LLM to reduce the size of the guides"
-          >
-            <SpinningButton
-              type="button"
-              spinningAction={handleReduceSize}
-              disabled={
-                !apiKey.length ||
-                !esqlGuideText.length ||
-                !schemaGuideText.length
-              }
-            >
-              Reduce Size
             </SpinningButton>
           </Tooltip>
           <Tooltip
@@ -199,15 +198,23 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             <SpinningButton
               type="button"
               spinningAction={handleWarmCache}
-              disabled={
-                !apiKey.length ||
-                !esqlGuideText.length ||
-                !schemaGuideText.length
-              }
+              disabled={!isESQLRequestAvailable}
             >
               Warm Cache
             </SpinningButton>
           </Tooltip>
+          <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Ask the LLM to reduce the size of the guides"
+            >
+              <SpinningButton
+                type="button"
+                spinningAction={handleReduceSize}
+                disabled={!isESQLRequestAvailable}
+              >
+                Reduce Size
+              </SpinningButton>
+            </Tooltip>
         </VStack>
       </HStack>
     </ResizableBox>
