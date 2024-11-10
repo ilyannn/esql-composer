@@ -8,8 +8,7 @@ import {
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
-import axios from "axios";
-import React, { useCallback, useEffect } from "react";
+import React from "react";
 
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
@@ -31,6 +30,8 @@ interface ReferenceGuidesAreaProps {
   isESQLRequestAvailable: boolean;
   isElasticsearchAPIAvailable: boolean;
   handleRetrieveSchemaFromES: () => void;
+  loadESQLFile: (filename: string) => void;
+  loadSchemaFile: (filename: string) => void;
 }
 
 const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
@@ -47,51 +48,9 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   isESQLRequestAvailable,
   isElasticsearchAPIAvailable,
   handleRetrieveSchemaFromES,
+  loadESQLFile,
+  loadSchemaFile,
 }) => {
-  const [isInitialSetupPerformed, setIsInitialSetupPerformed] = React.useState(false);
-
-  const loadESQLFile = useCallback(async (filename: string) => {
-    if (!filename) {
-      setEsqlGuideText("");
-      return;
-    }
-    axios
-      .get(filename)
-      .then((response) => {
-        setEsqlGuideText(response.data);
-      })
-      .catch((error) => {
-        console.error(`Error loading ${filename}:`, error);
-      });
-  }, [setEsqlGuideText]);
-
-  const loadSchemaFile = useCallback(
-    async (filename: string) => {
-      if (!filename) {
-        setSchemaGuideText("");
-        return;
-      }
-      axios
-        .get(filename)
-        .then((response) => {
-          setSchemaGuideText(response.data);
-        })
-        .catch((error) => {
-          console.error(`Error loading ${filename}:`, error);
-        });
-    },
-    [setSchemaGuideText]
-  );
-
-  useEffect(() => {
-    if (isInitialSetupPerformed) {
-      return;
-    }
-    loadESQLFile("esql-short.txt");
-    loadSchemaFile("schema-flights.txt");
-    setIsInitialSetupPerformed(true);
-  }, [loadESQLFile, loadSchemaFile, isInitialSetupPerformed, setIsInitialSetupPerformed]);
-
   return (
     <ResizableBox
       width={Infinity}

@@ -35,6 +35,8 @@ import {
   performESQLQuery,
 } from "../services/es";
 
+import { loadFile } from "../services/files";
+
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import CacheWarmedNotice from "./components/CacheWarmedNotice";
 import Section from "./components/Section";
@@ -58,8 +60,10 @@ const ESQLComposerMain = () => {
   const [queryAPIURL, setQueryAPIURL] = useState("");
   const [queryAPIKey, setQueryAPIKey] = useState("");
 
-  const [esqlGuideText, setEsqlGuideText] = useState("");
-  const [schemaGuideText, setSchemaGuideText] = useState("");
+  // Null refers to original value that should be replaced with the default
+  const [esqlGuideText, setEsqlGuideText] = useState<string | null>(null);
+  const [schemaGuideText, setSchemaGuideText] = useState<string | null>(null);
+
   // Inspired by https://react.dev/learn/you-might-not-need-an-effect#fetching-data
   const [esqlGuideTokenCount, setEsqlGuideTokenCount] = useState<
     [string, number] | null
@@ -153,6 +157,7 @@ const ESQLComposerMain = () => {
 
   const loadConfig = useCallback(
     (config: Config) => {
+      console.log("Loading config:", config);
       if (
         "openedAreas" in config &&
         typeof config["openedAreas"] === "object" &&
@@ -372,8 +377,8 @@ const ESQLComposerMain = () => {
       const data = await warmCache({
         apiKey: anthropicAPIKey,
         modelSelected,
-        esqlGuideText,
-        schemaGuideText,
+        esqlGuideText: esqlGuideText || "",
+        schemaGuideText: schemaGuideText || "",
       });
 
       setAllStats([...allStats, data.stats]);
@@ -402,7 +407,7 @@ const ESQLComposerMain = () => {
       oldSize = await countTokens({
         apiKey: anthropicAPIKey,
         modelSelected,
-        text: esqlGuideText,
+        text: esqlGuideText || "",
       });
     });
 
@@ -417,8 +422,8 @@ const ESQLComposerMain = () => {
       const data = (await reduceSize({
         apiKey: anthropicAPIKey,
         modelSelected,
-        esqlGuideText,
-        schemaGuideText,
+        esqlGuideText: esqlGuideText || "",
+        schemaGuideText: schemaGuideText || "",
         processLine,
       })) as any;
 
@@ -446,6 +451,9 @@ const ESQLComposerMain = () => {
   };
 
   const handleGetTokenCount = useCallback(async () => {
+    if (!esqlGuideText || !schemaGuideText) {
+      return;
+    }
     await performAnthropicAPIAction("Token Counting", async () => {
       setEsqlGuideTokenCount([
         esqlGuideText,
@@ -483,6 +491,9 @@ const ESQLComposerMain = () => {
 
   const performESQLRequest = useCallback(
     async (text: string) => {
+      if (!esqlGuideText || !schemaGuideText) {
+        return;
+      }
       await performAnthropicAPIAction("ES|QL generation", async () => {
         let interpolatedLines = esqlInput.split("\n");
         let lineIndex = -1;
@@ -570,7 +581,11 @@ const ESQLComposerMain = () => {
 
   const handleCompleteESQL = async () => {
     await performAnthropicAPIAction("ES|QL completion", async () => {
-      if (esqlInputRef.current === null) {
+      if (
+        esqlInputRef.current === null ||
+        esqlGuideText === null ||
+        schemaGuideText === null
+      ) {
         return;
       }
 
@@ -698,6 +713,49 @@ const ESQLComposerMain = () => {
     }
   }, [queryAPIDataHasScheduledUpdate, fetchQueryData, esqlInput]);
 
+  const loadESQLFile = useCallback(
+    async (filename: string) => {
+      try {
+        setEsqlGuideText(await loadFile(filename));
+      } catch (error) {
+        console.error(`Error loading ${filename}:`, error);
+      }
+    },
+    [setEsqlGuideText]
+  );
+
+  const loadSchemaFile = useCallback(
+    async (filename: string) => {
+      try {
+        setSchemaGuideText(await loadFile(filename));
+      } catch (error) {
+        console.error(`Error loading ${filename}:`, error);
+      }
+    },
+    [setSchemaGuideText]
+  );
+
+  useEffect(() => {
+    let ignore = false;
+    if (esqlGuideText === null) {
+      loadFile("esql-short.txt").then((data) => {
+        if (!ignore) {
+          setEsqlGuideText(data);
+        }
+      });
+    }
+    if (schemaGuideText === null) {
+      loadFile("schema-flights.txt").then((data) => {
+        if (!ignore) {
+          setSchemaGuideText(data);
+        }
+      });
+    }
+    return () => {
+      ignore = true;
+    };
+  }, [schemaGuideText, esqlGuideText]);
+
   return (
     <Box p={4}>
       <VStack spacing={4} align="stretch">
@@ -752,10 +810,10 @@ const ESQLComposerMain = () => {
             <ReferenceGuidesArea
               isESQLRequestAvailable={isESQLRequestAvailable}
               isElasticsearchAPIAvailable={isElasticsearchAPIAvailable}
-              esqlGuideText={esqlGuideText}
+              esqlGuideText={esqlGuideText || ""}
               setEsqlGuideText={setEsqlGuideText}
               esqlGuideTokenCount={esqlGuideTokenCount}
-              schemaGuideText={schemaGuideText}
+              schemaGuideText={schemaGuideText || ""}
               setSchemaGuideText={setSchemaGuideText}
               schemaGuideTokenCount={schemaGuideTokenCount}
               handleWarmCache={handleWarmCache}
@@ -763,6 +821,8 @@ const ESQLComposerMain = () => {
               handleReduceSize={handleReduceSize}
               handleGetTokenCount={handleGetTokenCount}
               handleRetrieveSchemaFromES={getSchemaProps.onOpen}
+              loadESQLFile={loadESQLFile}
+              loadSchemaFile={loadSchemaFile}
             />
           </Section>
 
