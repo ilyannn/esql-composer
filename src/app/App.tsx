@@ -1,13 +1,15 @@
 import { ChakraProvider } from "@chakra-ui/react";
-import React from "react";
+import React, { StrictMode } from "react";
 
 import ESQLComposerMain from "../ui/ESQLComposerMain";
 
 const App: React.FC = () => {
   return (
-    <ChakraProvider>
-      <ESQLComposerMain />
-    </ChakraProvider>
+    <StrictMode>
+      <ChakraProvider>
+        <ESQLComposerMain />
+      </ChakraProvider>
+    </StrictMode>
   );
 };
 
