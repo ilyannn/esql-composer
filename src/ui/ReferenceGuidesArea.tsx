@@ -20,10 +20,10 @@ import TokenCountNotice from "./components/TokenCountNotice";
 interface ReferenceGuidesAreaProps {
   esqlGuideText: string;
   setEsqlGuideText: (value: string) => void;
-  esqlGuideTokenCount: number | null;
+  esqlGuideTokenCount: [string, number] | null;
   schemaGuideText: string;
   setSchemaGuideText: (value: string) => void;
-  schemaGuideTokenCount: number | null;
+  schemaGuideTokenCount: [string, number] | null;
   handleWarmCache: () => Promise<void>;
   handleReduceSize: () => Promise<void>;
   handleGetTokenCount: () => Promise<void>;
@@ -117,8 +117,9 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             <HStack justify={"space-between"}>
               <FormLabel>ES|QL Reference</FormLabel>
               <TokenCountNotice
+               
                 charCount={esqlGuideText.length}
-                tokenCount={esqlGuideTokenCount}
+                tokenCount={esqlGuideTokenCount && esqlGuideTokenCount[0] === esqlGuideText ? esqlGuideTokenCount[1] : null}
               />
             </HStack>
             <Textarea
@@ -180,7 +181,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
               <FormLabel>Schema Description</FormLabel>
               <TokenCountNotice
                 charCount={schemaGuideText.length}
-                tokenCount={schemaGuideTokenCount}
+                tokenCount={schemaGuideTokenCount && schemaGuideTokenCount[0] === schemaGuideText ? schemaGuideTokenCount[1] : null}
               />
             </HStack>
             <Textarea

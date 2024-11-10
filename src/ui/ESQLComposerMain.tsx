@@ -60,11 +60,12 @@ const ESQLComposerMain = () => {
 
   const [esqlGuideText, setEsqlGuideText] = useState("");
   const [schemaGuideText, setSchemaGuideText] = useState("");
-  const [esqlGuideTokenCount, setEsqlGuideTokenCount] = useState<number | null>(
-    null
-  );
+  // Inspired by https://react.dev/learn/you-might-not-need-an-effect#fetching-data
+  const [esqlGuideTokenCount, setEsqlGuideTokenCount] = useState<
+    [string, number] | null
+  >(null);
   const [schemaGuideTokenCount, setSchemaGuideTokenCount] = useState<
-    number | null
+    [string, number] | null
   >(null);
 
   const [naturalInput, setNaturalInput] = useState("");
@@ -96,14 +97,6 @@ const ESQLComposerMain = () => {
     (anthropicAPIKey && esqlGuideText && schemaGuideText) !== "";
 
   const getSchemaProps = useDisclosure();
-
-  useEffect(() => {
-    setEsqlGuideTokenCount(null);
-  }, [esqlGuideText]);
-
-  useEffect(() => {
-    setSchemaGuideTokenCount(null);
-  }, [schemaGuideText]);
 
   useEffect(() => {
     if (!cacheWarmedInfo) {
@@ -437,7 +430,7 @@ const ESQLComposerMain = () => {
         modelSelected,
         text: newESQGuideText,
       });
-      setEsqlGuideTokenCount(newSize);
+      setEsqlGuideTokenCount([newESQGuideText, newSize]);
 
       const percentage = oldSize
         ? ((newSize / oldSize - 1) * 100).toFixed(0)
@@ -454,20 +447,22 @@ const ESQLComposerMain = () => {
 
   const handleGetTokenCount = useCallback(async () => {
     await performAnthropicAPIAction("Token Counting", async () => {
-      setEsqlGuideTokenCount(
+      setEsqlGuideTokenCount([
+        esqlGuideText,
         await countTokens({
           apiKey: anthropicAPIKey,
           modelSelected,
           text: esqlGuideText,
-        })
-      );
-      setSchemaGuideTokenCount(
+        }),
+      ]);
+      setSchemaGuideTokenCount([
+        schemaGuideText,
         await countTokens({
           apiKey: anthropicAPIKey,
           modelSelected,
           text: schemaGuideText,
-        })
-      );
+        }),
+      ]);
     });
   }, [
     performAnthropicAPIAction,
