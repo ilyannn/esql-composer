@@ -345,12 +345,15 @@ export const generateESQLUpdate = async (
     processLine = () => {};
   }
 
+  const request = prepareRequest(input);
+  console.log(request);
+
   const stream = anthropic.beta.promptCaching.messages
     .stream({
       stream: true,
       model: MODEL_LIST[modelSelected],
       max_tokens: maxTokens ?? 256,
-      ...prepareRequest(input),
+      ...request,
     })
     .on("text", (textDelta, _) => {
       if (!first_token_time) {

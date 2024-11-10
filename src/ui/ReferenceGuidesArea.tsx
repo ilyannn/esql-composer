@@ -9,7 +9,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import axios from "axios";
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
@@ -46,9 +46,11 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   tooltipsShown,
   isESQLRequestAvailable,
   isElasticsearchAPIAvailable,
-  handleRetrieveSchemaFromES
+  handleRetrieveSchemaFromES,
 }) => {
-  const loadESQLFile = async (filename: string) => {
+  const [isInitialSetupPerformed, setIsInitialSetupPerformed] = React.useState(false);
+
+  const loadESQLFile = useCallback(async (filename: string) => {
     if (!filename) {
       setEsqlGuideText("");
       return;
@@ -61,7 +63,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
       .catch((error) => {
         console.error(`Error loading ${filename}:`, error);
       });
-  };
+  }, [setEsqlGuideText]);
 
   const loadSchemaFile = useCallback(
     async (filename: string) => {
@@ -80,6 +82,15 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
     },
     [setSchemaGuideText]
   );
+
+  useEffect(() => {
+    if (isInitialSetupPerformed) {
+      return;
+    }
+    loadESQLFile("esql-short.txt");
+    loadSchemaFile("schema-flights.txt");
+    setIsInitialSetupPerformed(true);
+  }, [loadESQLFile, loadSchemaFile, isInitialSetupPerformed, setIsInitialSetupPerformed]);
 
   return (
     <ResizableBox
@@ -119,13 +130,42 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             />
           </FormControl>
           <HStack justify="space-evenly">
-            <Button
-              variant="ghost"
-              colorScheme="red"
-              onClick={() => loadESQLFile("")}
+            <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Load a prepackaged ES|QL reference file (shorter version)"
             >
-              Clear
-            </Button>
+              <Button
+                variant="ghost"
+                colorScheme="green"
+                onClick={() => loadESQLFile("esql-short.txt")}
+              >
+                Syntax
+              </Button>
+            </Tooltip>
+            <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Load a prepackaged ES|QL reference file (longer version, contains all functions)"
+            >
+              <Button
+                variant="ghost"
+                colorScheme="green"
+                onClick={() => loadESQLFile("esql-long.txt")}
+              >
+                Syntax + Functions
+              </Button>
+            </Tooltip>
+            <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Remove the ES|QL reference"
+            >
+              <Button
+                variant="ghost"
+                colorScheme="red"
+                onClick={() => loadESQLFile("")}
+              >
+                Clear
+              </Button>
+            </Tooltip>
           </HStack>
         </VStack>
 
@@ -152,29 +192,44 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             />
           </FormControl>
           <HStack justify="space-evenly">
-            <Button
-              variant="ghost"
-              colorScheme="green"
-              type="button"
-              disabled={!isElasticsearchAPIAvailable}
-              onClick={async () => handleRetrieveSchemaFromES()}
+            <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Open a dialog to generate schema description from your Elasticsearch data"
             >
-              From ES...
-            </Button>
-            <Button
-              variant="ghost"
-              colorScheme="green"
-              onClick={() => loadSchemaFile("schema-flights.txt")}
+              <Button
+                variant="ghost"
+                colorScheme="green"
+                type="button"
+                disabled={!isElasticsearchAPIAvailable}
+                onClick={async () => handleRetrieveSchemaFromES()}
+              >
+                From ES...
+              </Button>
+            </Tooltip>
+            <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Load a prepackaged schema description for Kibana sample flight data"
             >
-              Demo
-            </Button>
-            <Button
-              variant="ghost"
-              colorScheme="red"
-              onClick={() => loadSchemaFile("")}
+              <Button
+                variant="ghost"
+                colorScheme="green"
+                onClick={() => loadSchemaFile("schema-flights.txt")}
+              >
+                Demo
+              </Button>
+            </Tooltip>
+            <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Remove the schema description"
             >
-              Clear
-            </Button>
+              <Button
+                variant="ghost"
+                colorScheme="red"
+                onClick={() => loadSchemaFile("")}
+              >
+                Clear
+              </Button>
+            </Tooltip>
           </HStack>
         </VStack>
         <VStack align="stretch" justify="flex-start">
@@ -204,17 +259,17 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             </SpinningButton>
           </Tooltip>
           <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Ask the LLM to reduce the size of the guides"
+            isDisabled={!tooltipsShown}
+            label="Ask the LLM to reduce the size of the guides"
+          >
+            <SpinningButton
+              type="button"
+              spinningAction={handleReduceSize}
+              disabled={!isESQLRequestAvailable}
             >
-              <SpinningButton
-                type="button"
-                spinningAction={handleReduceSize}
-                disabled={!isESQLRequestAvailable}
-              >
-                Reduce Size
-              </SpinningButton>
-            </Tooltip>
+              Reduce Size
+            </SpinningButton>
+          </Tooltip>
         </VStack>
       </HStack>
     </ResizableBox>

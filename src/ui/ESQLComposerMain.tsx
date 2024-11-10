@@ -12,8 +12,8 @@ import {
   Link,
   Text,
   VStack,
-  useToast,
   useDisclosure,
+  useToast,
 } from "@chakra-ui/react";
 
 import Anthropic from "@anthropic-ai/sdk";
@@ -28,7 +28,12 @@ import {
   warmCache,
 } from "../services/llm";
 
-import { TableData, QueryAPIError, performESQLQuery } from "../services/es";
+import {
+  QueryAPIError,
+  TableData,
+  deriveSchema,
+  performESQLQuery,
+} from "../services/es";
 
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import CacheWarmedNotice from "./components/CacheWarmedNotice";
@@ -37,10 +42,10 @@ import Statistics from "./components/Statistics";
 import ESQLWorkingArea from "./ESQLWorkingArea";
 import HowToUseArea, { Config } from "./HowToUseArea";
 import LLMConfigurationArea from "./LLMConfigurationArea";
-import QueryAPIConfigurationArea from "./QueryAPIConfigurationArea";
-import ReferenceGuidesArea from "./ReferenceGuidesArea";
-import QueryResultArea from "./QueryResultArea";
 import GetSchemaModal from "./modals/GetSchemaModal";
+import QueryAPIConfigurationArea from "./QueryAPIConfigurationArea";
+import QueryResultArea from "./QueryResultArea";
+import ReferenceGuidesArea from "./ReferenceGuidesArea";
 
 const ESQLComposerMain = () => {
   const toast = useToast();
@@ -676,6 +681,21 @@ const ESQLComposerMain = () => {
     });
   };
 
+  const handleGetSchemaFromES = async (
+    indexPattern: string,
+    randomSamplingFactor: number
+  ) => {
+    await performQueryAPIAction("Derive schema", async () => {
+      const schema = await deriveSchema({
+        apiURL: queryAPIURL,
+        apiKey: queryAPIKey,
+        indexPattern,
+        randomSamplingFactor,
+      });
+      setSchemaGuideText(schema);
+    });
+  };
+
   useEffect(() => {
     if (queryAPIDataHasScheduledUpdate) {
       setQueryAPIDataHasScheduledUpdate(false);
@@ -790,10 +810,11 @@ const ESQLComposerMain = () => {
           </Section>
         </Accordion>
       </VStack>
-        <GetSchemaModal
-              isOpen={getSchemaProps.isOpen}
-              onClose={getSchemaProps.onClose}
-            />
+      <GetSchemaModal
+        isOpen={getSchemaProps.isOpen}
+        onClose={getSchemaProps.onClose}
+        getSchemaFromES={handleGetSchemaFromES}
+      />
     </Box>
   );
 };

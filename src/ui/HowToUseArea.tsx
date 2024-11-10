@@ -1,12 +1,12 @@
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   Button,
-  Divider,
   Heading,
   Highlight,
   HStack,
   Link,
   ListItem,
+  OrderedList,
   Text,
   UnorderedList,
   VStack,
@@ -48,24 +48,30 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
     return (
       <HStack justify="space-between" align="stretch">
         <VStack align="stretch" justify="space-between" spacing={3}>
-          <Heading as="h4" size="sm">
-            Tips:
+          <Heading as="h4" size="sm" mt={2}>
+            Basic usage:
           </Heading>
-          <UnorderedList spacing={1}>
+          <OrderedList spacing={1}>
             <ListItem>
-              Add an Anthropic API key and the guides in the required fields.
+              Add an Anthropic API key in the configuration section.
             </ListItem>
             <ListItem>
-              Input some natural text and press <kbd>Enter</kbd> to convert it
-              to ES|QL.
+              By default, the schema for the flight sample data is loaded.
+            </ListItem>
+            <ListItem>
+              Input a query and press <kbd>Enter</kbd> to convert it to ES|QL.
             </ListItem>
             <ListItem>
               Press <kbd>{COMPLETION_KEY}</kbd> in the ES|QL area to complete
               the line.
             </ListItem>
+          </OrderedList>
+          <Heading as="h4" size="sm" mt={3} mb={0}>
+            Tips:
+          </Heading>
+          <UnorderedList spacing={2}>
             <ListItem>
-              Optionally, connect your Elasticsearch instance to fetch data from
-              it.
+              Connect your ES instance to generate a schema and show data.
             </ListItem>
             <ListItem>
               <Highlight
@@ -82,59 +88,68 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
               </Highlight>
             </ListItem>
           </UnorderedList>
-          <Divider />
+          <Heading as="h4" size="sm" mt={3} mb={-2}>
+            Settings:
+          </Heading>
           <VStack align="stretch" justify="space-between">
-            <HStack spacing={-0.5} align={"baseline"}>
-              <Text>
-                Button tooltips are {tooltipsShown ? " enabled" : " disabled"}:
-              </Text>
-              {!tooltipsShown && (
-                <Button
-                  variant="ghost"
-                  colorScheme="green"
-                  onClick={() => setTooltipsShown(true)}
-                >
-                  Enable
-                </Button>
-              )}
-              {tooltipsShown && (
-                <Button
-                  variant="ghost"
-                  colorScheme="green"
-                  onClick={() => setTooltipsShown(false)}
-                >
-                  Disable
-                </Button>
-              )}
-            </HStack>
-            <HStack spacing={0.5} align={"baseline"}>
-              <Text>Configuration can be stored in LocalStorage:</Text>
-              <Button
-                variant="ghost"
-                colorScheme="green"
-                onClick={() => storeConfig(collectConfig())}
-              >
-                Save
-              </Button>
-              {!isConfigEmpty && (
-                <Button
-                  variant="ghost"
-                  colorScheme="green"
-                  onClick={() => loadConfig(config)}
-                >
-                  Load
-                </Button>
-              )}
-              {!isConfigEmpty && (
-                <Button
-                  variant="ghost"
-                  colorScheme="red"
-                  onClick={removeConfig}
-                >
-                  Clear
-                </Button>
-              )}
-            </HStack>
+            <UnorderedList spacing={-2}>
+              <ListItem>
+                <HStack spacing={-0.5} align={"baseline"}>
+                  <Text>
+                    Button tooltips are{" "}
+                    {tooltipsShown ? " enabled" : " disabled"}:
+                  </Text>
+                  {!tooltipsShown && (
+                    <Button
+                      variant="ghost"
+                      colorScheme="green"
+                      onClick={() => setTooltipsShown(true)}
+                    >
+                      Enable
+                    </Button>
+                  )}
+                  {tooltipsShown && (
+                    <Button
+                      variant="ghost"
+                      colorScheme="green"
+                      onClick={() => setTooltipsShown(false)}
+                    >
+                      Disable
+                    </Button>
+                  )}
+                </HStack>
+              </ListItem>
+              <ListItem>
+                <HStack spacing={0.5} align={"baseline"}>
+                  <Text>Configuration can be stored in LocalStorage:</Text>
+                  <Button
+                    variant="ghost"
+                    colorScheme="green"
+                    onClick={() => storeConfig(collectConfig())}
+                  >
+                    Save
+                  </Button>
+                  {!isConfigEmpty && (
+                    <Button
+                      variant="ghost"
+                      colorScheme="green"
+                      onClick={() => loadConfig(config)}
+                    >
+                      Load
+                    </Button>
+                  )}
+                  {!isConfigEmpty && (
+                    <Button
+                      variant="ghost"
+                      colorScheme="red"
+                      onClick={removeConfig}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </HStack>
+              </ListItem>
+            </UnorderedList>
           </VStack>
         </VStack>
         <VStack align="stretch" justify="space-between">

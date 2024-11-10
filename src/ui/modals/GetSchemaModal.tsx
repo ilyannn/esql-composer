@@ -1,42 +1,74 @@
 import {
+  Box,
+  Checkbox,
+  FormControl,
+  FormHelperText,
+  FormLabel,
+  Input,
+  Link,
   Modal,
-  ModalOverlay,
-  ModalHeader,
   ModalBody,
   ModalCloseButton,
-  ModalFooter,
   ModalContent,
-  FormControl,
-  Stack,
-  Input,
-  Text,
-  FormLabel,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   Slider,
-  SliderTrack,
   SliderFilledTrack,
   SliderThumb,
-  Flex,
+  SliderTrack,
+  Stack,
+  Text,
+  VStack,
 } from "@chakra-ui/react";
 
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { useState } from "react";
 import SpinningButton from "../components/SpinningButton";
-
 interface GetSchemaModalProps {
   isOpen: boolean;
   onClose: () => void;
+  getSchemaFromES: (
+    indexPattern: string,
+    randomSamplingFactor: number
+  ) => Promise<void>;
 }
 
-const GetSchemaModal: React.FC<GetSchemaModalProps> = ({ isOpen, onClose }) => {
+const HUMAN_READABLE_FACTOR = ["all", "10%", "1%", ".1%", ".01%"];
+
+const GetSchemaModal: React.FC<GetSchemaModalProps> = ({
+  getSchemaFromES,
+  isOpen,
+  onClose,
+}) => {
   const [indexPattern, setIndexPattern] = useState<string>("");
-  const [maxDocs, setMaxDocs] = useState<number>(10);
+  const [systemIndicesHidden, setSystemIndicesHidden] = useState<boolean>(true);
+  const [randomSamplingExponent, setRandomSamplingExponent] =
+    useState<number>(2);
+
+  const randomSamplingFactor = 10 ** randomSamplingExponent;
+  const samplingHelperText =
+    randomSamplingExponent === 0 ? (
+      <Text>All of the documents will be used when computing top values.</Text>
+    ) : (
+      <Text>
+        Only each {randomSamplingFactor}th document will be used for
+        computing top values. Requires{" "}
+        <Link
+          isExternal
+          href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-random-sampler-aggregation.html"
+        >
+          <ExternalLinkIcon /> random sampler aggregation
+        </Link>{" "}
+        support.{" "}
+      </Text>
+    );
 
   const handleSubmit = async () => {
-    console.log("Get Schema");
+    const userPattern = indexPattern.trim() || "*";
+    const systemPattern = systemIndicesHidden ? "-.*" : "";
+    const patterns = [userPattern, systemPattern].filter((p) => p.length > 0);
+    await getSchemaFromES(patterns.join(","), randomSamplingFactor);
     onClose();
   };
 
@@ -44,72 +76,78 @@ const GetSchemaModal: React.FC<GetSchemaModalProps> = ({ isOpen, onClose }) => {
     <Modal isOpen={isOpen} onClose={onClose} isCentered={true}>
       <ModalOverlay />
       <ModalContent>
-        <ModalHeader>Derive schema description</ModalHeader>
+        <ModalHeader>Generate schema</ModalHeader>
         <ModalCloseButton />
-        <ModalBody>
-          <Stack spacing={3}>
-            <Text>
-              This will retrieve the index information as well as sample
-              documents from Elasticsearch and fuse it into schema description.
-            </Text>
-            <FormControl>
-              <FormLabel>Restrict to indices</FormLabel>
-              <Input
-                isRequired={true}
-                placeholder="Index pattern"
-                value={indexPattern}
-                onChange={(e) => setIndexPattern(e.target.value)}
-              />
-            </FormControl>
-            <FormControl>
-              <FormLabel>Max number of documents</FormLabel>
-              <Flex >
-                <NumberInput
-                  min={0}
-                  allowMouseWheel
-                  maxW="100px"
-                  mr="2rem"
-                  value={maxDocs}
-                  onChange={(valueString) =>
-                    setMaxDocs(parseInt(valueString, 10))
-                  }
-                >
-                  <NumberInputField />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper />
-                    <NumberDecrementStepper />
-                  </NumberInputStepper>
-                </NumberInput>
-                <Slider
-                  flex="1"
-                  focusThumbOnChange={false}
-                  value={maxDocs}
-                  onChange={setMaxDocs}
-                  mr={"20px"}
-                  ml={"10px"}
-                >
-                  <SliderTrack>
-                    <SliderFilledTrack />
-                  </SliderTrack>
-                  <SliderThumb
-                    fontSize="sm"
-                    boxSize="32px"
-                    children={maxDocs}
-                  />
-                </Slider>
-              </Flex>
-            </FormControl>
-          </Stack>
-        </ModalBody>
-        <ModalFooter>
-          <SpinningButton
-            targets="es"
-            type="submit"
-            spinningAction={handleSubmit}
-          >
-            Derive
-          </SpinningButton>
-        </ModalFooter>
+        <form>
+          <ModalBody>
+            <Stack spacing={3}>
+              <Text>
+                This will provide a schema description based on the data in your
+                Elasticsearch instance.
+              </Text>
+              <FormControl>
+                <FormLabel>Index selection</FormLabel>
+                <Input
+                  isRequired={true}
+                  placeholder="Pattern for index, alias or datastream names"
+                  value={indexPattern}
+                  onChange={(e) => setIndexPattern(e.target.value)}
+                />
+                <VStack align="stretch" spacing={3}>
+                  <FormHelperText>
+                    It is recommended to select indices with similar fields.
+                  </FormHelperText>
+                  <Checkbox
+                    isChecked={systemIndicesHidden}
+                    onChange={() =>
+                      setSystemIndicesHidden(!systemIndicesHidden)
+                    }
+                  >
+                    Skip system indices
+                  </Checkbox>
+                </VStack>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Downsampling</FormLabel>
+                <Box mt="14px" mr="20px" mb="15px">
+                  <Slider
+                    max={4}
+                    focusThumbOnChange={false}
+                    value={randomSamplingExponent}
+                    onChange={setRandomSamplingExponent}
+                  >
+                    <SliderTrack>
+                      <SliderFilledTrack />
+                    </SliderTrack>
+                    <SliderThumb
+                      border="2px"
+                      borderColor="green.200"
+                      fontSize="xs"
+                      boxSize="38px"
+                      children={
+                        <Text>
+                          {HUMAN_READABLE_FACTOR[randomSamplingExponent]}
+                        </Text>
+                      }
+                    />
+                  </Slider>
+                </Box>
+                <FormHelperText height="2em">
+                  {samplingHelperText}
+                </FormHelperText>
+              </FormControl>
+            </Stack>
+          </ModalBody>
+          <ModalFooter>
+            <SpinningButton
+              targets="es"
+              type="submit"
+              spinningAction={handleSubmit}
+            >
+              Generate
+            </SpinningButton>
+          </ModalFooter>
+        </form>
       </ModalContent>
     </Modal>
   );

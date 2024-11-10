@@ -80,7 +80,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
               ))}
             </Tbody>
             <Tfoot>
-              <Tr>
+              <Tr opacity={0.33}>
                 {data.columns.map((col, colIndex) => (
                   <Th key={colIndex}>{col.type}</Th>
                 ))}
