@@ -346,7 +346,6 @@ export const generateESQLUpdate = async (
   }
 
   const request = prepareRequest(input);
-  console.log(request);
 
   const stream = anthropic.beta.promptCaching.messages
     .stream({

@@ -245,8 +245,6 @@ const createTermsAggregationRequest = (
     {}
   );
 
-  console.log(aggs);
-
   if (Object.keys(aggs).length === 0) {
     return null;
   }
@@ -389,9 +387,7 @@ export const deriveSchema = async ({
       apiKey,
       aggregationRequest
     )) as SamplingAggregationsResponse;
-    console.log("results", termResults);
     examples = parseSamplingAggregationResults(termResults);
-    console.log("examples", examples);
   }
 
   let description = `# Schema for the index pattern "${indexPattern}"\n\n`;

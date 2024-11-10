@@ -49,6 +49,9 @@ import QueryAPIConfigurationArea from "./QueryAPIConfigurationArea";
 import QueryResultArea from "./QueryResultArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
 
+const defaultESQLGuidePromise = loadFile("esql-short.txt");
+const defaultSchemaGuidePromise = loadFile("schema-flights.txt");
+
 const ESQLComposerMain = () => {
   const toast = useToast();
 
@@ -157,7 +160,6 @@ const ESQLComposerMain = () => {
 
   const loadConfig = useCallback(
     (config: Config) => {
-      console.log("Loading config:", config);
       if (
         "openedAreas" in config &&
         typeof config["openedAreas"] === "object" &&
@@ -738,14 +740,14 @@ const ESQLComposerMain = () => {
   useEffect(() => {
     let ignore = false;
     if (esqlGuideText === null) {
-      loadFile("esql-short.txt").then((data) => {
+      defaultESQLGuidePromise.then((data) => {
         if (!ignore) {
           setEsqlGuideText(data);
         }
       });
     }
     if (schemaGuideText === null) {
-      loadFile("schema-flights.txt").then((data) => {
+      defaultSchemaGuidePromise.then((data) => {
         if (!ignore) {
           setSchemaGuideText(data);
         }
