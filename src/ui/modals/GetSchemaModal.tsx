@@ -88,7 +88,7 @@ const GetSchemaModal: React.FC<GetSchemaModalProps> = ({
               <FormControl>
                 <FormLabel>Index selection</FormLabel>
                 <Input
-                  isRequired={true}
+                  autoFocus={true}
                   placeholder="Pattern for index, alias or datastream names"
                   value={indexPattern}
                   onChange={(e) => setIndexPattern(e.target.value)}

@@ -104,6 +104,7 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
             <FormLabel>Anthropic API Key</FormLabel>
             <InputGroup>
               <Input
+                autoFocus={true}
                 type="password"
                 placeholder="Enter key here"
                 value={apiKey}
