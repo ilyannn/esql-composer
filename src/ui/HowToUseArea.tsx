@@ -51,28 +51,21 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
           <Heading as="h4" size="sm" mt={2}>
             Basic usage:
           </Heading>
-          <OrderedList spacing={1}>
+          <OrderedList spacing={1} ml="2em">
             <ListItem>
               Add an Anthropic API key in the configuration section.
             </ListItem>
             <ListItem>
-              By default, the schema for the flight sample data is loaded.
+              A demo schema is loaded by default. Connect your ES instance to generate a schema.
             </ListItem>
             <ListItem>
-              Input a query and press <kbd>Enter</kbd> to convert it to ES|QL.
-            </ListItem>
-            <ListItem>
-              Press <kbd>{COMPLETION_KEY}</kbd> in the ES|QL area to complete
-              the line.
+              Input a query in the natural text field or complete with <kbd>{COMPLETION_KEY}</kbd> in the ES|QL area.
             </ListItem>
           </OrderedList>
           <Heading as="h4" size="sm" mt={3} mb={0}>
             Tips:
           </Heading>
-          <UnorderedList spacing={2}>
-            <ListItem>
-              Connect your ES instance to generate a schema and show data.
-            </ListItem>
+          <UnorderedList spacing={2} ml="2em">
             <ListItem>
               <Highlight
                 query={"blue"}
@@ -88,11 +81,11 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
               </Highlight>
             </ListItem>
           </UnorderedList>
-          <Heading as="h4" size="sm" mt={3} mb={-2}>
+          <Heading as="h4" size="sm" mt={3.5} mb={-2}>
             Settings:
           </Heading>
           <VStack align="stretch" justify="space-between">
-            <UnorderedList spacing={-2}>
+            <UnorderedList spacing={-2} ml="2em">
               <ListItem>
                 <HStack spacing={-0.5} align={"baseline"}>
                   <Text>
