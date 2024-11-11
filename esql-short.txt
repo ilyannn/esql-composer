@@ -1,0 +1,127 @@
+# Short ES|QL Reference
+
+## Basic Syntax
+
+Commands are separated by a pipe character (|). They can be written on the same line or different lines (prettier).
+
+## Data Sources
+
+To get data from an index (or a combination of indices using wildcard):
+
+```esql
+FROM index_name
+| processing...
+```
+
+To use synthetic data:
+```esql
+ROW column1 = value1[, ..., columnN = valueN]
+| processing...
+```
+
+To show system information:
+```esql
+SHOW INFO
+```
+
+## Special Characters
+- Backticks for non-standard identifiers: `1.field`, `COUNT(``1.field``)`
+- Double quotes for strings: "value"
+- Triple quotes for strings with quotes: """value "quoted" here"""
+- Comments like in C++: // single line, /* multi line */
+
+## Literals
+- Strings: "text", """text with "quotes""""
+- Numbers: 1969, 3.14, .1234, 4E5, 1.2e-3, -.1e2
+- Time: 1day, 1h, 15min, 30s, 100ms (no quotes)
+
+## Common processing commands
+- WHERE: filter conditions
+- KEEP/DROP: column selection
+- EVAL: calculate new fields
+- STATS: aggregations
+- SORT: ordering
+- LIMIT: restrict results
+- RENAME: rename fields
+
+## Key Functions
+### Time/Date
+- NOW()
+- DATE_TRUNC(interval, field)
+- DATE_FORMAT(format, field)
+- DATE_PARSE(format, string)
+- BUCKET(field, interval)
+
+### String
+- CONCAT(str1, str2)
+- SPLIT(str, delimiter)
+- LEFT/RIGHT(str, n)
+- LENGTH(str)
+- SUBSTRING(str, start, length)
+- TO_LOWER/TO_UPPER(str)
+- STARTS_WITH/ENDS_WITH(str, prefix/suffix)
+- REPLACE(str, pattern, replacement)
+
+### Math
+- ABS, ROUND, FLOOR, CEIL
+- SIN, COS, TAN
+- LOG, LOG10, EXP, POW
+- SQRT, CBRT
+- MIN, MAX, AVG, SUM
+- COUNT, COUNT_DISTINCT
+- MEDIAN, PERCENTILE
+
+### Arrays (MV_)
+- MV_AVG, MV_SUM, MV_MIN, MV_MAX
+- MV_APPEND, MV_CONCAT
+- MV_COUNT, MV_DEDUPE
+- MV_FIRST, MV_LAST
+- MV_EXPAND, MV_SLICE
+- MV_SORT
+
+### Geo
+- ST_DISTANCE, ST_INTERSECTS
+- ST_CONTAINS, ST_WITHIN
+- ST_X, ST_Y
+- TO_GEOPOINT, TO_GEOSHAPE
+
+### Type Conversion
+- TO_BOOLEAN, TO_DATETIME
+- TO_DOUBLE, TO_INTEGER
+- TO_IP, TO_STRING
+- TO_BASE64, FROM_BASE64
+
+## Complex patterns
+- DISSECT input "pattern" 
+- GROK input "pattern"
+
+Examples of patterns are USERNAME, USER, EMAILLOCALPART, EMAILADDRESS, INT, BASE10NUM, NUMBER, POSINT, WORD, SPACE, DATA, GREEDYDATA, UUID, MAC, IPV4, IP, HOSTNAME.
+
+## Common cases
+```esql
+// Time-based query
+FROM logs-* 
+| WHERE @timestamp > NOW() - 24h
+| STATS COUNT(*) BY hour = DATE_TRUNC(1h, @timestamp)
+
+// Aggregation
+FROM data
+| STATS count=COUNT(*), avg=AVG(value) BY category
+| SORT count DESC
+
+// String manipulation
+FROM users
+| EVAL full_name = CONCAT(first_name, " ", last_name)
+| WHERE LENGTH(full_name) > 10
+
+// Pattern matching
+ROW a = "2023-01-23T12:15:00.000Z 127.0.0.1 some.email@foo.com 42"
+| GROK a """%{TIMESTAMP_ISO8601:date} %{IP:ip} %{EMAILADDRESS:email} %{NUMBER:num}"""
+| KEEP date, ip, email, num
+
+// Complex filtering
+FROM events
+| WHERE status IN ("error", "warning")
+  AND severity > 5
+  AND NOT is_test
+```

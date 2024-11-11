@@ -1,31 +1,37 @@
-# Flights Dataset
+# Schema for the index pattern "*flights,-.*"
 
-Here is the list of fields of the "kibana_sample_data_flights" data view, their type and representative examples:
+## Indices
 
-timestamp: Date, e.g. '2018-01-01T02:59:15'
-dayOfWeek: Integer, e.g. 0, 1, 2, 3, 4, 5, 6
-Carrier: Keyword, e.g. 'Kibana Airlines', 'JetBeats', 'Logstash Airways'
-FlightNum: Keyword, e.g. '58U013N', 'XEJ78I2', 'EVARI8I'
-Origin: Keyword, e.g. 'Licenciado Benito Juarez International Airport', 'Edmonton International Airport', 'Zurich Airport'
-OriginAirportID: Keyword, e.g. 'AICM', 'CYEG', 'ZRH'
-OriginCityName: Keyword, e.g. 'Mexico City', 'Edmonton', 'Zurich'
-OriginRegion: Keyword, e.g. 'MX-DIF', 'CA-AB', 'CH-ZH'
-OriginCountry: Keyword, e.g. 'MX', 'CA', 'CH'
-OriginLocation: Geo point, e.g. { lat: '19.4363', lon: '-99.072098' }, { lat: '53.30970001', lon: '-113.5800018' }, { lat: '47.464699', lon: '8.54917' }
-Dest: Keyword, e.g. "Xi'an Xianyang International Airport", 'Genoa Cristoforo Colombo Airport', 'Zurich Airport'
-DestAirportID: Keyword, e.g. 'XIY', 'GE01', 'ZRH'
-DestCityName: Keyword, e.g. "Xi'an", 'Genova', 'Zurich'
-DestRegion: Keyword, e.g. 'SE-BD', 'IT-42', 'CH-ZH'
-DestCountry: Keyword, e.g. 'CN', 'IT', 'CH'
-DestLocation: Geo point, e.g. { lat: '34.447102', lon: '108.751999' }, { lat: '44.4133', lon: '8.8375' }, { lat: '47.464699', lon: '8.54917' }
-AvgTicketPrice: Float, e.g. 730.041778346198, 418.1520890531832, 180.24681638061213
-OriginWeather: Keyword, e.g. 'Damaging Wind', 'Rain', 'Clear'
-DestWeather: Keyword, e.g. 'Clear', 'Thunder & Lightning', 'Hail'
-Cancelled: Boolean, e.g. false, true
-DistanceMiles: Float, e.g. 8300.428124665925, 4891.315227492962, 0.0
-DistanceKilometers: Float, e.g. 13358.24419986236, 7871.808813474433, 0.0
-FlightDelayMin: Integer, e.g. 0, 300, 15
-FlightDelay: Boolean, e.g. false, true
-FlightDelayType: Keyword, e.g. 'No Delay', 'Security Delay', 'NAS Delay'
-FlightTimeMin: Float, e.g. 785.7790705801389, 393.5904406737217, 300.0
-FlightTimeHour: Keyword, e.g. 13.096317843002314, 6.5598406778953615, 5.0
+* kibana_sample_data_flights
+
+## Fields
+
+Here is the combined list of fields in these indices, their type and most common values:
+
+* AvgTicketPrice: float, mostly 4e+2 to 9e+2
+* Cancelled: boolean
+* Carrier: keyword, only Logstash Airways, JetBeats, Kibana Airlines, ES-Air
+* dayOfWeek: integer, mostly 1 to 5
+* Dest: keyword, e.g. Zurich Airport, Warsaw Chopin Airport, Verona Villafranca Airport
+* DestAirportID: keyword, e.g. ZRH, XIY, YWG, WAW, VR10
+* DestCityName: keyword, e.g. Zurich, Xi'an, Shanghai, Winnipeg, Tokyo
+* DestCountry: keyword, e.g. IT, US, CN, CA, JP
+* DestLocation: geo_point
+* DestRegion: keyword, e.g. SE-BD, IT-34, CH-ZH, CA-MB, GB-ENG
+* DestWeather: keyword, mostly Rain, Clear, Sunny, Cloudy, Heavy Fog
+* DistanceKilometers: float, mostly 2e+3 to 1e+4
+* DistanceMiles: float, mostly 1e+3 to 7e+3
+* FlightDelay: boolean
+* FlightDelayMin: integer, mostly 0 to 8e+1
+* FlightDelayType: keyword, mostly No Delay, Late Aircraft Delay, NAS Delay, Carrier Delay, Security Delay
+* FlightNum: keyword, e.g. 00882F6, 009NIGR, 00CGX81, 00DRRXR, 00HGV4F
+* FlightTimeHour: keyword, e.g. 0, 3, 1.5, 5, 2.25
+* FlightTimeMin: float, mostly 2e+2 to 8e+2
+* Origin: keyword, e.g. El Dorado International Airport, Itami Airport
+* OriginAirportID: keyword, e.g. UIO, EZE, BOG, CDG, ITM
+* OriginCityName: keyword, e.g. Rome, London, Quito, Osaka, Seoul
+* OriginCountry: keyword, e.g. IT, US, JP, CN, CA
+* OriginLocation: geo_point
+* OriginRegion: keyword, e.g. SE-BD, GB-ENG, IT-34, IT-25, IT-62
+* OriginWeather: keyword, mostly Clear, Cloudy, Rain, Sunny, Thunder & Lightning
+* timestamp: date
