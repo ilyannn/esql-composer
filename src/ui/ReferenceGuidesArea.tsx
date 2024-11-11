@@ -8,10 +8,11 @@ import {
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
-import React from "react";
+import React, { useCallback } from "react";
 
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
+import { loadFile } from "../services/files";
 
 import SpinningButton from "./components/SpinningButton";
 import TokenCountNotice from "./components/TokenCountNotice";
@@ -30,8 +31,6 @@ interface ReferenceGuidesAreaProps {
   isESQLRequestAvailable: boolean;
   isElasticsearchAPIAvailable: boolean;
   handleRetrieveSchemaFromES: () => void;
-  loadESQLFile: (filename: string) => void;
-  loadSchemaFile: (filename: string) => void;
 }
 
 const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
@@ -48,9 +47,30 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   isESQLRequestAvailable,
   isElasticsearchAPIAvailable,
   handleRetrieveSchemaFromES,
-  loadESQLFile,
-  loadSchemaFile,
 }) => {
+
+  const loadESQLFile = useCallback(
+    async (filename: string) => {
+      try {
+        setEsqlGuideText(await loadFile(filename));
+      } catch (error) {
+        console.error(`Error loading ${filename}:`, error);
+      }
+    },
+    [setEsqlGuideText]
+  );
+
+  const loadSchemaFile = useCallback(
+    async (filename: string) => {
+      try {
+        setSchemaGuideText(await loadFile(filename));
+      } catch (error) {
+        console.error(`Error loading ${filename}:`, error);
+      }
+    },
+    [setSchemaGuideText]
+  );
+
   return (
     <ResizableBox
       width={Infinity}

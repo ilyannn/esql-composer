@@ -14,15 +14,12 @@ export const loadFile = (url: string | null): Promise<string> => {
   }
 
   return new Promise<string>((resolve, reject) => {
-    console.log(`Loading file from ${url}`);
     axios
       .get<string>(url)
       .then((response) => {
-        console.log(`Got data from ${url}`);
         resolve(response.data);
       })
       .catch((error) => {
-        console.error(`Error loading file from ${url}: ${error}`);
         reject(error);
       });
   });
