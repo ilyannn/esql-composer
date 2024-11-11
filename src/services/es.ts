@@ -176,14 +176,16 @@ interface SamplingAggregationPercentiles {
 }
 
 type SamplingAggregations = Record<
-      string,
-      SamplingAggregationTerms | SamplingAggregationPercentiles
-    >;
+  string,
+  SamplingAggregationTerms | SamplingAggregationPercentiles
+>;
 
 interface SamplingAggregationsResponse extends SearchResponse {
-  aggregations: SamplingAggregations | {
-    sampling: SamplingAggregations;
-  };
+  aggregations:
+    | SamplingAggregations
+    | {
+        sampling: SamplingAggregations;
+      };
 }
 
 const parseFieldCapabilities = (
@@ -253,13 +255,13 @@ const createTermsAggregationRequest = (
     randomSamplingFactor === 1
       ? aggs
       : {
-        sampling: {
-          random_sampler: {
-            probability: 1.0 / randomSamplingFactor,
+          sampling: {
+            random_sampler: {
+              probability: 1.0 / randomSamplingFactor,
+            },
+            aggs,
           },
-          aggs,
-        }
-      };
+        };
 
   return {
     size: 0,
@@ -277,10 +279,14 @@ const humanizeValue = (value: number, field_key: string): string => {
 const parseSamplingAggregationResults = (
   results: SamplingAggregationsResponse
 ): Record<string, string> => {
-  const samplingObject =  'sampling' in results.aggregations ? results.aggregations.sampling : results.aggregations;
+  const samplingObject =
+    "sampling" in results.aggregations
+      ? results.aggregations.sampling
+      : results.aggregations;
   const acc: Record<string, string> = {};
-  Object.entries(samplingObject).forEach(
-    ([field_key, term_or_percentile]) => {
+
+  Object.entries(samplingObject).forEach(([field_key, term_or_percentile]) => {
+    try {
       if (typeof term_or_percentile !== "object") {
         return;
       }
@@ -339,8 +345,10 @@ const parseSamplingAggregationResults = (
         if (
           sortedValues.length >= 2 &&
           sortedValues[0][0] < 25 &&
-          sortedValues[1][0] > 75
-        ) {
+          sortedValues[1][0] > 75 &&
+          sortedValues[0][1] !== null &&
+          sortedValues[1][1] !== null
+         ) {
           const lowerValue = humanizeValue(sortedValues[0][1], field_key);
           const upperValue = humanizeValue(sortedValues[1][1], field_key);
           if (lowerValue === upperValue) {
@@ -350,8 +358,15 @@ const parseSamplingAggregationResults = (
           }
         }
       }
+    } catch (e) {
+      console.error(
+        "Error parsing sampling aggregation results",
+        e,
+        field_key,
+        term_or_percentile
+      );
     }
-  );
+  });
   return acc;
 };
 

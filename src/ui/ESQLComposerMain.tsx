@@ -689,7 +689,7 @@ const ESQLComposerMain = () => {
     indexPattern: string,
     randomSamplingFactor: number
   ) => {
-    await performQueryAPIAction("Derive schema", async () => {
+    await performQueryAPIAction("Generate schema", async () => {
       const schema = await deriveSchema({
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
