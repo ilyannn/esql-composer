@@ -1,10 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-import { StatisticsRow } from "../common/types";
 import {
-  PromptCachingBetaTextBlockParam,
   PromptCachingBetaMessageParam,
+  PromptCachingBetaTextBlockParam,
 } from "@anthropic-ai/sdk/resources/beta/prompt-caching";
+import { StatisticsRow } from "../common/types";
 
 export type LLMOptions = {
   apiKey: string;
@@ -82,11 +82,19 @@ export const testWithSimpleUtterance = async (
 export const warmCache = async (params: WarmCacheInput): Promise<any> => {
   return await generateESQLUpdate({
     ...params,
-    esqlInput: "top flights",
+    naturalInput: "top flights",
   });
 };
 
-const prepareRequest = (input: ReferenceOptions & PromptOptions) => {
+type SystemMessage = PromptCachingBetaTextBlockParam;
+type TextMessage = {
+  role: "user" | "assistant";
+  content: PromptCachingBetaTextBlockParam[];
+} & PromptCachingBetaMessageParam;
+
+const prepareRequest = (
+  input: ReferenceOptions & PromptOptions
+): { system: SystemMessage[]; messages: TextMessage[] } => {
   const { esqlGuideText, schemaGuideText, esqlInput, naturalInput } = input;
 
   const systemTexts = [
@@ -228,12 +236,10 @@ FROM logs-endpoint
     );
   }
 
-  const system: PromptCachingBetaTextBlockParam[] = systemTexts.map(
-    (content) => ({
-      type: "text",
-      text: content,
-    })
-  );
+  const system: SystemMessage[] = systemTexts.map((content) => ({
+    type: "text",
+    text: content,
+  }));
 
   system[system.length - 1].cache_control = { type: "ephemeral" };
 
@@ -252,7 +258,7 @@ FROM logs-endpoint
     requestText += esqlInput;
   }
 
-  const messages: PromptCachingBetaMessageParam[] = [
+  const messages: TextMessage[] = [
     {
       role: "user",
       content: [
@@ -402,7 +408,7 @@ export const generateESQLUpdate = async (
       model: message_start_stats.model,
       input_cached: message_start_stats.input_cached,
       input_uncached: message_start_stats.input_uncached,
-      saved_to_cache: message_start_stats.saved_to_cache,  
+      saved_to_cache: message_start_stats.saved_to_cache,
       output: message_delta_stats.output,
 
       first_token_time: first_token_time || Infinity,

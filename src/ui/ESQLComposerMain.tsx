@@ -383,7 +383,7 @@ const ESQLComposerMain = () => {
         title: "Cache warming successful",
         description: `Cache will now provide ${
           data.stats.saved_to_cache + data.stats.input_cached
-        } tokens for requests like this.`,
+        } tokens for requests using these guides.`,
         status: "success",
         duration: 3000,
         isClosable: true,
