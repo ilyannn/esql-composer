@@ -57,6 +57,23 @@ function isTableData(data: any): data is TableData {
   );
 }
 
+/**
+ * Trims the provided API key and ensures it is Base64 encoded.
+ *
+ * @param apiKey - The API key to be checked and possibly encoded.
+ * @returns The Base64 encoded API key or the trimmed original if it was already encoded.
+ */
+const ensureBase64Encoded = (apiKey: string): string => {
+  const trimmed = apiKey.trim();
+  try {
+    atob(trimmed);
+  } catch (e) {
+    return btoa(trimmed);
+  }
+
+  return trimmed;
+}
+
 const fetchJSON = async (
   method: string,
   apiKey: string,
@@ -66,7 +83,7 @@ const fetchJSON = async (
   const response = await fetch(url, {
     method,
     headers: [
-      ["Authorization", `ApiKey ${apiKey}`],
+      ["Authorization", `ApiKey ${ensureBase64Encoded(apiKey)}`],
       ["Content-Type", "application/vnd.elasticsearch+json"],
       ["Accept", "application/vnd.elasticsearch+json"],
     ],
