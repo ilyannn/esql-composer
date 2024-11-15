@@ -69,26 +69,43 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
             <Thead>
               <Tr>
                 {data.columns.map((col, colIndex) => (
-                  <Th key={colIndex} fontFamily={"heading"}>
+                  <Th
+                    key={colIndex}
+                    textTransform="none"
+                    fontFamily={"sans-serif"}
+                    fontSize={"md"}
+                  >
                     {col.name}
                     <Button
                       variant={"ghost"}
                       colorScheme="green"
-                      onClick={() => handleFieldAction({action: "drop", field: col.name})}
+                      onClick={() =>
+                        handleFieldAction({ action: "drop", field: col.name })
+                      }
                     >
                       Drop
                     </Button>
                     <Button
                       variant={"ghost"}
                       colorScheme="green"
-                      onClick={() => handleFieldAction({action: "sortAsc", field: col.name})}
+                      onClick={() =>
+                        handleFieldAction({
+                          action: "sortAsc",
+                          field: col.name,
+                        })
+                      }
                     >
                       SortAsc
                     </Button>
                     <Button
                       variant={"ghost"}
                       colorScheme="green"
-                      onClick={() => handleFieldAction({action: "sortDesc", field: col.name})}
+                      onClick={() =>
+                        handleFieldAction({
+                          action: "sortDesc",
+                          field: col.name,
+                        })
+                      }
                     >
                       SortDesc
                     </Button>
