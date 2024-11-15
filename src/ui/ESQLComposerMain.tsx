@@ -6,7 +6,6 @@ import { useInterval } from "usehooks-ts";
 import {
   Accordion,
   Box,
-  Divider,
   HStack,
   Heading,
   Link,
@@ -157,75 +156,66 @@ const ESQLComposerMain = () => {
     schemaGuideText,
   ]);
 
-  const loadConfig = useCallback(
-    (config: Config) => {
-      if (
-        "openedAreas" in config &&
-        typeof config["openedAreas"] === "object" &&
-        Array.isArray(config["openedAreas"])
-      ) {
-        setOpenedAreas(config["openedAreas"]);
-      }
-      if (
-        "tooltipsShown" in config &&
-        typeof config["tooltipsShown"] === "boolean"
-      ) {
-        setTooltipsShown(config["tooltipsShown"]);
-      }
-      if (
-        "modelSelected" in config &&
-        typeof config["modelSelected"] === "number"
-      ) {
-        setModelSelected(config["modelSelected"]);
-      }
-      if (
-        "anthropicAPIKey" in config &&
-        typeof config["anthropicAPIKey"] === "string"
-      ) {
-        setAnthropicAPIKey(config["anthropicAPIKey"]);
-        setAnthropicAPIKeyWorks(null);
-      }
-      if (
-        "anthropicAPIKeyWorks" in config &&
-        typeof config["anthropicAPIKeyWorks"] === "boolean"
-      ) {
-        setAnthropicAPIKeyWorks(config["anthropicAPIKeyWorks"]);
-      }
-      if (
-        "queryAPIURL" in config &&
-        typeof config["queryAPIURL"] === "string"
-      ) {
-        setQueryAPIURL(config["queryAPIURL"]);
-        setQueryAPIKeyWorks(null);
-      }
-      if (
-        "queryAPIKey" in config &&
-        typeof config["queryAPIKey"] === "string"
-      ) {
-        setQueryAPIKey(config["queryAPIKey"]);
-        setQueryAPIKeyWorks(null);
-      }
-      if (
-        "queryAPIKeyWorks" in config &&
-        typeof config["queryAPIKeyWorks"] === "boolean"
-      ) {
-        setQueryAPIKeyWorks(config["queryAPIKeyWorks"]);
-      }
-      if (
-        "esqlGuideText" in config &&
-        typeof config["esqlGuideText"] === "string"
-      ) {
-        setEsqlGuideText(config["esqlGuideText"]);
-      }
-      if (
-        "schemaGuideText" in config &&
-        typeof config["schemaGuideText"] === "string"
-      ) {
-        setSchemaGuideText(config["schemaGuideText"]);
-      }
-    },
-    []
-  );
+  const loadConfig = useCallback((config: Config) => {
+    if (
+      "openedAreas" in config &&
+      typeof config["openedAreas"] === "object" &&
+      Array.isArray(config["openedAreas"])
+    ) {
+      setOpenedAreas(config["openedAreas"]);
+    }
+    if (
+      "tooltipsShown" in config &&
+      typeof config["tooltipsShown"] === "boolean"
+    ) {
+      setTooltipsShown(config["tooltipsShown"]);
+    }
+    if (
+      "modelSelected" in config &&
+      typeof config["modelSelected"] === "number"
+    ) {
+      setModelSelected(config["modelSelected"]);
+    }
+    if (
+      "anthropicAPIKey" in config &&
+      typeof config["anthropicAPIKey"] === "string"
+    ) {
+      setAnthropicAPIKey(config["anthropicAPIKey"]);
+      setAnthropicAPIKeyWorks(null);
+    }
+    if (
+      "anthropicAPIKeyWorks" in config &&
+      typeof config["anthropicAPIKeyWorks"] === "boolean"
+    ) {
+      setAnthropicAPIKeyWorks(config["anthropicAPIKeyWorks"]);
+    }
+    if ("queryAPIURL" in config && typeof config["queryAPIURL"] === "string") {
+      setQueryAPIURL(config["queryAPIURL"]);
+      setQueryAPIKeyWorks(null);
+    }
+    if ("queryAPIKey" in config && typeof config["queryAPIKey"] === "string") {
+      setQueryAPIKey(config["queryAPIKey"]);
+      setQueryAPIKeyWorks(null);
+    }
+    if (
+      "queryAPIKeyWorks" in config &&
+      typeof config["queryAPIKeyWorks"] === "boolean"
+    ) {
+      setQueryAPIKeyWorks(config["queryAPIKeyWorks"]);
+    }
+    if (
+      "esqlGuideText" in config &&
+      typeof config["esqlGuideText"] === "string"
+    ) {
+      setEsqlGuideText(config["esqlGuideText"]);
+    }
+    if (
+      "schemaGuideText" in config &&
+      typeof config["schemaGuideText"] === "string"
+    ) {
+      setSchemaGuideText(config["schemaGuideText"]);
+    }
+  }, []);
 
   /**
    * Handles API errors and updates the state of apiKeyWorks.
@@ -730,19 +720,18 @@ const ESQLComposerMain = () => {
   return (
     <Box p={4}>
       <VStack spacing={4} align="stretch">
-        <Heading>ES|QL Composer</Heading>
+        <HStack justify={"space-between"}>
+          <Heading>ES|QL Composer</Heading>
 
+          <HowToUseArea
+            tooltipsShown={tooltipsShown}
+            setTooltipsShown={setTooltipsShown}
+            collectConfig={collectConfig}
+            loadConfig={loadConfig}
+          />
+        </HStack>
         <Accordion index={openedAreas} onChange={setOpenedAreas} allowMultiple>
-          <Section label="How to Use" color="green.50">
-            <HowToUseArea
-              tooltipsShown={tooltipsShown}
-              setTooltipsShown={setTooltipsShown}
-              collectConfig={collectConfig}
-              loadConfig={loadConfig}
-            />
-          </Section>
-
-          <Section label="API Configuration" color="cyan.50">
+          <Section label="LLM Configuration" color="cyan.50">
             <VStack align={"stretch"} justify={"space-between"} spacing={6}>
               <LLMConfigurationArea
                 modelSelected={modelSelected}
@@ -754,8 +743,22 @@ const ESQLComposerMain = () => {
                 tooltipsShown={tooltipsShown}
                 testAPIKey={testAnthropicAPIKey}
               />
-              <Divider />
-              <QueryAPIConfigurationArea
+              <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
+            </VStack>
+          </Section>
+
+          <Section
+            label="Elasticsearch Configuration"
+            color="green.50"
+            headerElement={
+              <CacheWarmedNotice
+                cacheWarmedText={cacheWarmedText}
+                tooltipsShown={tooltipsShown}
+              />
+            }
+          >
+            <VStack align={"stretch"} justify={"space-between"} spacing={6}>
+            <QueryAPIConfigurationArea
                 apiURL={queryAPIURL}
                 setApiURL={setQueryAPIURL}
                 apiKey={queryAPIKey}
@@ -765,18 +768,11 @@ const ESQLComposerMain = () => {
                 tooltipsShown={tooltipsShown}
                 handleShowInfo={handleShowInfo}
               />
-            </VStack>
+          </VStack>
           </Section>
-
           <Section
-            label="Reference Guides"
+            label="Reference Materials"
             color="yellow.50"
-            headerElement={
-              <CacheWarmedNotice
-                cacheWarmedText={cacheWarmedText}
-                tooltipsShown={tooltipsShown}
-              />
-            }
           >
             <ReferenceGuidesArea
               isESQLRequestAvailable={isESQLRequestAvailable}
@@ -793,9 +789,10 @@ const ESQLComposerMain = () => {
               handleGetTokenCount={handleGetTokenCount}
               handleRetrieveSchemaFromES={getSchemaProps.onOpen}
             />
+
           </Section>
 
-          <Section label="ES|QL Query">
+          <Section label="ES|QL Workbench">
             <VStack align={"stretch"} justify={"space-between"} spacing={10}>
               <ESQLWorkingArea
                 tooltipsShown={tooltipsShown}
@@ -829,7 +826,6 @@ const ESQLComposerMain = () => {
                 autoUpdate={queryAPIDataAutoUpdate}
                 setAutoUpdate={setQueryAPIDataAutoUpdate}
               />
-              <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
             </VStack>
           </Section>
         </Accordion>
