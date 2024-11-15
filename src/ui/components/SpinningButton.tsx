@@ -40,7 +40,7 @@ const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
             <ScaleLoader height={25} margin={4} color="white" />
           )
         }
-        colorScheme={targets === "es" ? "teal": "blue"}
+        colorScheme={targets === "es" ? "teal": "orange"}
         variant={gratisAction === true ? "outline" : "solid"}
       >
         {children}

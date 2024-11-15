@@ -757,7 +757,7 @@ const ESQLComposerMain = () => {
           />
         </HStack>
         <Accordion index={openedAreas} onChange={setOpenedAreas} allowMultiple>
-          <Section label="LLM Configuration" color="cyan.50">
+          <Section label="LLM Configuration" color="orange.50">
             <VStack align={"stretch"} justify={"space-between"} spacing={6}>
               <LLMConfigurationArea
                 modelSelected={modelSelected}
@@ -796,7 +796,7 @@ const ESQLComposerMain = () => {
               />
             </VStack>
           </Section>
-          <Section label="Reference Materials" color="yellow.50">
+          <Section label="Reference Materials" color="purple.50">
             <ReferenceGuidesArea
               isESQLRequestAvailable={isESQLRequestAvailable}
               isElasticsearchAPIAvailable={isElasticsearchAPIAvailable}

@@ -103,15 +103,15 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
                   <UnorderedList spacing={2} ml="2em">
                     <ListItem>
                       <Highlight
-                        query={"blue"}
+                        query={"orange"}
                         styles={{
                           px: "2",
                           py: "1",
                           rounded: "md",
-                          bg: "blue.100",
+                          bg: "orange.100",
                         }}
                       >
-                        Blue color is for LLM stuff,
+                        Orange color is for LLM stuff,
                       </Highlight>{" "}
                       <Highlight
                         query={"teal"}

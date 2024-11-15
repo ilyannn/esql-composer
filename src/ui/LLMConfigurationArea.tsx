@@ -79,7 +79,7 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
                   Opus
                 </SliderMark> */}
                 <SliderTrack bg="gray.200">
-                  <SliderFilledTrack bg="gold" />
+                  <SliderFilledTrack bg="orange" />
                 </SliderTrack>
                 <SliderThumb boxSize={5 + 2 * modelSelected} bg="red.50">
                   <Text fontSize="sm">{"$".repeat(modelSelected + 1)}</Text>
