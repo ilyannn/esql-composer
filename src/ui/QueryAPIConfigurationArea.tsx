@@ -120,7 +120,7 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
               type="submit"
               targets="es"
               spinningAction={handleShowInfo}
-              disabled={!apiKey}
+              disabled={!apiURL || !apiKey}
             >
               Test
             </SpinningButton>

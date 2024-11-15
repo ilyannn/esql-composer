@@ -18,6 +18,7 @@ import {
 import Anthropic from "@anthropic-ai/sdk";
 
 import type { HistoryRow, StatisticsRow } from "../common/types";
+import { ESQLBlock, ESQLChain, ESQLChainAction, esqlChainToString, performChainAction } from "../models/esql";
 
 import {
   countTokens,
@@ -47,6 +48,7 @@ import GetSchemaModal from "./modals/GetSchemaModal";
 import QueryAPIConfigurationArea from "./QueryAPIConfigurationArea";
 import QueryResultArea from "./QueryResultArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
+import VisualComposer from "./visual-composer/VisualComposer";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
 const defaultSchemaGuidePromise = loadFile("schema-flights.txt");
@@ -75,6 +77,9 @@ const ESQLComposerMain = () => {
 
   const [naturalInput, setNaturalInput] = useState("");
   const [esqlInput, setEsqlInput] = useState("");
+  const [visualChain, setVisualChain] = useState<ESQLChain>(
+    [{ command: "LIMIT", limit: 20 }],
+  );
 
   const [queryAPIData, setQueryAPIData] = useState<TableData | null>(null);
   const [queryAPIDataAutoUpdate, setQueryAPIDataAutoUpdate] = useState(false);
@@ -717,6 +722,27 @@ const ESQLComposerMain = () => {
     };
   }, []);
 
+
+  const handleChainAction = (action: ESQLChainAction) => {
+    setVisualChain(performChainAction(visualChain, action));
+  };
+
+    const updateVisualBlock = (index: number, block: ESQLBlock) => {
+    const blocks = [...visualChain];
+    blocks[index] = block;
+    setVisualChain(blocks);
+  };
+
+  const handleVisualBlockAction = (index: number, action: string) => {
+    if (action === "accept") {
+      const newESQL = esqlChainToString(visualChain.slice(0, index + 1));
+      setVisualChain(visualChain.slice(index + 1));
+      setEsqlInput(esqlInput + newESQL);
+    } else if (action === "reject") {
+      setVisualChain(visualChain.slice(0, index));
+    }
+  }
+    
   return (
     <Box p={4}>
       <VStack spacing={4} align="stretch">
@@ -749,7 +775,7 @@ const ESQLComposerMain = () => {
 
           <Section
             label="Elasticsearch Configuration"
-            color="green.50"
+            color="teal.50"
             headerElement={
               <CacheWarmedNotice
                 cacheWarmedText={cacheWarmedText}
@@ -758,7 +784,7 @@ const ESQLComposerMain = () => {
             }
           >
             <VStack align={"stretch"} justify={"space-between"} spacing={6}>
-            <QueryAPIConfigurationArea
+              <QueryAPIConfigurationArea
                 apiURL={queryAPIURL}
                 setApiURL={setQueryAPIURL}
                 apiKey={queryAPIKey}
@@ -768,12 +794,9 @@ const ESQLComposerMain = () => {
                 tooltipsShown={tooltipsShown}
                 handleShowInfo={handleShowInfo}
               />
-          </VStack>
+            </VStack>
           </Section>
-          <Section
-            label="Reference Materials"
-            color="yellow.50"
-          >
+          <Section label="Reference Materials" color="yellow.50">
             <ReferenceGuidesArea
               isESQLRequestAvailable={isESQLRequestAvailable}
               isElasticsearchAPIAvailable={isElasticsearchAPIAvailable}
@@ -789,7 +812,6 @@ const ESQLComposerMain = () => {
               handleGetTokenCount={handleGetTokenCount}
               handleRetrieveSchemaFromES={getSchemaProps.onOpen}
             />
-
           </Section>
 
           <Section label="ES|QL Workbench">
@@ -816,6 +838,12 @@ const ESQLComposerMain = () => {
                 }}
                 fetchQueryData={fetchQueryData}
               />
+              <VisualComposer
+                chain={visualChain}
+                updateBlock={(index, block) => updateVisualBlock(index, block)}
+                handleBlockAction={(index, action) => {handleVisualBlockAction(index, action)}}
+              />
+
               <QueryResultArea
                 data={queryAPIData}
                 tooltipsShown={tooltipsShown}
@@ -825,6 +853,7 @@ const ESQLComposerMain = () => {
                 }}
                 autoUpdate={queryAPIDataAutoUpdate}
                 setAutoUpdate={setQueryAPIDataAutoUpdate}
+                handleFieldAction={handleChainAction}
               />
             </VStack>
           </Section>

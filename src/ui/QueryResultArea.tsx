@@ -17,6 +17,7 @@ import {
 import React from "react";
 
 import { TableData } from "../services/es";
+import { ESQLFieldAction } from "../models/esql";
 
 interface QueryResultAreaProps {
   data: TableData | null;
@@ -24,6 +25,7 @@ interface QueryResultAreaProps {
   tooltipsShown: boolean;
   autoUpdate: boolean;
   setAutoUpdate: (value: boolean) => void;
+  handleFieldAction: (action: ESQLFieldAction) => void;
 }
 
 const QueryResultArea: React.FC<QueryResultAreaProps> = ({
@@ -32,6 +34,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   setAutoUpdate,
   tooltipsShown,
   clearData,
+  handleFieldAction,
 }) => {
   return (
     data && (
@@ -40,18 +43,18 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
           <Table variant="striped" colorScheme="teal">
             <TableCaption>
               <HStack align="center" justify={"space-between"}>
-              <Tooltip
+                <Tooltip
                   isDisabled={!tooltipsShown}
                   label="Automatically fetch new data after every request to the LLM"
                 >
-                <Checkbox
-                  id="auto-update"
-                  colorScheme="teal"
-                  checked={autoUpdate}
-                  onChange={(e) => setAutoUpdate(e.target.checked)}
-                >
-                  Auto-update
-                </Checkbox>
+                  <Checkbox
+                    id="auto-update"
+                    colorScheme="teal"
+                    checked={autoUpdate}
+                    onChange={(e) => setAutoUpdate(e.target.checked)}
+                  >
+                    Auto-update
+                  </Checkbox>
                 </Tooltip>
                 <Tooltip
                   isDisabled={!tooltipsShown}
@@ -66,7 +69,30 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
             <Thead>
               <Tr>
                 {data.columns.map((col, colIndex) => (
-                  <Th key={colIndex}>{col.name}</Th>
+                  <Th key={colIndex} fontFamily={"heading"}>
+                    {col.name}
+                    <Button
+                      variant={"ghost"}
+                      colorScheme="green"
+                      onClick={() => handleFieldAction({action: "drop", field: col.name})}
+                    >
+                      Drop
+                    </Button>
+                    <Button
+                      variant={"ghost"}
+                      colorScheme="green"
+                      onClick={() => handleFieldAction({action: "sortAsc", field: col.name})}
+                    >
+                      SortAsc
+                    </Button>
+                    <Button
+                      variant={"ghost"}
+                      colorScheme="green"
+                      onClick={() => handleFieldAction({action: "sortDesc", field: col.name})}
+                    >
+                      SortDesc
+                    </Button>
+                  </Th>
                 ))}
               </Tr>
             </Thead>
