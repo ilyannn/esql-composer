@@ -43,6 +43,7 @@ import {
 } from "../services/llm";
 
 import {
+  ESQLSchema,
   QueryAPIError,
   TableData,
   deriveSchema,
@@ -65,7 +66,6 @@ import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import VisualComposer from "./visual-composer/VisualComposer";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
-const defaultSchemaGuidePromise = loadFile("schema-flights.txt");
 
 const ESQLComposerMain = () => {
   const toast = useToast();
@@ -79,7 +79,9 @@ const ESQLComposerMain = () => {
   const [queryAPIKey, setQueryAPIKey] = useState("");
 
   const [esqlGuideText, setEsqlGuideText] = useState("");
-  const [schemaGuideText, setSchemaGuideText] = useState("");
+  const [esqlSchema, setEsqlSchema] = useState<ESQLSchema | null>(null); 
+
+  const schemaGuideText = esqlSchema?.guide || "";
 
   // Inspired by https://react.dev/learn/you-might-not-need-an-effect#fetching-data
   const [esqlGuideTokenCount, setEsqlGuideTokenCount] = useState<
@@ -130,7 +132,7 @@ const ESQLComposerMain = () => {
 
   const isElasticsearchAPIAvailable = (queryAPIURL && queryAPIKey) !== "";
   const isESQLRequestAvailable =
-    (anthropicAPIKey && esqlGuideText && schemaGuideText) !== "";
+    (anthropicAPIKey && esqlGuideText && esqlSchema && esqlSchema) !== "";
 
   const getSchemaProps = useDisclosure();
 
@@ -140,13 +142,13 @@ const ESQLComposerMain = () => {
     }
     if (
       cacheWarmedInfo.esqlGuideText === esqlGuideText &&
-      cacheWarmedInfo.schemaGuideText === schemaGuideText &&
+      cacheWarmedInfo.schemaGuideText === esqlSchema?.guide &&
       cacheWarmedInfo.modelSelected === modelSelected
     ) {
       return;
     }
     setCacheWarmedInfo(null);
-  }, [modelSelected, esqlGuideText, schemaGuideText, cacheWarmedInfo]);
+  }, [modelSelected, esqlGuideText, esqlSchema, cacheWarmedInfo]);
 
   const updateCacheWarmedText = () => {
     if (!cacheWarmedInfo) {
@@ -172,7 +174,7 @@ const ESQLComposerMain = () => {
       queryAPIKey,
       queryAPIKeyWorks,
       esqlGuideText,
-      schemaGuideText,
+      esqlSchema,
     };
   }, [
     openedAreas,
@@ -184,8 +186,12 @@ const ESQLComposerMain = () => {
     queryAPIKey,
     queryAPIKeyWorks,
     esqlGuideText,
-    schemaGuideText,
+    esqlSchema,
   ]);
+
+  const setSchemaGuideText = useCallback((value: string) => {
+    setEsqlSchema({ ...esqlSchema ?? {"indexPattern": "", knownFields: [], guide: ""}, guide: value });
+  }, [esqlSchema]);
 
   const loadConfig = useCallback((config: Config) => {
     if (
@@ -241,12 +247,21 @@ const ESQLComposerMain = () => {
       setEsqlGuideText(config["esqlGuideText"]);
     }
     if (
-      "schemaGuideText" in config &&
-      typeof config["schemaGuideText"] === "string"
+      "esqlSchema" in config &&
+      typeof config["esqlSchema"] === "object"
     ) {
-      setSchemaGuideText(config["schemaGuideText"]);
+      console.log("Setting esqlSchema", config["esqlSchema"]);  
+      setEsqlSchema(config["esqlSchema"]);
     }
   }, []);
+
+  const resetESQL = useCallback(() => {
+      const initialESQL = esqlSchema?.indexPattern ? `FROM ${esqlSchema.indexPattern}\n` : "";
+      setEsqlInput(initialESQL);
+      setNaturalInput("");
+      setQueryAPIData(null);
+      setVisualChain(createInitialChain());
+  }, [esqlSchema?.indexPattern]);
 
   /**
    * Handles API errors and updates the state of apiKeyWorks.
@@ -706,7 +721,7 @@ const ESQLComposerMain = () => {
         indexPattern,
         randomSamplingFactor,
       });
-      setSchemaGuideText(schema);
+      setEsqlSchema(schema);
     });
   };
 
@@ -723,12 +738,6 @@ const ESQLComposerMain = () => {
     defaultESQLGuidePromise.then((data) => {
       if (!ignore) {
         setEsqlGuideText(data);
-      }
-    });
-
-    defaultSchemaGuidePromise.then((data) => {
-      if (!ignore) {
-        setSchemaGuideText(data);
       }
     });
 
@@ -863,12 +872,7 @@ const ESQLComposerMain = () => {
                 esqlInputRef={esqlInputRef}
                 handleCompleteESQL={handleCompleteESQL}
                 performESQLRequest={performESQLRequest}
-                resetESQL={() => {
-                  setNaturalInput("");
-                  setEsqlInput("");
-                  setQueryAPIData(null);
-                  setQueryAPIDataAutoUpdate(false);
-                }}
+                resetESQL={resetESQL}
               />
               <VisualComposer
                 chain={visualChain}

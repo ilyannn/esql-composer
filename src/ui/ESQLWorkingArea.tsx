@@ -1,5 +1,6 @@
 import {
   Box,
+  Button,
   FormControl,
   HStack,
   Input,
@@ -51,6 +52,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
 
   handleCompleteESQL,
   performESQLRequest,
+  resetESQL,
 }) => {
 
   const handleUpdateESQL = async () => {
@@ -130,6 +132,17 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             >
               {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
             </SpinningButton>
+            <Tooltip isDisabled={!tooltipsShown} label="Pretty print the ES|QL">
+              <SpinningButton
+                type="submit"
+                spinningAction={() =>
+                  performESQLRequest("Prettify the provided ES|QL")
+                }
+                disabled={!isESQLRequestAvailable || !esqlInput}
+              >
+                Prettify
+              </SpinningButton>
+            </Tooltip>
             {/* <Tooltip
               isDisabled={!tooltipsShown}
               label="Restore the inputs to the state before this button was pressed"
@@ -150,6 +163,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
           <VStack spacing={0} align="stretch" flex={1}>
             <Box flex={1}>
               <Textarea
+                flex={1}
                 placeholder="ES|QL"
                 value={esqlInput}
                 ref={esqlInputRef}
@@ -182,17 +196,19 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
                 Complete
               </SpinningButton>
             </Tooltip>
-            <Tooltip isDisabled={!tooltipsShown} label="Pretty print the ES|QL">
-              <SpinningButton
-                type="submit"
-                spinningAction={() =>
-                  performESQLRequest("Prettify the provided ES|QL")
-                }
-                disabled={!isESQLRequestAvailable || !esqlInput}
-              >
-                Prettify
-              </SpinningButton>
-            </Tooltip>
+            <Tooltip
+            isDisabled={!tooltipsShown}
+            label="Reset the prompt and ES|QL and being anew."
+          >
+            <Button
+              variant="ghost"
+              colorScheme="red"
+              isDisabled={!esqlInput && !naturalInput}
+              onClick={() => resetESQL()}
+            >
+              Reset
+            </Button>
+          </Tooltip>
           </VStack>
         </HStack>
         {/* <HStack>
@@ -226,19 +242,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
               onClick={() => showHistory()}
             >
               History
-            </Button>
-          </Tooltip>
-          <Tooltip
-            isDisabled={!tooltipsShown}
-            label="Reset the prompt and ES|QL and being anew."
-          >
-            <Button
-              variant="ghost"
-              colorScheme="red"
-              isDisabled={!esqlInput && !naturalInput}
-              onClick={() => resetESQL()}
-            >
-              Reset
             </Button>
           </Tooltip>
         </HStack> */}

@@ -387,12 +387,18 @@ const parseSamplingAggregationResults = (
   return acc;
 };
 
+export type ESQLSchema = {
+  indexPattern: string;
+  knownFields: Field[];
+  guide: string;
+}
+
 export const deriveSchema = async ({
   apiURL,
   apiKey,
   indexPattern,
   randomSamplingFactor,
-}: ESQLDeriveSchemaOptions): Promise<string> => {
+}: ESQLDeriveSchemaOptions): Promise<ESQLSchema> => {
   const capabilities = await getJSON(
     `${apiURL}/${indexPattern}/_field_caps`,
     apiKey,
@@ -405,10 +411,10 @@ export const deriveSchema = async ({
 
   const { indices, fields } = capabilities as CapabilitiesResponse;
 
-  const parsedFields = parseFieldCapabilities(fields);
-  parsedFields.sort((a, b) => a.name.localeCompare(b.name));
+  const knownFields = parseFieldCapabilities(fields);
+  knownFields.sort((a, b) => a.name.localeCompare(b.name));
   const aggregationRequest = createTermsAggregationRequest(
-    parsedFields,
+    knownFields,
     randomSamplingFactor
   );
 
@@ -422,13 +428,13 @@ export const deriveSchema = async ({
     examples = parseSamplingAggregationResults(termResults);
   }
 
-  let description = `# Schema for the index pattern "${indexPattern}"\n\n`;
+  let guide = `# Schema for the index pattern "${indexPattern}"\n\n`;
 
-  description +=
+  guide +=
     `## Indices\n\n` + indices.map((index) => `* ${index}`).join("\n") + "\n\n";
-  description += `## Fields\n\nHere is the combined list of fields in these indices, their type and most common values:\n\n`;
+  guide += `## Fields\n\nHere is the combined list of fields in these indices, their type and most common values:\n\n`;
 
-  description += parsedFields
+  guide += knownFields
     .map(
       (field) =>
         `* ${field.name}: ${field.type}${
@@ -437,5 +443,9 @@ export const deriveSchema = async ({
     )
     .join("\n");
 
-  return description;
+  return {
+    guide,
+    indexPattern,
+    knownFields,
+  };
 };
