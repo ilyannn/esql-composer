@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Button, Heading, HStack, Spacer } from "@chakra-ui/react";
+import { CloseIcon } from "@chakra-ui/icons";
 
 export type ComposerBlockAction = "accept" | "reject";
 
@@ -21,7 +22,13 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
   return (
     <Box
       border="1px solid"
-      borderColor="gray.700"
+      borderColor={
+        highlight === "accept"
+          ? "green.500"
+          : highlight === "reject"
+          ? "red.500"
+          : "gray.700"
+      }
       borderRadius="lg"
       p={4}
       bg={
@@ -33,13 +40,12 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
       }
     >
       <HStack justify="space-between" align="baseline" spacing={6}>
-        <Heading as="h4" size={"md"} textColor={"gray.700"}>{command}</Heading>
+        <Heading as="h4" size={"sm"} textColor={"gray.700"}>{command}</Heading>
         {children}
         <Spacer />
         <HStack spacing={2}>
           <Button
-            variant="outline"
-            borderColor={highlight === "accept" ? "green.500" : "green.200"}
+            variant="ghost"
             colorScheme="green"
             onMouseEnter={() => onHover("accept")}
             onMouseLeave={() => onHover(null)}
@@ -48,14 +54,13 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
             Accept ⇧
           </Button>
           <Button
-            variant="outline"
-            borderColor={highlight === "reject" ? "red.500" : "red.200"}
+            variant="ghost"
             colorScheme="red"
             onMouseEnter={() => onHover("reject")}
             onMouseLeave={() => onHover(null)}
             onClick={() => onAction("reject")}
           > 
-            Reject ⇩
+            <CloseIcon />
           </Button>
         </HStack>
       </HStack>

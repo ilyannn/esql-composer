@@ -1,6 +1,13 @@
 import autosize from "autosize";
 import moment from "moment";
-import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useInterval } from "usehooks-ts";
 
 import {
@@ -18,7 +25,14 @@ import {
 import Anthropic from "@anthropic-ai/sdk";
 
 import type { HistoryRow, StatisticsRow } from "../common/types";
-import { ESQLBlock, ESQLChain, ESQLChainAction, esqlChainToString, performChainAction } from "../models/esql";
+import {
+  createInitialChain,
+  ESQLBlock,
+  ESQLChain,
+  ESQLChainAction,
+  esqlChainAddToString,
+  performChainAction,
+} from "../models/esql";
 
 import {
   countTokens,
@@ -57,7 +71,7 @@ const ESQLComposerMain = () => {
   const toast = useToast();
 
   const [openedAreas, setOpenedAreas] = useState<number | number[]>([1, 2, 3]);
-  const [tooltipsShown, setTooltipsShown] = useState(true);
+  const [tooltipsShown, setTooltipsShown] = useState(false);
 
   const [modelSelected, setModelSelected] = useState(0);
   const [anthropicAPIKey, setAnthropicAPIKey] = useState("");
@@ -77,14 +91,26 @@ const ESQLComposerMain = () => {
 
   const [naturalInput, setNaturalInput] = useState("");
   const [esqlInput, setEsqlInput] = useState("");
-  const [visualChain, setVisualChain] = useState<ESQLChain>(
-    [{ command: "LIMIT", limit: 20 }],
-  );
+  const [visualChain, setVisualChain] = useState<ESQLChain>(createInitialChain);
 
   const [queryAPIData, setQueryAPIData] = useState<TableData | null>(null);
   const [queryAPIDataAutoUpdate, setQueryAPIDataAutoUpdate] = useState(false);
   const [queryAPIDataHasScheduledUpdate, setQueryAPIDataHasScheduledUpdate] =
     useState(false);
+
+  const isLimitRecommended = useMemo(() => {
+    return (
+      !visualChain.some((block) => block.command === "LIMIT") &&
+      !esqlInput.toUpperCase().includes("| LIMIT")
+    );
+  }, [visualChain, esqlInput]);
+
+  const isKeepRecommended = useMemo(() => {
+    return (
+      !visualChain.some((block) => block.command === "KEEP") &&
+      queryAPIData !== null
+    );
+  }, [queryAPIData, visualChain]);
 
   const [allStats, setAllStats] = useState<StatisticsRow[]>([]);
   const [history, setHistory] = useState<HistoryRow[]>([]);
@@ -500,9 +526,6 @@ const ESQLComposerMain = () => {
             return;
           }
           setEsqlInput(interpolatedLines.join("\n"));
-          if (esqlInputRef.current) {
-            autosize.update(esqlInputRef.current);
-          }
         };
 
         const doneESQL = () => {
@@ -510,9 +533,6 @@ const ESQLComposerMain = () => {
           if (lineIndex < interpolatedLines.length) {
             interpolatedLines.splice(lineIndex);
             setEsqlInput(interpolatedLines.join("\n"));
-          }
-          if (esqlInputRef.current) {
-            autosize.update(esqlInputRef.current);
           }
         };
 
@@ -539,10 +559,6 @@ const ESQLComposerMain = () => {
             stats: data.stats,
           },
         ]);
-
-        if (esqlInputRef.current) {
-          autosize.update(esqlInputRef.current);
-        }
 
         if (naturalInputRef.current?.value === text) {
           naturalInputRef.current?.setSelectionRange(0, naturalInput.length);
@@ -590,7 +606,6 @@ const ESQLComposerMain = () => {
           esqlInput.substring(0, cursorPosition) + esqlInput.substring(lineEnd)
         );
         if (esqlInputRef.current) {
-          autosize.update(esqlInputRef.current);
           esqlInputRef.current.setSelectionRange(
             cursorPosition,
             cursorPosition
@@ -605,7 +620,6 @@ const ESQLComposerMain = () => {
             esqlInput.substring(lineEnd)
         );
         if (esqlInputRef.current) {
-          autosize.update(esqlInputRef.current);
           esqlInputRef.current.setSelectionRange(
             cursorPosition + line.length,
             cursorPosition + line.length
@@ -642,14 +656,15 @@ const ESQLComposerMain = () => {
 
   const fetchQueryData = useCallback(async () => {
     await performQueryAPIAction("ES|QL query", async () => {
+      const fullESQL = esqlChainAddToString(esqlInput, visualChain);
       const response = await performESQLQuery({
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
-        query: esqlInput,
+        query: fullESQL,
       });
       setQueryAPIData(response);
     });
-  }, [queryAPIURL, queryAPIKey, esqlInput, performQueryAPIAction]);
+  }, [queryAPIURL, queryAPIKey, esqlInput, visualChain, performQueryAPIAction]);
 
   const handleShowInfo = async () => {
     await performQueryAPIAction("Elasticsearch API test", async () => {
@@ -722,12 +737,25 @@ const ESQLComposerMain = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (esqlInputRef.current) {
+      autosize.update(esqlInputRef.current);
+    }
+  }, [esqlInputRef, esqlInput]);
 
-  const handleChainAction = (action: ESQLChainAction) => {
-    setVisualChain(performChainAction(visualChain, action));
+  const handleChainAction = (
+    action: ESQLChainAction,
+    knownFields: string[]
+  ): boolean => {
+    try {
+      setVisualChain(performChainAction(visualChain, action, knownFields));
+      return true;
+    } catch (error) {
+      return false;
+    }
   };
 
-    const updateVisualBlock = (index: number, block: ESQLBlock) => {
+  const updateVisualBlock = (index: number, block: ESQLBlock) => {
     const blocks = [...visualChain];
     blocks[index] = block;
     setVisualChain(blocks);
@@ -735,14 +763,20 @@ const ESQLComposerMain = () => {
 
   const handleVisualBlockAction = (index: number, action: string) => {
     if (action === "accept") {
-      const newESQL = esqlChainToString(visualChain.slice(0, index + 1));
+      const newESQL = esqlChainAddToString(
+        esqlInput,
+        visualChain.slice(0, index + 1)
+      );
+      setEsqlInput(newESQL);
       setVisualChain(visualChain.slice(index + 1));
-      setEsqlInput(esqlInput + newESQL);
     } else if (action === "reject") {
-      setVisualChain(visualChain.slice(0, index));
+      setVisualChain([
+        ...visualChain.slice(0, index),
+        ...visualChain.slice(index + 1),
+      ]);
     }
-  }
-    
+  };
+
   return (
     <Box p={4}>
       <VStack spacing={4} align="stretch">
@@ -773,16 +807,7 @@ const ESQLComposerMain = () => {
             </VStack>
           </Section>
 
-          <Section
-            label="Elasticsearch Configuration"
-            color="teal.50"
-            headerElement={
-              <CacheWarmedNotice
-                cacheWarmedText={cacheWarmedText}
-                tooltipsShown={tooltipsShown}
-              />
-            }
-          >
+          <Section label="Elasticsearch Configuration" color="teal.50">
             <VStack align={"stretch"} justify={"space-between"} spacing={6}>
               <QueryAPIConfigurationArea
                 apiURL={queryAPIURL}
@@ -796,7 +821,16 @@ const ESQLComposerMain = () => {
               />
             </VStack>
           </Section>
-          <Section label="Reference Materials" color="purple.50">
+          <Section
+            label="Reference Materials"
+            color="purple.50"
+            headerElement={
+              <CacheWarmedNotice
+                cacheWarmedText={cacheWarmedText}
+                tooltipsShown={tooltipsShown}
+              />
+            }
+          >
             <ReferenceGuidesArea
               isESQLRequestAvailable={isESQLRequestAvailable}
               isElasticsearchAPIAvailable={isElasticsearchAPIAvailable}
@@ -815,7 +849,7 @@ const ESQLComposerMain = () => {
           </Section>
 
           <Section label="ES|QL Workbench">
-            <VStack align={"stretch"} justify={"space-between"} spacing={10}>
+            <VStack align={"stretch"} justify={"space-between"} spacing={4}>
               <ESQLWorkingArea
                 tooltipsShown={tooltipsShown}
                 isESQLRequestAvailable={isESQLRequestAvailable}
@@ -829,19 +863,19 @@ const ESQLComposerMain = () => {
                 esqlInputRef={esqlInputRef}
                 handleCompleteESQL={handleCompleteESQL}
                 performESQLRequest={performESQLRequest}
-                isQueryAPIAvailable={isElasticsearchAPIAvailable}
                 resetESQL={() => {
                   setNaturalInput("");
                   setEsqlInput("");
                   setQueryAPIData(null);
                   setQueryAPIDataAutoUpdate(false);
                 }}
-                fetchQueryData={fetchQueryData}
               />
               <VisualComposer
                 chain={visualChain}
                 updateBlock={(index, block) => updateVisualBlock(index, block)}
-                handleBlockAction={(index, action) => {handleVisualBlockAction(index, action)}}
+                handleBlockAction={(index, action) => {
+                  handleVisualBlockAction(index, action);
+                }}
               />
 
               <QueryResultArea
@@ -853,7 +887,13 @@ const ESQLComposerMain = () => {
                 }}
                 autoUpdate={queryAPIDataAutoUpdate}
                 setAutoUpdate={setQueryAPIDataAutoUpdate}
-                handleFieldAction={handleChainAction}
+                handleChainActionInContext={handleChainAction}
+                isFetchAvailable={
+                  isElasticsearchAPIAvailable && esqlInput.length > 0
+                }
+                isLimitRecommended={isLimitRecommended}
+                isKeepRecommended={isKeepRecommended}
+                fetchQueryData={fetchQueryData}
               />
             </VStack>
           </Section>

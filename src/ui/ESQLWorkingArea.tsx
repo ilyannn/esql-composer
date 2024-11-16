@@ -1,14 +1,11 @@
 import {
   Box,
-  Button,
   FormControl,
   HStack,
   Input,
-  Spacer,
   Textarea,
   Tooltip,
   VStack,
-  useToast,
 } from "@chakra-ui/react";
 import autosize from "autosize";
 import React, { useEffect } from "react";
@@ -37,8 +34,6 @@ interface ESQLWorkingAreaProps {
 
   handleCompleteESQL: () => Promise<void>;
   performESQLRequest: (action: string) => Promise<void>;
-  isQueryAPIAvailable: boolean;
-  fetchQueryData: () => Promise<void>;
 }
 
 const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
@@ -50,18 +45,19 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   esqlInput,
   setEsqlInput,
 
-  history,
-  resetESQL,
-
   naturalInputRef,
   esqlInputRef,
   esqlCompleteButtonRef,
 
   handleCompleteESQL,
   performESQLRequest,
-  isQueryAPIAvailable,
-  fetchQueryData,
 }) => {
+
+  const handleUpdateESQL = async () => {
+    await performESQLRequest(naturalInput);
+  };
+
+/*
   const toast = useToast();
 
   const copyESQL = () => {
@@ -72,10 +68,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
       duration: 750,
       isClosable: true,
     });
-  };
-
-  const handleUpdateESQL = async () => {
-    await performESQLRequest(naturalInput);
   };
 
   const revertUpdate = () => {
@@ -102,7 +94,8 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
         isClosable: true,
       });
     }
-  };
+  };*/
+
   useEffect(() => {
     // https://github.com/chakra-ui/chakra-ui/issues/670#issuecomment-625770981
     const esqlInputRefValue = esqlInputRef.current;
@@ -117,134 +110,140 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   }, [esqlInputRef]);
 
   return (
-    <VStack align={"stretch"} justify={"space-between"}>
-      <form onSubmit={(e) => e.preventDefault()}>
-        <HStack>
-          <FormControl flex={1}>
-            <Input
-              placeholder="Natural Text"
-              value={naturalInput}
-              onChange={(e) => setNaturalInput(e.target.value)}
-              ref={naturalInputRef}
-              flex={1}
-            />
-          </FormControl>
+    <HStack justify="flex-start" align="stretch" spacing={8}>
+      <VStack align={"stretch"} justify={"space-between"} flex={1}>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <HStack>
+            <FormControl flex={1}>
+              <Input
+                placeholder="Natural Text"
+                value={naturalInput}
+                onChange={(e) => setNaturalInput(e.target.value)}
+                ref={naturalInputRef}
+                flex={1}
+              />
+            </FormControl>
+            <SpinningButton
+              type="submit"
+              spinningAction={handleUpdateESQL}
+              disabled={!isESQLRequestAvailable || !naturalInput}
+            >
+              {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
+            </SpinningButton>
+            {/* <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Restore the inputs to the state before this button was pressed"
+            >
+              <Button
+                variant="ghost"
+                isDisabled={history.length === 0}
+                colorScheme="green"
+                onClick={() => revertUpdate()}
+              >
+                Undo
+              </Button>
+            </Tooltip> */}
+          </HStack>
+        </form>
+
+        <HStack align="stretch" justify="flex-start">
+          <VStack spacing={0} align="stretch" flex={1}>
+            <Box flex={1}>
+              <Textarea
+                placeholder="ES|QL"
+                value={esqlInput}
+                ref={esqlInputRef}
+                onChange={(e) => setEsqlInput(e.target.value)}
+                fontFamily={"monospace"}
+                whiteSpace="pre-wrap"
+                style={{ height: "auto", background: "none" }}
+                transition="height none"
+                spellCheck={false}
+                onKeyDown={(e) => {
+                  if (e.key === COMPLETION_KEY) {
+                    e.preventDefault();
+                    esqlCompleteButtonRef.current?.click();
+                  }
+                }}
+              />
+            </Box>
+          </VStack>
+          <VStack align="stretch" justify="flex-start">
+            <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Complete the current line"
+            >
+              <SpinningButton
+                type="submit"
+                spinningAction={handleCompleteESQL}
+                disabled={!isESQLRequestAvailable || !esqlInput}
+                ref={esqlCompleteButtonRef}
+              >
+                Complete
+              </SpinningButton>
+            </Tooltip>
+            <Tooltip isDisabled={!tooltipsShown} label="Pretty print the ES|QL">
+              <SpinningButton
+                type="submit"
+                spinningAction={() =>
+                  performESQLRequest("Prettify the provided ES|QL")
+                }
+                disabled={!isESQLRequestAvailable || !esqlInput}
+              >
+                Prettify
+              </SpinningButton>
+            </Tooltip>
+          </VStack>
+        </HStack>
+        {/* <HStack>
           <SpinningButton
+            targets="es"
+            spinningAction={fetchQueryData}
             type="submit"
-            spinningAction={handleUpdateESQL}
-            disabled={!isESQLRequestAvailable || !naturalInput}
+            disabled={!isQueryAPIAvailable || !esqlInput}
           >
-            {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
+            Fetch Data
           </SpinningButton>
+          <Spacer />
+          <Tooltip isDisabled={!tooltipsShown} label="Copy ES|QL to Clipboard">
+            <Button
+              variant="ghost"
+              colorScheme="green"
+              isDisabled={!esqlInput}
+              onClick={() => copyESQL()}
+            >
+              Copy
+            </Button>
+          </Tooltip>
           <Tooltip
             isDisabled={!tooltipsShown}
-            label="Restore the inputs to the state before this button was pressed"
+            label="Export history of prompt and request pairs"
           >
             <Button
               variant="ghost"
               isDisabled={history.length === 0}
               colorScheme="green"
-              onClick={() => revertUpdate()}
+              onClick={() => showHistory()}
             >
-              Undo
+              History
             </Button>
           </Tooltip>
-        </HStack>
-      </form>
-
-      <HStack align="stretch" justify="flex-start">
-        <VStack spacing={0} align="stretch" flex={1}>
-          <Box flex={1}>
-            <Textarea
-              placeholder="ES|QL"
-              value={esqlInput}
-              ref={esqlInputRef}
-              onChange={(e) => setEsqlInput(e.target.value)}
-              fontFamily={"monospace"}
-              whiteSpace="pre-wrap"
-              style={{ height: "auto", background: "none" }}
-              transition="height none"
-              spellCheck={false}
-              onKeyDown={(e) => {
-                if (e.key === COMPLETION_KEY) {
-                  e.preventDefault();
-                  esqlCompleteButtonRef.current?.click();
-                }
-              }}
-            />
-          </Box>
-        </VStack>
-      </HStack>
-      <HStack>
-        <SpinningButton
-          targets="es"
-          spinningAction={fetchQueryData}
-          type="submit"
-          disabled={!isQueryAPIAvailable || !esqlInput}
-        >
-          Fetch Data
-        </SpinningButton>
-        <Spacer />
-        <Tooltip isDisabled={!tooltipsShown} label="Complete the current line">
-          <SpinningButton
-            type="submit"
-            spinningAction={handleCompleteESQL}
-            disabled={!isESQLRequestAvailable || !esqlInput}
-            ref={esqlCompleteButtonRef}
+          <Tooltip
+            isDisabled={!tooltipsShown}
+            label="Reset the prompt and ES|QL and being anew."
           >
-            Complete
-          </SpinningButton>
-        </Tooltip>
-        <Tooltip isDisabled={!tooltipsShown} label="Pretty print the ES|QL">
-          <SpinningButton
-            type="submit"
-            spinningAction={() =>
-              performESQLRequest("Prettify the provided ES|QL")
-            }
-            disabled={!isESQLRequestAvailable || !esqlInput}
-          >
-            Prettify
-          </SpinningButton>
-        </Tooltip>
-        <Spacer />
-        <Tooltip isDisabled={!tooltipsShown} label="Copy ES|QL to Clipboard">
-          <Button
-            variant="ghost"
-            colorScheme="green"
-            isDisabled={!esqlInput}
-            onClick={() => copyESQL()}
-          >
-            Copy
-          </Button>
-        </Tooltip>
-        <Tooltip
-          isDisabled={!tooltipsShown}
-          label="Export history of prompt and request pairs"
-        >
-          <Button
-            variant="ghost"
-            isDisabled={history.length === 0}
-            colorScheme="green"
-            onClick={() => showHistory()}
-          >
-            History
-          </Button>
-        </Tooltip>
-        <Tooltip
-          isDisabled={!tooltipsShown}
-          label="Reset the prompt and ES|QL and being anew."
-        >
-          <Button
-            variant="ghost"
-            colorScheme="red"
-            isDisabled={!esqlInput && !naturalInput}
-            onClick={() => resetESQL()}
-          >
-            Reset
-          </Button>
-        </Tooltip>
-      </HStack>
-    </VStack>
+            <Button
+              variant="ghost"
+              colorScheme="red"
+              isDisabled={!esqlInput && !naturalInput}
+              onClick={() => resetESQL()}
+            >
+              Reset
+            </Button>
+          </Tooltip>
+        </HStack> */}
+      </VStack>
+    </HStack>
   );
 };
 
