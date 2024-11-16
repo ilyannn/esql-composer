@@ -19,7 +19,7 @@ export interface Column {
 
 export interface TableData {
   columns: Column[];
-  values: Array<Array<string | number | boolean | null>>;
+  values: Array<Array<string | number | boolean | any[] | null>>;
 }
 
 export class QueryAPIError extends Error {
@@ -51,6 +51,7 @@ function isTableData(data: any): data is TableData {
             typeof val === "string" ||
             typeof val === "number" ||
             typeof val === "boolean" ||
+            (typeof val === "object" && Array.isArray(val)) ||
             val === null
         )
     )

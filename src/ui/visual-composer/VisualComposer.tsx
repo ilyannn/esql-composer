@@ -9,6 +9,8 @@ import {
   SliderMark,
   TagRightIcon,
   HStack,
+  Wrap,
+  WrapItem,
 } from "@chakra-ui/react";
 import { ESQLBlock, ESQLChain } from "../../models/esql";
 import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
@@ -75,7 +77,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
           onAction={(action) => {
             handleBlockAction(index, action);
             setHighlightedBlock(null);
-          }} 
+          }}
         >
           {block.command === "LIMIT" && (
             <Slider
@@ -106,30 +108,35 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
               <SliderThumb borderColor={"blue.400"} />
             </Slider>
           )}
-          {block.command === "DROP" &&
+          {block.command === "DROP" && (
             <HStack spacing={1}>
               {block.fields.map((name) => (
-                <FieldTag name={name} key={name} size="lg"/>
+                <FieldTag name={name} key={name} size="lg" />
               ))}
-
             </HStack>
-          }
-          {block.command === "KEEP" &&
-            <HStack spacing={1}>
+          )}
+          {block.command === "KEEP" && (
+            <Wrap spacing={1}>
               {block.fields.map((name) => (
-                <FieldTag name={name} key={name} size="md"/>
+                <WrapItem key={name}>
+                <FieldTag name={name} size="md" />
+                </WrapItem>
               ))}
-
-            </HStack>
-          }
+            </Wrap>
+          )}
           {block.command === "RENAME" && (
             <VStack spacing={2} align="stretch" justify={"center"}>
               {Object.entries(block.map).map(
                 ([oldName, newName]: [string, string], idx: number) => (
-                  <HStack key={oldName} align={"baseline"} justify={"flex-start"} spacing={1}>
-                    <FieldTag name={oldName}/>
+                  <HStack
+                    key={oldName}
+                    align={"baseline"}
+                    justify={"flex-start"}
+                    spacing={1}
+                  >
+                    <FieldTag name={oldName} />
                     <Text>→</Text>
-                    <FieldTag name={newName}/>
+                    <FieldTag name={newName} />
                   </HStack>
                 )
               )}
@@ -137,13 +144,15 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
           )}
           {block.command === "WHERE" && <Text>{block.field}</Text>}
           {block.command === "SORT" && (
-            <HStack spacing={2}>
+            <Wrap spacing={2}>
               {block.order.map((atom) => (
-                <FieldTag size="lg" name={atom.name} key={atom.name}>
-                  <TagRightIcon as={atom.asc ? GoSortAsc : GoSortDesc} />
-                </FieldTag>
+                <WrapItem key={atom.name}>
+                  <FieldTag size="lg" name={atom.name}>
+                    <TagRightIcon as={atom.asc ? GoSortAsc : GoSortDesc} />
+                  </FieldTag>
+                </WrapItem>
               ))}
-            </HStack>
+            </Wrap>
           )}
         </ComposerBlock>
       ))}

@@ -1,4 +1,4 @@
-import { Tbody, Td, Tr } from "@chakra-ui/react";
+import { ListItem, Tbody, Td, Tr, UnorderedList } from "@chakra-ui/react";
 import { isEqual } from "lodash";
 import React from "react";
 
@@ -12,7 +12,17 @@ const DataTableBody = ({ values }: DataTableBodyProps) => {
       {values.map((row, rowIndex) => (
         <Tr key={rowIndex}>
           {row.map((val, colIndex) => (
-            <Td key={colIndex}>{val}</Td>
+            <Td key={colIndex}>
+              {typeof val === "object" && Array.isArray(val) ? (
+                <UnorderedList>
+                  {val.map((v: any, i: number) => (
+                    <ListItem key={i}>{v}</ListItem>
+                  ))}
+                </UnorderedList>
+              ) : (
+                val
+              )}
+            </Td>
           ))}
         </Tr>
       ))}
