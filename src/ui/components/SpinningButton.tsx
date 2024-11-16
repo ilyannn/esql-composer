@@ -12,7 +12,7 @@ interface SpinningButtonProps {
 }
 
 const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
-  ({ spinningAction, disabled, children, targets, type, gratisAction }, ref) => {
+  ({ spinningAction, disabled, children, targets = "llm", type, gratisAction }, ref) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const onClick = useCallback(async () => {

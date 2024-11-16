@@ -848,6 +848,7 @@ const ESQLComposerMain = () => {
               esqlGuideTokenCount={esqlGuideTokenCount}
               schemaGuideText={schemaGuideText}
               setSchemaGuideText={setSchemaGuideText}
+              setSchemaGuideJSON={setEsqlSchema}
               schemaGuideTokenCount={schemaGuideTokenCount}
               handleWarmCache={handleWarmCache}
               tooltipsShown={tooltipsShown}

@@ -12,10 +12,11 @@ import React, { useCallback } from "react";
 
 import { ResizableBox } from "react-resizable";
 import "react-resizable/css/styles.css";
-import { loadFile } from "../services/files";
 
 import SpinningButton from "./components/SpinningButton";
 import TokenCountNotice from "./components/TokenCountNotice";
+import { ESQLSchema } from "../services/es";
+import axios from "axios";
 
 interface ReferenceGuidesAreaProps {
   esqlGuideText: string;
@@ -23,6 +24,7 @@ interface ReferenceGuidesAreaProps {
   esqlGuideTokenCount: [string, number] | null;
   schemaGuideText: string;
   setSchemaGuideText: (value: string) => void;
+  setSchemaGuideJSON: (value: ESQLSchema) => void;
   schemaGuideTokenCount: [string, number] | null;
   handleWarmCache: () => Promise<void>;
   handleReduceSize: () => Promise<void>;
@@ -39,6 +41,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   esqlGuideTokenCount,
   schemaGuideText,
   setSchemaGuideText,
+  setSchemaGuideJSON,
   schemaGuideTokenCount,
   handleWarmCache,
   handleReduceSize,
@@ -48,11 +51,11 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   isElasticsearchAPIAvailable,
   handleRetrieveSchemaFromES,
 }) => {
-
   const loadESQLFile = useCallback(
     async (filename: string) => {
       try {
-        setEsqlGuideText(await loadFile(filename));
+        const request = await axios.get(filename, { responseType: "text" });
+        setEsqlGuideText(request.data);
       } catch (error) {
         console.error(`Error loading ${filename}:`, error);
       }
@@ -63,12 +66,13 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   const loadSchemaFile = useCallback(
     async (filename: string) => {
       try {
-        setSchemaGuideText(await loadFile(filename));
+        const request = await axios.get(filename, { responseType: "json" });
+        setSchemaGuideJSON(request.data);
       } catch (error) {
-        console.error(`Error loading ${filename}:`, error);
+        console.error(`Error loading ${filename} as JSON:`, error);
       }
     },
-    [setSchemaGuideText]
+    [setSchemaGuideJSON]
   );
 
   return (
@@ -96,9 +100,13 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             <HStack justify={"space-between"}>
               <FormLabel>ES|QL Reference</FormLabel>
               <TokenCountNotice
-               
                 charCount={esqlGuideText.length}
-                tokenCount={esqlGuideTokenCount && esqlGuideTokenCount[0] === esqlGuideText ? esqlGuideTokenCount[1] : null}
+                tokenCount={
+                  esqlGuideTokenCount &&
+                  esqlGuideTokenCount[0] === esqlGuideText
+                    ? esqlGuideTokenCount[1]
+                    : null
+                }
               />
             </HStack>
             <Textarea
@@ -160,7 +168,12 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
               <FormLabel>Schema Description</FormLabel>
               <TokenCountNotice
                 charCount={schemaGuideText.length}
-                tokenCount={schemaGuideTokenCount && schemaGuideTokenCount[0] === schemaGuideText ? schemaGuideTokenCount[1] : null}
+                tokenCount={
+                  schemaGuideTokenCount &&
+                  schemaGuideTokenCount[0] === schemaGuideText
+                    ? schemaGuideTokenCount[1]
+                    : null
+                }
               />
             </HStack>
             <Textarea
@@ -193,7 +206,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
               <Button
                 variant="ghost"
                 colorScheme="green"
-                onClick={() => loadSchemaFile("schema-flights.txt")}
+                onClick={() => loadSchemaFile("demo-flights.json")}
               >
                 Demo
               </Button>
