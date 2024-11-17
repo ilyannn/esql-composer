@@ -71,11 +71,13 @@ A good way to provide feedback is through GitHub issues.
 
 This is a purely client-side app, built with:
 
+- Typescript
 - React
 - Chakra UI
 - Anthropic SDK
+- other open-source libraries
 
-Elasticsearch SDK is not used, as it [does not support running in the browser](https://github.com/elastic/elasticsearch-js#browser).
+Queries are run directly against Elasticsearch instance, without using an SDK, as it [does not support running in the browser](https://github.com/elastic/elasticsearch-js#browser).
 
 We use some recently shipped and beta features of Anthropic API:
 
@@ -88,8 +90,7 @@ We use some recently shipped and beta features of Anthropic API:
 Just the regular frontend stuff, though I have not been able to fix dependencies yet:
 
 ```sh
-git clone git@github.com:ilyannn/esql-composer.git
-cd esql-composer
+git clone git@github.com:ilyannn/esql-composer.git && cd esql-composer
 npm install --legacy-peer-deps
 npm start
 ```
