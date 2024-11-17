@@ -10,7 +10,7 @@
 
 To take advantage of all ES|QL Composer features, you should have:
 
-- An Anthropic API key (since we use beta features, only direct access is supported).
+- An [Anthropic API](https://www.anthropic.com/api) key (since we use beta features, only direct access is supported).
 - Credentials for an Elasticsearch cluster (CORS should be set up to [allow access from the browser](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-application-security.html#search-application-security-cors)).
 
 ### Features
