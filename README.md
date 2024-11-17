@@ -1,6 +1,6 @@
 # ES|QL Composer
 
-- ... provides a novel approach to building [ES|QL](https://www.elastic.co/guide/en/elasticsearch/reference/current/esql.html) queries.
+- ... provides a novel approach to building [Elasticsearch Query Language](https://www.elastic.co/guide/en/elasticsearch/reference/current/esql.html) queries.
 - ... is not an official [Elastic](https://www.elastic.co/) project.
 - ... is under construction.
 
@@ -10,8 +10,8 @@
 
 To take advantage of all ES|QL Composer features, you should have:
 
-1. An Anthropic API key (since we use beta features, only direct access is supported).
-1. An URL and key of an Elasticsearch cluster with some data (it should allow access from the browser.)
+- An Anthropic API key (since we use beta features, only direct access is supported).
+- Credentials for an Elasticsearch cluster (CORS should be set up to [allow access from the browser](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-application-security.html#search-application-security-cors)).
 
 ### Features
 
