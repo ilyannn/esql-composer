@@ -2,14 +2,14 @@
 
 ## Basic Syntax
 
-Commands are separated by a pipe character (|). They can be written on the same line or different lines (prettier).
+Commands are separated by a pipe character (|). They can be written on the same line or different lines (prettier). Case does not matter, but we uppercase the commands for readability.
 
 ## Data Sources
 
 To get data from an index (or a combination of indices using wildcard):
 
 ```esql
-FROM index_name
+FROM index_name_or_pattern
 | processing...
 ```
 
@@ -25,10 +25,20 @@ SHOW INFO
 ```
 
 ## Special Characters
-- Backticks for non-standard identifiers: `1.field`, `COUNT(``1.field``)`
 - Double quotes for strings: "value"
 - Triple quotes for strings with quotes: """value "quoted" here"""
 - Comments like in C++: // single line, /* multi line */
+- Backticks for non-standard identifiers: `1.field`, `COUNT(``1.field``)`
+- In LIKE condition, use star * as a wildcard, not percent %.
+- But never put backticks in the index pattern after FROM. 
+
+Here's an example with a non-standard field name:
+
+```esql
+FROM *,-*
+| WHERE `1.item` LIKE 'Something *'
+
+```
 
 ## Literals
 - Strings: "text", """text with "quotes""""
@@ -43,6 +53,7 @@ SHOW INFO
 - SORT: ordering
 - LIMIT: restrict results
 - RENAME: rename fields
+- However there is no DISTINCT
 
 ## Key Functions
 ### Time/Date
