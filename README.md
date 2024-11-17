@@ -41,7 +41,7 @@ In terms of the user experince, ES|QL Composer:
 
 - Progressively discloses available actions.
 - Can store configuration in `LocalStorage`.
-- Does not track you (other than whatever GitHub does).
+- Does not track you.
 
 ### Design Language
 
