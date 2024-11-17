@@ -24,7 +24,7 @@ interface ReferenceGuidesAreaProps {
   esqlGuideTokenCount: [string, number] | null;
   schemaGuideText: string;
   setSchemaGuideText: (value: string) => void;
-  setSchemaGuideJSON: (value: ESQLSchema) => void;
+  setSchemaGuideJSON: (value: ESQLSchema | null) => void;
   schemaGuideTokenCount: [string, number] | null;
   handleWarmCache: () => Promise<void>;
   handleReduceSize: () => Promise<void>;
@@ -92,7 +92,6 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
       >
         <VStack align="stretch" justify="flex-start" flex={1} spacing={3}>
           <FormControl
-            isRequired={true}
             flex={1}
             display="flex"
             flexDirection={"column"}
@@ -149,7 +148,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
               <Button
                 variant="ghost"
                 colorScheme="red"
-                onClick={() => loadESQLFile("")}
+                onClick={() => setEsqlGuideText("")}
               >
                 Clear
               </Button>
@@ -159,7 +158,6 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
 
         <VStack align="stretch" justify="flex-start" flex={1} spacing={3}>
           <FormControl
-            isRequired={true}
             flex={1}
             display="flex"
             flexDirection={"column"}
@@ -218,7 +216,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
               <Button
                 variant="ghost"
                 colorScheme="red"
-                onClick={() => loadSchemaFile("")}
+                onClick={() => setSchemaGuideJSON(null)}
               >
                 Clear
               </Button>

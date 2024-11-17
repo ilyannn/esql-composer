@@ -132,7 +132,7 @@ const ESQLComposerMain = () => {
 
   const isElasticsearchAPIAvailable = (queryAPIURL && queryAPIKey) !== "";
   const isESQLRequestAvailable =
-    (anthropicAPIKey && esqlGuideText && esqlSchema && esqlSchema) !== "";
+    anthropicAPIKey.length !== 0 && esqlGuideText.length !== 0 && esqlSchema !== null && esqlSchema.guide !== "";
 
   const getSchemaProps = useDisclosure();
 

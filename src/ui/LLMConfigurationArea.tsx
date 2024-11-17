@@ -97,7 +97,6 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = ({
             </FormHelperText>
           </FormControl>
           <FormControl
-            isRequired
             isInvalid={apiKey.length !== 0 && apiKeyWorks === false}
             flex={1}
           >

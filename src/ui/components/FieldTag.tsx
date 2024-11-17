@@ -9,7 +9,7 @@ export const FieldTag: React.FC<{
   onClick?: () => void;
 }> = ({ name, size = "md", children, disabled = false, onClick }) => (
   <Tag size={size} variant="outline" 
-  colorScheme={disabled ? "gray" : "purple"}
+  colorScheme={disabled ? "gray" : "teal"}
   opacity={disabled ? 0.5 : 1}
   onClick={onClick}
   >
