@@ -43,6 +43,10 @@ In terms of the user experince, ES|QL Composer:
 - Can store configuration in `LocalStorage`.
 - Does not track you.
 
+### Screenshot
+
+![Screenshot of the app](docs/screenshot.png)
+
 ### Design Language
 
 | Color             | Related to...                                                                |
@@ -105,8 +109,9 @@ Some features that I might (no promise) get to implement if I have time:
 - Read [Prompt Engineering Text-to-QueryDSL Using Claude 3 Models](https://github.com/aws-samples/text-to-queryDSL/blob/main/text2ES_prompting_guide.ipynb).
 - Healing queries with and without an LLM trip.
 - More useful descriptions of user-provided indices.
-- Modernize the dependencies.
 - Improve the color palette.
+- Show ES|QL errors inside the editor.
+- Modernize the dependencies.
 - Additional demo datasets.
 
 ## Acknowledgements
