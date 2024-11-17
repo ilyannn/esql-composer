@@ -16,6 +16,7 @@ import { ESQLBlock, ESQLChain } from "../../models/esql";
 import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
 import { GoSortAsc, GoSortDesc } from "react-icons/go";
 import FieldTag from "../components/FieldTag";
+import { FieldTagMesh } from "../components/FieldTagMesh";
 
 interface ESQLComposerProps {
   chain: ESQLChain;
@@ -116,13 +117,11 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
             </HStack>
           )}
           {block.command === "KEEP" && (
-            <Wrap spacing={1}>
-              {block.fields.map((name) => (
-                <WrapItem key={name}>
-                <FieldTag name={name} size="md" />
-                </WrapItem>
-              ))}
-            </Wrap>
+            <FieldTagMesh
+              size="md"
+              fields={block.fields}
+              setFields={(fields) => updateBlock(index, { ...block, fields })}
+            />
           )}
           {block.command === "RENAME" && (
             <VStack spacing={2} align="stretch" justify={"center"}>
