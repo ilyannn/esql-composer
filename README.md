@@ -89,7 +89,8 @@ Just the regular frontend stuff, though I have not been able to fix dependencies
 
 ```sh
 git clone git@github.com:ilyannn/esql-composer.git
-cd esql-composer && npm i --legacy-peer-deps
+cd esql-composer
+npm install --legacy-peer-deps
 npm start
 ```
 
@@ -109,4 +110,4 @@ Some features that I might (no promise) get to implement if I have time:
 
 ## Acknowledgements
 
-- [My employer](elastic.co) and various colleagues (too many to mention).
+- [My employer](https://www.elastic.co) and various colleagues (too many to mention).
