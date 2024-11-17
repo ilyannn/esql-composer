@@ -77,7 +77,7 @@ This is a purely client-side app, built with:
 - Anthropic SDK
 - other open-source libraries
 
-Queries are run directly against Elasticsearch instance, without using an SDK, as it [does not support running in the browser](https://github.com/elastic/elasticsearch-js#browser).
+Queries are run directly against Elasticsearch instance, as the SDK [does not support running in the browser](https://github.com/elastic/elasticsearch-js#browser).
 
 We use some recently shipped and beta features of Anthropic API:
 
