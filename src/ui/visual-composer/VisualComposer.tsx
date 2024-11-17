@@ -12,7 +12,7 @@ import {
   Wrap,
   WrapItem,
 } from "@chakra-ui/react";
-import { ESQLBlock, ESQLChain } from "../../models/esql";
+import { BlockHasStableId, ESQLBlock, ESQLChain } from "../../models/esql";
 import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
 import { GoSortAsc, GoSortDesc } from "react-icons/go";
 import FieldTag from "../components/FieldTag";
@@ -67,9 +67,9 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
 
   return (
     <VStack spacing={4} align="stretch">
-      {chain.map((block: ESQLBlock, index) => (
+      {chain.map((block: ESQLBlock & BlockHasStableId, index) => (
         <ComposerBlock
-          key={index}
+          key={block.stableId}
           command={block.command}
           highlight={computeHighlight(index)}
           onHover={(action) => {
@@ -145,8 +145,8 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
           {block.command === "SORT" && (
             <Wrap spacing={2}>
               {block.order.map((atom) => (
-                <WrapItem key={atom.name}>
-                  <FieldTag size="lg" name={atom.name}>
+                <WrapItem key={atom.field}>
+                  <FieldTag size="lg" name={atom.field}>
                     <TagRightIcon as={atom.asc ? GoSortAsc : GoSortDesc} />
                   </FieldTag>
                 </WrapItem>

@@ -3,6 +3,11 @@
 
 interface BaseESQLBlock {
   command: string;
+  stableId?: string;
+}
+
+export interface BlockHasStableId {
+  stableId: string;
 }
 
 export interface LimitBlock extends BaseESQLBlock {
@@ -31,9 +36,14 @@ export interface FilterBlock extends BaseESQLBlock {
   values: any[];
 }
 
+interface OrderItem {
+  field: string;
+  asc: boolean;
+}
+
 export interface SortBlock extends BaseESQLBlock {
   command: "SORT";
-  order: { name: string; asc: boolean }[];
+  order: OrderItem[];
 }
 
 export type ESQLBlock =
@@ -100,7 +110,7 @@ const sortBlockToString = (block: SortBlock): string | null => {
     return null;
   }
   const fields = block.order
-    .map((field) => `${escape(field.name)}${field.asc ? "" : " DESC"}`)
+    .map((field) => `${escape(field.field)}${field.asc ? "" : " DESC"}`)
     .join(", ");
   return `SORT ${fields}`;
 };
@@ -122,7 +132,7 @@ const esqlBlockToString = (block: ESQLBlock): string | null => {
   }
 };
 
-export type ESQLChain = ESQLBlock[];
+export type ESQLChain = (ESQLBlock & BlockHasStableId)[];
 
 export const esqlChainAddToString = (
   existingESQL: string,
@@ -216,13 +226,13 @@ const findUpdatePoint = (
 
 const blockUpdateForSort = (
   prevBlock: SortBlock | null,
-  field: string,
-  asc: boolean
+  orderItem: OrderItem
 ): SortBlock => {
-  const prevOrder = prevBlock
-    ? prevBlock.order.filter((o) => o.name !== field)
-    : [];
-  return { command: "SORT", order: [{ name: field, asc }, ...prevOrder] };
+  if (prevBlock) {
+    const prevOrders = prevBlock.order.filter((o) => o.field !== orderItem.field);
+    return { ...prevBlock, order: [orderItem, ...prevOrders] };
+  }
+  return { command: "SORT", order: [orderItem]};
 };
 
 const blockUpdateForDrop = (
@@ -234,10 +244,10 @@ const blockUpdateForDrop = (
   }
   if (prevBlock.command === "DROP") {
     const newFields = [...prevBlock.fields.filter((f) => f !== field), field];
-    return { command: "DROP", fields: newFields };
+    return { ...prevBlock, fields: newFields };
   }
   const newFields = prevBlock.fields.filter((f) => f !== field);
-  return { command: "KEEP", fields: newFields };
+  return { ...prevBlock, fields: newFields };
 };
 
 const blockUpdateForRename = (
@@ -245,8 +255,11 @@ const blockUpdateForRename = (
   oldName: string,
   newName: string
 ): RenameBlock => {
-  const map = { ...(prevBlock?.map || {}), [oldName]: newName };
-  return { command: "RENAME", map };
+  if (prevBlock) {
+    const map = { ...prevBlock.map, [oldName]: newName };
+    return { ...prevBlock, map };
+  }
+  return { command: "RENAME", map: { [oldName]: newName } };
 };
 
 class ChainActionError extends Error {
@@ -263,6 +276,15 @@ export const createInitialChain = (): ESQLChain => {
   return performChainAction([], { action: "limit" }, []);
 }
 
+let globalNextStableBlockId = 0;
+
+const assignBlockId = (block: ESQLBlock): ESQLBlock & BlockHasStableId => {
+  if (block.stableId) {
+    return block as ESQLBlock & BlockHasStableId;
+  }
+  return {...block, stableId: `${block.command}-${globalNextStableBlockId++}`};
+}
+
 export const performChainAction = (
   chain: ESQLChain,
   action: ESQLChainAction,
@@ -272,6 +294,7 @@ export const performChainAction = (
   const prevBlock = replace ? chain[updatePoint] : null;
   const beforeChain = chain.slice(0, updatePoint);
   const afterChain = chain.slice(updatePoint + (replace ? 1 : 0));
+
   let newBlock: ESQLBlock | null = null;
 
   switch (action.action) {
@@ -293,16 +316,14 @@ export const performChainAction = (
     case "sortAsc":
       newBlock = blockUpdateForSort(
         prevBlock as SortBlock | null,
-        action.field,
-        true
+        {field: action.field, asc: true}
       );
       break;
 
     case "sortDesc":
       newBlock = blockUpdateForSort(
         prevBlock as SortBlock | null,
-        action.field,
-        false
+        {field: action.field, asc: false }
       );
       break;
 
@@ -321,5 +342,5 @@ export const performChainAction = (
       );
       break;
   }
-  return [...beforeChain, newBlock, ...afterChain];
+  return [...beforeChain, assignBlockId(newBlock), ...afterChain];
 };

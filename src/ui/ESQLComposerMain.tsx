@@ -26,6 +26,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 import type { HistoryRow, StatisticsRow } from "../common/types";
 import {
+  BlockHasStableId,
   createInitialChain,
   ESQLBlock,
   ESQLChain,
@@ -766,7 +767,8 @@ const ESQLComposerMain = () => {
 
   const updateVisualBlock = (index: number, block: ESQLBlock) => {
     const blocks = [...visualChain];
-    blocks[index] = block;
+    const blockWIthID: ESQLBlock & BlockHasStableId = { ...block, stableId: blocks[index].stableId };
+    blocks[index] = blockWIthID;
     setVisualChain(blocks);
   };
 
@@ -876,6 +878,7 @@ const ESQLComposerMain = () => {
                 resetESQL={resetESQL}
               />
               <VisualComposer
+                key = "VisualComposer"
                 chain={visualChain}
                 updateBlock={(index, block) => updateVisualBlock(index, block)}
                 handleBlockAction={(index, action) => {
