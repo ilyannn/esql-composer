@@ -41,6 +41,7 @@ interface QueryResultAreaProps {
   setAutoUpdate: (value: boolean) => void;
   isLimitRecommended: boolean;
   isKeepRecommended: boolean;
+  updatingESQLLineByLine: boolean;
   handleChainActionInContext: (
     action: ESQLChainAction,
     knownFields: string[]
@@ -57,6 +58,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   isFetchAvailable,
   isLimitRecommended,
   isKeepRecommended,
+  updatingESQLLineByLine,
   fetchQueryData,
 }) => {
   const { isOpen: isLimitWarningVisible, onClose: closeLimitWarning } =
@@ -124,7 +126,8 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
             <Checkbox
               id="auto-update"
               colorScheme="teal"
-              checked={autoUpdate}
+              isChecked={autoUpdate}
+              opacity={updatingESQLLineByLine && autoUpdate ? 0.75 : 1}
               onChange={(e) => setAutoUpdate(e.target.checked)}
             >
               Automatically

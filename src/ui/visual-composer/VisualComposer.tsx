@@ -110,11 +110,10 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
             </Slider>
           )}
           {block.command === "DROP" && (
-            <HStack spacing={1}>
-              {block.fields.map((name) => (
-                <FieldTag name={name} key={name} size="lg" />
-              ))}
-            </HStack>
+            <FieldTagMesh
+            size="md"
+            fields={block.fields}
+            />
           )}
           {block.command === "KEEP" && (
             <FieldTagMesh

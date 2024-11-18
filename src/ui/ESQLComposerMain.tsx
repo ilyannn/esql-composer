@@ -1,4 +1,3 @@
-import autosize from "autosize";
 import moment from "moment";
 import {
   ReactNode,
@@ -27,10 +26,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { HistoryRow, StatisticsRow } from "../common/types";
 import {
   BlockHasStableId,
-  createInitialChain,
   ESQLBlock,
   ESQLChain,
   ESQLChainAction,
+  createInitialChain,
   esqlChainAddToString,
   performChainAction,
 } from "../models/esql";
@@ -80,7 +79,7 @@ const ESQLComposerMain = () => {
   const [queryAPIKey, setQueryAPIKey] = useState("");
 
   const [esqlGuideText, setEsqlGuideText] = useState("");
-  const [esqlSchema, setEsqlSchema] = useState<ESQLSchema | null>(null); 
+  const [esqlSchema, _setEsqlSchema] = useState<ESQLSchema | null>(null);
 
   const schemaGuideText = esqlSchema?.guide || "";
 
@@ -95,11 +94,10 @@ const ESQLComposerMain = () => {
   const [naturalInput, setNaturalInput] = useState("");
   const [esqlInput, setEsqlInput] = useState("");
   const [visualChain, setVisualChain] = useState<ESQLChain>(createInitialChain);
+  const [updatingESQLLineByLine, setUpdatingESQLLineByLine] = useState(false);
 
   const [queryAPIData, setQueryAPIData] = useState<TableData | null>(null);
-  const [queryAPIDataAutoUpdate, setQueryAPIDataAutoUpdate] = useState(false);
-  const [queryAPIDataHasScheduledUpdate, setQueryAPIDataHasScheduledUpdate] =
-    useState(false);
+  const [queryAPIDataAutoUpdate, _setQueryAPIDataAutoUpdate] = useState(false);
 
   const isLimitRecommended = useMemo(() => {
     return (
@@ -133,7 +131,10 @@ const ESQLComposerMain = () => {
 
   const isElasticsearchAPIAvailable = (queryAPIURL && queryAPIKey) !== "";
   const isESQLRequestAvailable =
-    anthropicAPIKey.length !== 0 && esqlGuideText.length !== 0 && esqlSchema !== null && esqlSchema.guide !== "";
+    anthropicAPIKey.length !== 0 &&
+    esqlGuideText.length !== 0 &&
+    esqlSchema !== null &&
+    esqlSchema.guide !== "";
 
   const getSchemaProps = useDisclosure();
 
@@ -190,79 +191,15 @@ const ESQLComposerMain = () => {
     esqlSchema,
   ]);
 
-  const setSchemaGuideText = useCallback((value: string) => {
-    setEsqlSchema({ ...esqlSchema ?? {"indexPattern": "", knownFields: [], guide: ""}, guide: value });
-  }, [esqlSchema]);
-
-  const loadConfig = useCallback((config: Config) => {
-    if (
-      "openedAreas" in config &&
-      typeof config["openedAreas"] === "object" &&
-      Array.isArray(config["openedAreas"])
-    ) {
-      setOpenedAreas(config["openedAreas"]);
-    }
-    if (
-      "tooltipsShown" in config &&
-      typeof config["tooltipsShown"] === "boolean"
-    ) {
-      setTooltipsShown(config["tooltipsShown"]);
-    }
-    if (
-      "modelSelected" in config &&
-      typeof config["modelSelected"] === "number"
-    ) {
-      setModelSelected(config["modelSelected"]);
-    }
-    if (
-      "anthropicAPIKey" in config &&
-      typeof config["anthropicAPIKey"] === "string"
-    ) {
-      setAnthropicAPIKey(config["anthropicAPIKey"]);
-      setAnthropicAPIKeyWorks(null);
-    }
-    if (
-      "anthropicAPIKeyWorks" in config &&
-      typeof config["anthropicAPIKeyWorks"] === "boolean"
-    ) {
-      setAnthropicAPIKeyWorks(config["anthropicAPIKeyWorks"]);
-    }
-    if ("queryAPIURL" in config && typeof config["queryAPIURL"] === "string") {
-      setQueryAPIURL(config["queryAPIURL"]);
-      setQueryAPIKeyWorks(null);
-    }
-    if ("queryAPIKey" in config && typeof config["queryAPIKey"] === "string") {
-      setQueryAPIKey(config["queryAPIKey"]);
-      setQueryAPIKeyWorks(null);
-    }
-    if (
-      "queryAPIKeyWorks" in config &&
-      typeof config["queryAPIKeyWorks"] === "boolean"
-    ) {
-      setQueryAPIKeyWorks(config["queryAPIKeyWorks"]);
-    }
-    if (
-      "esqlGuideText" in config &&
-      typeof config["esqlGuideText"] === "string"
-    ) {
-      setEsqlGuideText(config["esqlGuideText"]);
-    }
-    if (
-      "esqlSchema" in config &&
-      typeof config["esqlSchema"] === "object"
-    ) {
-      console.log("Setting esqlSchema", config["esqlSchema"]);  
-      setEsqlSchema(config["esqlSchema"]);
-    }
-  }, []);
-
-  const resetESQL = useCallback(() => {
-      const initialESQL = esqlSchema?.indexPattern ? `FROM ${esqlSchema.indexPattern}\n` : "";
-      setEsqlInput(initialESQL);
-      setNaturalInput("");
-      setQueryAPIData(null);
-      setVisualChain(createInitialChain());
-  }, [esqlSchema?.indexPattern]);
+  const setSchemaGuideText = useCallback(
+    (value: string) => {
+      _setEsqlSchema({
+        ...(esqlSchema ?? { indexPattern: "", knownFields: [], guide: "" }),
+        guide: value,
+      });
+    },
+    [esqlSchema]
+  );
 
   /**
    * Handles API errors and updates the state of apiKeyWorks.
@@ -337,6 +274,8 @@ const ESQLComposerMain = () => {
       } catch (error) {
         let title: ReactNode = <Text>{label} error</Text>;
         let description: ReactNode = undefined;
+
+        _setQueryAPIDataAutoUpdate(false);
 
         if (
           error &&
@@ -521,6 +460,148 @@ const ESQLComposerMain = () => {
     });
   }, [esqlGuideText, schemaGuideText, modelSelected]);
 
+  const currentQueryAPIActionQuery = useRef<string | null>(null);
+
+  const fetchQueryData = useCallback(async () => {
+    await performQueryAPIAction("ES|QL query", async () => {
+      const fullESQL = esqlChainAddToString(esqlInput, visualChain);
+
+      if (currentQueryAPIActionQuery.current === fullESQL) {
+        // Already fetching this query.
+        return;
+      }
+
+      currentQueryAPIActionQuery.current = fullESQL;
+
+      try {
+        const response = await performESQLQuery({
+          apiURL: queryAPIURL,
+          apiKey: queryAPIKey,
+          query: fullESQL,
+        });
+
+        if (currentQueryAPIActionQuery.current === fullESQL) {
+          setQueryAPIData(response);
+        } else {
+        }
+      } finally {
+        currentQueryAPIActionQuery.current = null;
+      }
+    });
+  }, [queryAPIURL, queryAPIKey, esqlInput, visualChain, performQueryAPIAction]);
+
+  const performQueryAPIDataAutoUpdate = useCallback(
+    (force?: boolean) => {
+      if (!updatingESQLLineByLine) {
+        if (queryAPIDataAutoUpdate || force === true) {
+          fetchQueryData();
+        }
+      }
+    },
+    [queryAPIDataAutoUpdate, fetchQueryData, updatingESQLLineByLine]
+  );
+
+  useEffect(() => {
+    performQueryAPIDataAutoUpdate();
+  }, [performQueryAPIDataAutoUpdate, esqlInput, visualChain]);
+
+  const setQueryAPIDataAutoUpdate = useCallback(
+    (value: boolean) => {
+      _setQueryAPIDataAutoUpdate(value);
+      if (value) {
+        performQueryAPIDataAutoUpdate(value);
+      }
+    },
+    [performQueryAPIDataAutoUpdate]
+  );
+
+  const _resetESQL = useCallback((indexPattern: string | undefined) => {
+    const initialESQL = indexPattern ? `FROM ${indexPattern}\n` : "";
+    setEsqlInput(initialESQL);
+    setNaturalInput("");
+    setQueryAPIData(null);
+    setVisualChain(createInitialChain());
+  }, []);
+
+  const setEsqlSchema = useCallback(
+    (schema: ESQLSchema | null) => {
+      _setEsqlSchema(schema);
+      _resetESQL(schema?.indexPattern);
+    },
+    [_resetESQL]
+  );
+
+  const loadConfig = useCallback(
+    (config: Config) => {
+      if (
+        "openedAreas" in config &&
+        typeof config["openedAreas"] === "object" &&
+        Array.isArray(config["openedAreas"])
+      ) {
+        setOpenedAreas(config["openedAreas"]);
+      }
+      if (
+        "tooltipsShown" in config &&
+        typeof config["tooltipsShown"] === "boolean"
+      ) {
+        setTooltipsShown(config["tooltipsShown"]);
+      }
+      if (
+        "modelSelected" in config &&
+        typeof config["modelSelected"] === "number"
+      ) {
+        setModelSelected(config["modelSelected"]);
+      }
+      if (
+        "anthropicAPIKey" in config &&
+        typeof config["anthropicAPIKey"] === "string"
+      ) {
+        setAnthropicAPIKey(config["anthropicAPIKey"]);
+        setAnthropicAPIKeyWorks(null);
+      }
+      if (
+        "anthropicAPIKeyWorks" in config &&
+        typeof config["anthropicAPIKeyWorks"] === "boolean"
+      ) {
+        setAnthropicAPIKeyWorks(config["anthropicAPIKeyWorks"]);
+      }
+      if (
+        "queryAPIURL" in config &&
+        typeof config["queryAPIURL"] === "string"
+      ) {
+        setQueryAPIURL(config["queryAPIURL"]);
+        setQueryAPIKeyWorks(null);
+      }
+      if (
+        "queryAPIKey" in config &&
+        typeof config["queryAPIKey"] === "string"
+      ) {
+        setQueryAPIKey(config["queryAPIKey"]);
+        setQueryAPIKeyWorks(null);
+      }
+      if (
+        "queryAPIKeyWorks" in config &&
+        typeof config["queryAPIKeyWorks"] === "boolean"
+      ) {
+        setQueryAPIKeyWorks(config["queryAPIKeyWorks"]);
+      }
+      if (
+        "esqlGuideText" in config &&
+        typeof config["esqlGuideText"] === "string"
+      ) {
+        setEsqlGuideText(config["esqlGuideText"]);
+      }
+      if ("esqlSchema" in config && typeof config["esqlSchema"] === "object") {
+        setEsqlSchema(config["esqlSchema"]);
+      }
+    },
+    [setEsqlSchema]
+  );
+
+  const resetESQL = useCallback(() => {
+    _resetESQL(esqlSchema?.indexPattern);
+  }, [_resetESQL, esqlSchema?.indexPattern]);
+
   const performESQLRequest = useCallback(
     async (text: string) => {
       if (!esqlGuideText || !schemaGuideText) {
@@ -550,7 +631,9 @@ const ESQLComposerMain = () => {
             interpolatedLines.splice(lineIndex);
             setEsqlInput(interpolatedLines.join("\n"));
           }
+          setUpdatingESQLLineByLine(false);
         };
+        setUpdatingESQLLineByLine(true);
 
         const data = await generateESQLUpdate({
           apiKey: anthropicAPIKey,
@@ -579,10 +662,6 @@ const ESQLComposerMain = () => {
         if (naturalInputRef.current?.value === text) {
           naturalInputRef.current?.setSelectionRange(0, naturalInput.length);
         }
-
-        if (queryAPIDataAutoUpdate) {
-          setQueryAPIDataHasScheduledUpdate(true);
-        }
       });
     },
     [
@@ -596,7 +675,6 @@ const ESQLComposerMain = () => {
       allStats,
       history,
       naturalInput.length,
-      queryAPIDataAutoUpdate,
     ]
   );
 
@@ -664,23 +742,9 @@ const ESQLComposerMain = () => {
       })) as any;
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
-      if (queryAPIDataAutoUpdate) {
-        setQueryAPIDataHasScheduledUpdate(true);
-      }
+      performQueryAPIDataAutoUpdate();
     });
   };
-
-  const fetchQueryData = useCallback(async () => {
-    await performQueryAPIAction("ES|QL query", async () => {
-      const fullESQL = esqlChainAddToString(esqlInput, visualChain);
-      const response = await performESQLQuery({
-        apiURL: queryAPIURL,
-        apiKey: queryAPIKey,
-        query: fullESQL,
-      });
-      setQueryAPIData(response);
-    });
-  }, [queryAPIURL, queryAPIKey, esqlInput, visualChain, performQueryAPIAction]);
 
   const handleShowInfo = async () => {
     await performQueryAPIAction("Elasticsearch API test", async () => {
@@ -727,13 +791,6 @@ const ESQLComposerMain = () => {
   };
 
   useEffect(() => {
-    if (queryAPIDataHasScheduledUpdate) {
-      setQueryAPIDataHasScheduledUpdate(false);
-      fetchQueryData();
-    }
-  }, [queryAPIDataHasScheduledUpdate, fetchQueryData, esqlInput]);
-
-  useEffect(() => {
     let ignore = false;
 
     defaultESQLGuidePromise.then((data) => {
@@ -746,12 +803,6 @@ const ESQLComposerMain = () => {
       ignore = true;
     };
   }, []);
-
-  useEffect(() => {
-    if (esqlInputRef.current) {
-      autosize.update(esqlInputRef.current);
-    }
-  }, [esqlInputRef, esqlInput]);
 
   const handleChainAction = (
     action: ESQLChainAction,
@@ -767,7 +818,10 @@ const ESQLComposerMain = () => {
 
   const updateVisualBlock = (index: number, block: ESQLBlock) => {
     const blocks = [...visualChain];
-    const blockWIthID: ESQLBlock & BlockHasStableId = { ...block, stableId: blocks[index].stableId };
+    const blockWIthID: ESQLBlock & BlockHasStableId = {
+      ...block,
+      stableId: blocks[index].stableId,
+    };
     blocks[index] = blockWIthID;
     setVisualChain(blocks);
   };
@@ -878,7 +932,7 @@ const ESQLComposerMain = () => {
                 resetESQL={resetESQL}
               />
               <VisualComposer
-                key = "VisualComposer"
+                key="VisualComposer"
                 chain={visualChain}
                 updateBlock={(index, block) => updateVisualBlock(index, block)}
                 handleBlockAction={(index, action) => {
@@ -901,6 +955,7 @@ const ESQLComposerMain = () => {
                 }
                 isLimitRecommended={isLimitRecommended}
                 isKeepRecommended={isKeepRecommended}
+                updatingESQLLineByLine={updatingESQLLineByLine}
                 fetchQueryData={fetchQueryData}
               />
             </VStack>

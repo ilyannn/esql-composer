@@ -1,21 +1,20 @@
 import {
   Box,
-  Button,
   FormControl,
   HStack,
   Input,
-  Textarea,
-  Tooltip,
   VStack,
+  // Button,
+  // Tooltip,
 } from "@chakra-ui/react";
-import autosize from "autosize";
-import React, { useEffect } from "react";
+import React from "react";
 
 import type { HistoryRow } from "../common/types";
 
 import SpinningButton from "./components/SpinningButton";
 
 import { COMPLETION_KEY } from "./constants";
+import { AutoResizeTextarea } from "./components/AutoResizeTextarea";
 
 interface ESQLWorkingAreaProps {
   tooltipsShown: boolean;
@@ -98,19 +97,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
     }
   };*/
 
-  useEffect(() => {
-    // https://github.com/chakra-ui/chakra-ui/issues/670#issuecomment-625770981
-    const esqlInputRefValue = esqlInputRef.current;
-    if (esqlInputRefValue) {
-      autosize(esqlInputRefValue);
-    }
-    return () => {
-      if (esqlInputRefValue) {
-        autosize.destroy(esqlInputRefValue);
-      }
-    };
-  }, [esqlInputRef]);
-
   return (
     <HStack justify="flex-start" align="stretch" spacing={8}>
       <VStack align={"stretch"} justify={"space-between"} flex={1}>
@@ -132,17 +118,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             >
               {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
             </SpinningButton>
-            <Tooltip isDisabled={!tooltipsShown} label="Pretty print the ES|QL">
-              <SpinningButton
-                type="submit"
-                spinningAction={() =>
-                  performESQLRequest("Prettify the provided ES|QL")
-                }
-                disabled={!isESQLRequestAvailable || !esqlInput}
-              >
-                Prettify
-              </SpinningButton>
-            </Tooltip>
             {/* <Tooltip
               isDisabled={!tooltipsShown}
               label="Restore the inputs to the state before this button was pressed"
@@ -162,7 +137,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
         <HStack align="stretch" justify="flex-start">
           <VStack spacing={0} align="stretch" flex={1}>
             <Box flex={1}>
-              <Textarea
+              <AutoResizeTextarea
                 flex={1}
                 placeholder="ES|QL"
                 value={esqlInput}
@@ -182,7 +157,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
               />
             </Box>
           </VStack>
-          <VStack align="stretch" justify="flex-start">
+          {/* <VStack align="stretch" justify="flex-start">
             <Tooltip
               isDisabled={!tooltipsShown}
               label="Complete the current line"
@@ -196,6 +171,17 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
                 Complete
               </SpinningButton>
             </Tooltip>
+            <Tooltip isDisabled={!tooltipsShown} label="Pretty print the ES|QL">
+              <SpinningButton
+                type="submit"
+                spinningAction={() =>
+                  performESQLRequest("Prettify the provided ES|QL")
+                }
+                disabled={!isESQLRequestAvailable || !esqlInput}
+              >
+                Prettify
+              </SpinningButton>
+            </Tooltip>
             <Tooltip
             isDisabled={!tooltipsShown}
             label="Reset the prompt and ES|QL and being anew."
@@ -203,13 +189,12 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             <Button
               variant="ghost"
               colorScheme="red"
-              isDisabled={!esqlInput && !naturalInput}
               onClick={() => resetESQL()}
             >
               Reset
             </Button>
           </Tooltip>
-          </VStack>
+          </VStack> */}
         </HStack>
         {/* <HStack>
           <SpinningButton

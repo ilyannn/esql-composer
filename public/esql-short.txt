@@ -97,10 +97,19 @@ FROM *,-*
 - TO_GEOPOINT, TO_GEOSHAPE
 
 ### Type Conversion
-- TO_BOOLEAN, TO_DATETIME
-- TO_DOUBLE, TO_INTEGER
-- TO_IP, TO_STRING
-- TO_BASE64, FROM_BASE64
+You need to convert to string to use functions like `CONCAT`.
+You can convert to integer or long to round the double value (to the bottom).
+
+Use `TO_<type>` or eqiuvalent `::<type>` (instead of `CAST` which does not exist), 
+note integer division floors integers e.g. 
+
+```esql
+ROW minutes_long = 105, minutes_double = 105.0
+| EVAL hours_original_long= minutes_long / 60        // will be 1
+| EVAL hours_original_double = minutes_double / 60   // will be 1.75
+| EVAL hours_converted_double = minutes_long::double / 60   // will be 1.75
+| EVAL hours_converted_long = TO_LONG(minutes_double) / 60  // will be 1
+```
 
 ## Complex patterns
 - DISSECT input "pattern" 
