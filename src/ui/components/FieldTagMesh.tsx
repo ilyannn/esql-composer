@@ -1,6 +1,6 @@
-import { Wrap, WrapItem } from "@chakra-ui/react";
+import { HStack, Wrap, WrapItem } from "@chakra-ui/react";
 import { FieldTag } from "./FieldTag";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 
 interface FieldTagMeshProps {
   size: "md" | "lg" | "sm";
@@ -9,8 +9,11 @@ interface FieldTagMeshProps {
 }
 
 export function FieldTagMesh({ size, fields, setFields }: FieldTagMeshProps) {
+  const [draggedField, setDraggedField] = useState<string | null>(null);
+  const [draggedFieldWidth, setDraggedFieldWidth] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
-    const moveFieldToIndex = useCallback(
+  const moveFieldToIndex = useCallback(
     (field: string, newFieldIndex: number) => {
       const updatedFields = [...fields.filter((f) => f !== field)];
       updatedFields.splice(newFieldIndex, 0, field);
@@ -20,35 +23,53 @@ export function FieldTagMesh({ size, fields, setFields }: FieldTagMeshProps) {
   );
 
   return (
-    <Wrap spacing={size === "lg" ? 3 : 2}>
+    <Wrap spacing={size === "lg" ? 3 : 2}
+
+    onDrop={(e) => {
+        e.preventDefault();
+        if (draggedField !== null && dragOverIndex !== null) {
+          moveFieldToIndex(draggedField, dragOverIndex);
+        }
+      }}
+
+    >
       {fields.map((name, fieldIndex) => (
         <WrapItem
           key={name}
-          style={{ cursor: "grab" }}
+          style={{ cursor: "grab", opacity: draggedField === name ? 0.5 : 1 }}
           draggable
           onDragStart={(e) => {
-            e.dataTransfer.setData("text/plain", name);
             e.currentTarget.style.cursor = "grabbing";
+            setDraggedField(name);
+            setDraggedFieldWidth(e.currentTarget.clientWidth);
           }}
           onDragEnter={(e) => {
-            e.currentTarget.style.opacity = "0.25";
+            if (name !== draggedField) {
+              setDragOverIndex(fieldIndex);
+            } else {
+              setDragOverIndex(null);
+            }
           }}
           onDragExit={(e) => {
-            e.currentTarget.style.opacity = "1";
+            // if (fieldIndex === dragOverIndex) {
+            //   setDragOverIndex(null);
+            // }
           }}
           onDragEnd={(e) => {
-            e.currentTarget.style.opacity = "1";
+            setDraggedField(null);
+            setDragOverIndex(null);
             e.currentTarget.style.cursor = "grab";
           }}
-          onDrop={(e) => {
+          onDragOver={(e) => {
             e.preventDefault();
-            const draggedField = e.dataTransfer.getData("text/plain");
-            moveFieldToIndex(draggedField, fieldIndex);
-            e.currentTarget.style.opacity = "1";
           }}
-          onDragOver={(e) => e.preventDefault()}
         >
+          <HStack 
+            pl={draggedFieldWidth && dragOverIndex === fieldIndex ? draggedFieldWidth / 2 : 0}
+            pr={draggedFieldWidth && dragOverIndex === fieldIndex + 1 ? draggedFieldWidth / 2 : 0}
+          >
           <FieldTag name={name} size={size} />
+          </HStack>
         </WrapItem>
       ))}
     </Wrap>
