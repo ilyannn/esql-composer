@@ -127,7 +127,8 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
               id="auto-update"
               colorScheme="teal"
               isChecked={autoUpdate}
-              opacity={updatingESQLLineByLine && autoUpdate ? 0.75 : 1}
+              disabled={!isFetchAvailable && !autoUpdate}
+              opacity={updatingESQLLineByLine && autoUpdate ? 0.7 : 1}
               onChange={(e) => setAutoUpdate(e.target.checked)}
             >
               Automatically
