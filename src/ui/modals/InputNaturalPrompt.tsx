@@ -22,17 +22,16 @@ interface InputNaturalPromptProps {
   onSubmit: (input: string) => void;
 }
 
-const InputNaturalPrompt = ({
-  children,
-  inputLabel,
-  onSubmit,
-}: InputNaturalPromptProps) => {
+const InputNaturalPrompt = React.forwardRef<
+  HTMLInputElement,
+  InputNaturalPromptProps
+>(({ children, inputLabel, onSubmit }, ref) => {
   const { onOpen, onClose, isOpen } = useDisclosure();
   const firstFieldRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async () => {
     if (isOpen && firstFieldRef.current !== null) {
-        onSubmit(firstFieldRef.current.value); ;
+      onSubmit(firstFieldRef.current.value);
     }
     onClose();
   };
@@ -56,7 +55,7 @@ const InputNaturalPrompt = ({
         minWidth={"30em"}
         style={{ fontVariantNumeric: "normal", letterSpacing: "normal" }}
       >
-        <PopoverArrow bg="blue.300"/>
+        <PopoverArrow bg="blue.300" />
         <PopoverCloseButton size={"md"} />
         <PopoverHeader pt={4} fontWeight="bold" border="0">
           {inputLabel}
@@ -71,7 +70,7 @@ const InputNaturalPrompt = ({
             >
               <FormControl>
                 <HStack spacing={3} align={"center"} justify={"flex-start"}>
-                  <Input ref={firstFieldRef} flex={1}/>
+                  <Input ref={firstFieldRef} flex={1} />
                   <SpinningButton type={"submit"} spinningAction={handleSubmit}>
                     <GoCheck />
                   </SpinningButton>
@@ -83,8 +82,6 @@ const InputNaturalPrompt = ({
       </PopoverContent>
     </Popover>
   );
-};
+});
 
 export default InputNaturalPrompt;
-
-

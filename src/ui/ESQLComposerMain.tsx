@@ -512,25 +512,19 @@ const ESQLComposerMain = () => {
 
   const performQueryAPIDataAutoUpdate = useCallback(
     (force?: boolean) => {
-      console.log(
-        "performQueryAPIDataAutoUpdate",
-        isESQLRequestAvailable,
-        queryAPIKey.slice(0, 5),
-        queryAPIDataAutoUpdate
-      );
+      // console.log(
+      //   "performQueryAPIDataAutoUpdate",
+      //   isESQLRequestAvailable,
+      //   queryAPIKey.slice(0, 5),
+      //   queryAPIDataAutoUpdate
+      // );
       if (isESQLRequestAvailable && !updatingESQLLineByLine) {
         if (queryAPIDataAutoUpdate || force === true) {
           fetchQueryData();
         }
       }
     },
-    [
-      isESQLRequestAvailable,
-      queryAPIDataAutoUpdate,
-      fetchQueryData,
-      updatingESQLLineByLine,
-      queryAPIKey,
-    ]
+    [isESQLRequestAvailable, updatingESQLLineByLine, queryAPIDataAutoUpdate, fetchQueryData]
   );
 
   useEffect(() => {
