@@ -36,9 +36,11 @@ import {
 
 import {
   countTokens,
+  FieldInfo,
   generateESQLUpdate,
   reduceSize,
   testWithSimpleUtterance,
+  transformField,
   warmCache,
 } from "../services/llm";
 
@@ -48,6 +50,7 @@ import {
   TableData,
   deriveSchema,
   performESQLQuery,
+  performESQLShowInfoQuery,
 } from "../services/es";
 
 import { loadFile } from "../services/files";
@@ -70,14 +73,14 @@ const defaultESQLGuidePromise = loadFile("esql-short.txt");
 const ESQLComposerMain = () => {
   const toast = useToast();
 
-  const [openedAreas, setOpenedAreas] = useState<number | number[]>([1, 2, 3]);
+  const [openedAreas, setOpenedAreas] = useState<number | number[]>([0, 1, 2, 3]);
   const [tooltipsShown, setTooltipsShown] = useState(false);
 
   const [modelSelected, setModelSelected] = useState(0);
   const [anthropicAPIKey, setAnthropicAPIKey] = useState("");
-  const [queryAPIURL, setQueryAPIURL] = useState("");
-  const [queryAPIKey, setQueryAPIKey] = useState("");
-
+  const [queryAPIURL, _setQueryAPIURL] = useState("");
+  const [queryAPIKey, _setQueryAPIKey] = useState("");
+  const [queryAPIInfo, setQueryAPIInfo] = useState<Record<string, string>|null>(null);
   const [esqlGuideText, setEsqlGuideText] = useState("");
   const [esqlSchema, _setEsqlSchema] = useState<ESQLSchema | null>(null);
 
@@ -199,6 +202,23 @@ const ESQLComposerMain = () => {
       });
     },
     [esqlSchema]
+  );
+
+  const setQueryAPIURL = useCallback(
+    (value: string) => {
+      _setQueryAPIURL(value);
+      setQueryAPIKeyWorks(null);
+      setQueryAPIInfo(null);
+    },
+    [_setQueryAPIURL]
+  );
+
+  const setQueryAPIKey = useCallback(
+    (value: string) => {
+      _setQueryAPIKey(value);
+      setQueryAPIKeyWorks(null);
+    },
+    []
   );
 
   /**
@@ -492,13 +512,25 @@ const ESQLComposerMain = () => {
 
   const performQueryAPIDataAutoUpdate = useCallback(
     (force?: boolean) => {
-      if (!updatingESQLLineByLine) {
+      console.log(
+        "performQueryAPIDataAutoUpdate",
+        isESQLRequestAvailable,
+        queryAPIKey.slice(0, 5),
+        queryAPIDataAutoUpdate
+      );
+      if (isESQLRequestAvailable && !updatingESQLLineByLine) {
         if (queryAPIDataAutoUpdate || force === true) {
           fetchQueryData();
         }
       }
     },
-    [queryAPIDataAutoUpdate, fetchQueryData, updatingESQLLineByLine]
+    [
+      isESQLRequestAvailable,
+      queryAPIDataAutoUpdate,
+      fetchQueryData,
+      updatingESQLLineByLine,
+      queryAPIKey,
+    ]
   );
 
   useEffect(() => {
@@ -570,20 +602,18 @@ const ESQLComposerMain = () => {
         typeof config["queryAPIURL"] === "string"
       ) {
         setQueryAPIURL(config["queryAPIURL"]);
-        setQueryAPIKeyWorks(null);
       }
       if (
         "queryAPIKey" in config &&
         typeof config["queryAPIKey"] === "string"
       ) {
         setQueryAPIKey(config["queryAPIKey"]);
-        setQueryAPIKeyWorks(null);
-      }
-      if (
-        "queryAPIKeyWorks" in config &&
-        typeof config["queryAPIKeyWorks"] === "boolean"
-      ) {
-        setQueryAPIKeyWorks(config["queryAPIKeyWorks"]);
+        if (
+          "queryAPIKeyWorks" in config &&
+          typeof config["queryAPIKeyWorks"] === "boolean"
+        ) {
+          setQueryAPIKeyWorks(config["queryAPIKeyWorks"]);
+        }  
       }
       if (
         "esqlGuideText" in config &&
@@ -595,7 +625,7 @@ const ESQLComposerMain = () => {
         setEsqlSchema(config["esqlSchema"]);
       }
     },
-    [setEsqlSchema]
+    [setQueryAPIURL, setQueryAPIKey, setEsqlSchema]
   );
 
   const resetESQL = useCallback(() => {
@@ -636,6 +666,7 @@ const ESQLComposerMain = () => {
         setUpdatingESQLLineByLine(true);
 
         const data = await generateESQLUpdate({
+          type: "update",
           apiKey: anthropicAPIKey,
           modelSelected,
           esqlGuideText,
@@ -733,6 +764,7 @@ const ESQLComposerMain = () => {
       };
 
       const data = (await generateESQLUpdate({
+        type: "completion",
         apiKey: anthropicAPIKey,
         modelSelected,
         esqlGuideText,
@@ -746,31 +778,67 @@ const ESQLComposerMain = () => {
     });
   };
 
+  const handleTransformFieldWithInfo = useCallback(
+    async (field: FieldInfo, naturalInput: string) => {
+      await performAnthropicAPIAction("ES|QL field transform", async () => {
+
+        const doneESQLLine = (line: string) => {
+          const { chain } = performChainAction(
+            visualChain,
+            { action: "eval", expressions: [line] },
+            []
+          );
+          setVisualChain(chain);  
+        };
+
+        const data = (await transformField({
+          type: "transformation",
+          apiKey: anthropicAPIKey,
+          modelSelected,
+          esqlGuideText,
+          schemaGuideText,
+          esqlInput,
+          field,
+          naturalInput,
+          doneESQLLine,
+        })) as any;
+
+        setAllStats([...allStats, data.stats]);
+      });
+    },
+    [
+      performAnthropicAPIAction,
+      anthropicAPIKey,
+      modelSelected,
+      esqlGuideText,
+      schemaGuideText,
+      esqlInput,
+      visualChain,
+      allStats,
+    ]
+  );
+
   const handleShowInfo = async () => {
     await performQueryAPIAction("Elasticsearch API test", async () => {
-      const response = await performESQLQuery({
+      const info = await performESQLShowInfoQuery({
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
-        query: "SHOW INFO",
       });
-      const versionColumn = response.columns.findIndex(
-        (col) => col.name === "version"
-      );
-      const dateColumn = response.columns.findIndex(
-        (col) => col.name === "date"
-      );
-      const version = response.values[0][versionColumn] as string;
-      const date = response.values[0][dateColumn] as string;
-      const formattedMoment = moment(date).fromNow();
+      const formattedMoment = moment(info.date).fromNow();
       toast({
         title: "Elasticsearch API test successful",
         description: (
           <Text>
-            SHOW INFO: version {version}, built {formattedMoment}.{" "}
+            SHOW INFO: version {info.version}, built {formattedMoment}.{" "}
           </Text>
         ),
         status: "success",
         isClosable: true,
+      });
+      setQueryAPIInfo({
+        version: info.version,
+        built: formattedMoment,
+        hash: info.hash,        
       });
     });
   };
@@ -809,7 +877,8 @@ const ESQLComposerMain = () => {
     knownFields: string[]
   ): boolean => {
     try {
-      setVisualChain(performChainAction(visualChain, action, knownFields));
+      const { chain } = performChainAction(visualChain, action, knownFields);
+      setVisualChain(chain);
       return true;
     } catch (error) {
       return false;
@@ -876,11 +945,11 @@ const ESQLComposerMain = () => {
             <VStack align={"stretch"} justify={"space-between"} spacing={6}>
               <QueryAPIConfigurationArea
                 apiURL={queryAPIURL}
+                info={queryAPIInfo}
                 setApiURL={setQueryAPIURL}
                 apiKey={queryAPIKey}
                 setApiKey={setQueryAPIKey}
                 apiKeyWorks={queryAPIKeyWorks}
-                setApiKeyWorks={setQueryAPIKeyWorks}
                 tooltipsShown={tooltipsShown}
                 handleShowInfo={handleShowInfo}
               />
@@ -953,6 +1022,7 @@ const ESQLComposerMain = () => {
                 isFetchAvailable={
                   isElasticsearchAPIAvailable && esqlInput.length > 0
                 }
+                handleTransformFieldWithInfo={handleTransformFieldWithInfo}
                 isLimitRecommended={isLimitRecommended}
                 isKeepRecommended={isKeepRecommended}
                 updatingESQLLineByLine={updatingESQLLineByLine}

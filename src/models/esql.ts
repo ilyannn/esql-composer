@@ -36,6 +36,16 @@ export interface FilterBlock extends BaseESQLBlock {
   values: any[];
 }
 
+interface EvalExpression {
+  field: string;
+  expression: string;
+}
+
+export interface EvalBlock extends BaseESQLBlock {
+  command: "EVAL";
+  expressions: EvalExpression[];
+}
+
 interface OrderItem {
   field: string;
   asc: boolean;
@@ -47,6 +57,7 @@ export interface SortBlock extends BaseESQLBlock {
 }
 
 export type ESQLBlock =
+  | EvalBlock
   | LimitBlock
   | KeepBlock
   | DropBlock
@@ -66,6 +77,13 @@ const escape = (name: string): string => {
   }
   return name;
 };
+
+const unescape = (name: string): string => {
+  if (name.startsWith(BACKTICK) && name.endsWith(BACKTICK)) {
+    return name.slice(1, -1).replace(new RegExp(`${BACKTICK}${BACKTICK}`, "g"), BACKTICK);
+  }
+  return name;
+}
 
 const limitBlockToString = (block: LimitBlock): string | null => {
   if (block.limit === null) {
@@ -115,8 +133,24 @@ const sortBlockToString = (block: SortBlock): string | null => {
   return `SORT ${fields}`;
 };
 
+const evalBlockToString = (block: EvalBlock): string | null => {
+  const expressions = block.expressions.filter((e) => e.expression !== "");
+
+  if (expressions.length === 0) {
+    return null;
+  }
+  return (
+    "EVAL " +
+    expressions
+      .map(({ field, expression }) => `${escape(field)} = ${expression}`)
+      .join(", ")
+  );
+};
+
 const esqlBlockToString = (block: ESQLBlock): string | null => {
   switch (block.command) {
+    case "EVAL":
+      return evalBlockToString(block);
     case "LIMIT":
       return limitBlockToString(block);
     case "KEEP":
@@ -151,6 +185,11 @@ interface ESQLFieldBaseAction {
   field: string;
 }
 
+interface ESQLChainEvalAction {
+  action: "eval";
+  expressions: string[];
+}
+
 interface ESQLFieldSimpleAction extends ESQLFieldBaseAction {
   action: "drop" | "sortAsc" | "sortDesc" | "filter";
 }
@@ -161,7 +200,10 @@ interface ESQLFieldRenameAction extends ESQLFieldBaseAction {
 }
 
 export type ESQLFieldAction = ESQLFieldSimpleAction | ESQLFieldRenameAction;
-export type ESQLChainAction = ESQLChainSimpleAction | ESQLFieldAction;
+export type ESQLChainAction =
+  | ESQLChainSimpleAction
+  | ESQLFieldAction
+  | ESQLChainEvalAction;
 
 interface FindUpdatePointResult {
   updatePoint: number;
@@ -177,7 +219,7 @@ const canActOnThisBlock = (
     case "limit":
       return block.command === "LIMIT";
     case "keep":
-      return block.command === "KEEP" ;
+      return block.command === "KEEP";
     case "drop":
       return block.command === "DROP" || block.command === "KEEP";
     case "sortAsc":
@@ -187,6 +229,8 @@ const canActOnThisBlock = (
       return block.command === "WHERE" && block.field === action.field;
     case "rename":
       return block.command === "RENAME";
+    default:
+      return false;
   }
 };
 
@@ -202,10 +246,11 @@ const canBubbleOverBlock = (
     case "sortAsc":
     case "sortDesc":
     case "filter":
+    case "eval":
       return block.command === "DROP" || block.command === "KEEP";
   }
   return false;
-}
+};
 
 const findUpdatePoint = (
   action: ESQLChainAction,
@@ -229,10 +274,12 @@ const blockUpdateForSort = (
   orderItem: OrderItem
 ): SortBlock => {
   if (prevBlock) {
-    const prevOrders = prevBlock.order.filter((o) => o.field !== orderItem.field);
+    const prevOrders = prevBlock.order.filter(
+      (o) => o.field !== orderItem.field
+    );
     return { ...prevBlock, order: [orderItem, ...prevOrders] };
   }
-  return { command: "SORT", order: [orderItem]};
+  return { command: "SORT", order: [orderItem] };
 };
 
 const blockUpdateForDrop = (
@@ -262,6 +309,31 @@ const blockUpdateForRename = (
   return { command: "RENAME", map: { [oldName]: newName } };
 };
 
+const blockUpdateForEval = (
+  prevBlock: EvalBlock | null,
+  assignments: string[]
+): EvalBlock => {
+  const expressions = assignments.flatMap((assignment) => {
+    if (assignment === "") {
+      return [];
+    }
+    const [field, expression] = assignment.split("=").map((part) => part.trim());
+    if (field && expression) {
+      return [
+        {
+          field: unescape(field),
+          expression,
+        },
+      ];
+    }
+    return [];
+  });
+
+  return prevBlock
+    ? { ...prevBlock, expressions: [...prevBlock.expressions, ...expressions] }
+    : { command: "EVAL", expressions };
+};
+
 class ChainActionError extends Error {
   action: ESQLChainAction;
 
@@ -273,8 +345,9 @@ class ChainActionError extends Error {
 }
 
 export const createInitialChain = (): ESQLChain => {
-  return performChainAction([], { action: "limit" }, []);
-}
+  const { chain } = performChainAction([], { action: "limit" }, []);
+  return chain;
+};
 
 let globalNextStableBlockId = 0;
 
@@ -282,14 +355,17 @@ const assignBlockId = (block: ESQLBlock): ESQLBlock & BlockHasStableId => {
   if (block.stableId) {
     return block as ESQLBlock & BlockHasStableId;
   }
-  return {...block, stableId: `${block.command}-${globalNextStableBlockId++}`};
-}
+  return {
+    ...block,
+    stableId: `${block.command}-${globalNextStableBlockId++}`,
+  };
+};
 
 export const performChainAction = (
   chain: ESQLChain,
   action: ESQLChainAction,
   knownFields: string[]
-): ESQLChain => {
+): { chain: ESQLChain; upsertedIndex: number } => {
   const { updatePoint, replace } = findUpdatePoint(action, chain);
   const prevBlock = replace ? chain[updatePoint] : null;
   const beforeChain = chain.slice(0, updatePoint);
@@ -314,17 +390,17 @@ export const performChainAction = (
       break;
 
     case "sortAsc":
-      newBlock = blockUpdateForSort(
-        prevBlock as SortBlock | null,
-        {field: action.field, asc: true}
-      );
+      newBlock = blockUpdateForSort(prevBlock as SortBlock | null, {
+        field: action.field,
+        asc: true,
+      });
       break;
 
     case "sortDesc":
-      newBlock = blockUpdateForSort(
-        prevBlock as SortBlock | null,
-        {field: action.field, asc: false }
-      );
+      newBlock = blockUpdateForSort(prevBlock as SortBlock | null, {
+        field: action.field,
+        asc: false,
+      });
       break;
 
     case "filter":
@@ -341,6 +417,12 @@ export const performChainAction = (
         action.newName
       );
       break;
+
+    case "eval":
+      newBlock = blockUpdateForEval(prevBlock as EvalBlock | null, action.expressions);
+      break;
   }
-  return [...beforeChain, assignBlockId(newBlock), ...afterChain];
+
+  const newChain = [...beforeChain, assignBlockId(newBlock), ...afterChain];
+  return { chain: newChain, upsertedIndex: updatePoint };
 };

@@ -5,10 +5,12 @@ import {
   PromptCachingBetaTextBlockParam,
 } from "@anthropic-ai/sdk/resources/beta/prompt-caching";
 import { StatisticsRow } from "../common/types";
+import { escape } from "lodash";
 
 export type LLMOptions = {
   apiKey: string;
   modelSelected: number;
+  maxTokens?: number;
 };
 
 export type ReferenceOptions = {
@@ -18,19 +20,52 @@ export type ReferenceOptions = {
 
 export type PromptOptions = {
   esqlInput?: string;
-  naturalInput?: string;
 };
 
 export type WarmCacheInput = LLMOptions & ReferenceOptions;
 
+interface PrepareCompletionRequestOptions {
+  type: "completion";
+}
+
+interface PrepareUpdateRequestOptions {
+  type: "update";
+  naturalInput: string;
+}
+
+export interface FieldInfo {
+  name: string;
+  type: string;
+  examples: any[];
+}
+
+interface PrepareTransformationRequestOptions {
+  type: "transformation";
+  field: FieldInfo;
+  naturalInput: string;
+}
+
+type PrepareRequestOptions =
+  | PrepareCompletionRequestOptions
+  | PrepareUpdateRequestOptions
+  | PrepareTransformationRequestOptions;
+
 export type GenerateUpdateInput = LLMOptions &
   ReferenceOptions &
-  PromptOptions & {
+  PromptOptions &
+  (PrepareCompletionRequestOptions | PrepareUpdateRequestOptions) & {
     haveESQLLine?: (line: string) => void;
     doneESQL?: () => void;
     haveExplanationLine?: (line: string) => void;
-    maxTokens?: number;
     processESQLLines?: boolean;
+  };
+
+export type TransformFieldInput = LLMOptions &
+  ReferenceOptions &
+  PromptOptions &
+  PrepareTransformationRequestOptions & {
+    doneESQLLine: (line: string) => void;
+    haveExplanationLine?: (line: string) => void;
   };
 
 export type ReduceSizeInput = LLMOptions &
@@ -82,6 +117,7 @@ export const testWithSimpleUtterance = async (
 export const warmCache = async (params: WarmCacheInput): Promise<any> => {
   return await generateESQLUpdate({
     ...params,
+    type: "update",
     naturalInput: "top flights",
   });
 };
@@ -92,32 +128,27 @@ type TextMessage = {
   content: PromptCachingBetaTextBlockParam[];
 } & PromptCachingBetaMessageParam;
 
-const prepareRequest = (
-  input: ReferenceOptions & PromptOptions
-): { system: SystemMessage[]; messages: TextMessage[] } => {
-  const { esqlGuideText, schemaGuideText, esqlInput, naturalInput } = input;
-
-  const systemTexts = [
-    "You are an AI assistant specialized in Elasticsearch Query Language (ES|QL). You'll help the user compose ES|QL queries. Here's some reference material on ES|QL.",
-    esqlGuideText,
-  ];
-
-  if (schemaGuideText) {
-    systemTexts.push(
-      `Here's the schema of the Elasticsearch data you're working with: <schema>\n${schemaGuideText}\n</schema>`
-    );
+const requestTextForOptions = (options: PrepareRequestOptions): string => {
+  switch (options.type) {
+    case "completion":
+      return "Please complete the following ES|QL query at the last token, marked *. Return only the completion:";
+    case "update":
+    case "transformation":
+      return "Prompt: " + options.naturalInput + "\n";
   }
+};
 
-  if (naturalInput === undefined) {
-    systemTexts.push(
-      `Your task is to complete the ES|QL query from the last token (marked *). For each request (between input tags) please answer with a line completion of the last line of the query (but do not repeat it). Make sure you provide a space before if necessary. Do not output anything else. Here are some examples:
+const systemTextForOptions = (options: PrepareRequestOptions): string => {
+  switch (options.type) {
+    case "completion":
+      return `Your task is to complete the ES|QL query from the last token (marked *). For each request (between input tags) please answer with a line completion of the last line of the query (but do not repeat it). Make sure you provide a space before if necessary. Do not output anything else. Here are some examples:
 <example>
 <input>
 FROM logs-* 
 | STATS event_code_count = COUNT(event.code) BY*
 </input>
 <output>
- event.code
+event.code
 </output>
 </example>
 
@@ -139,7 +170,7 @@ FROM logs-endpoint
 | STATS bytes =*
 </input>
 <output>
- SUM(destination.bytes) BY destination.address
+SUM(destination.bytes) BY destination.address
 </output>
 </example>
 
@@ -163,20 +194,18 @@ FROM logs-endpoint
 FROM kibana_sample_data_flights
 | WHERE FlightDelay == true
 | STATS
-    avg_delay = AVG(FlightDelayMin),
-    flight_count = COUNT(*)
-    BY FlightDelayType
+  avg_delay = AVG(FlightDelayMin),
+  flight_count = COUNT(*)
+  BY FlightDelayType
 | SORT avg_delay A*
 </input>
 <output>
 SC
 </output>
 </example>
-`
-    );
-  } else {
-    systemTexts.push(
-      `Your task is to convert the natural language prompts to ES|QL. The current query, if any, is given from the second line. For each request (in this example between <input> and </input> tags) please answer with a nicely formatted ES|QL query for the completion inside the <esql> and </esql> tags.  Here are some examples:
+`;
+    case "update":
+      return `Your task is to convert the natural language prompts to ES|QL. The current query, if any, is given from the second line. For each request (in this example between <input> and </input> tags) please answer with a nicely formatted ES|QL query for the completion inside the <esql> and </esql> tags.  Here are some examples:
 <example>
 <input>
 Prompt: event codes by occurrence
@@ -232,9 +261,62 @@ FROM logs-endpoint
 </esql>
 </output>
 </example>
-`
+`;
+    case "transformation":
+      return `Your task is transform a field from the result of the ES|QL query. The prompt is given on the first line then the query is given from the second line and it ends with the '| EVAL field = '. For each request (in this example between <input> and </input> tags) please complete the ES|QL EVAL command. Try to only use the field itself but use the other fields as necessary as well. Always keep the completion on a single line. Provide any explanations from the second line and preface all non-esql lines with a comment //. Here are some examples:
+
+<example>
+Field: avg_delay (type: double, example: 49.59)
+<input>
+Prompt: convert to hours
+FROM kibana_sample_data_flights
+| STATS
+    avg_delay = AVG(FlightDelayMin)
+  BY Carrier
+| SORT avg_delay DESC
+| EVAL 
+</input>
+<output>
+avg_delay_hours = avg_delay / 60
+</output>
+</example>
+
+<example>
+Field: avg_delay (type: double, example: 49.59)
+<input>
+Prompt: round and show minutes text
+FROM kibana_sample_data_flights
+| STATS
+    avg_delay = AVG(FlightDelayMin)
+  BY Carrier
+| SORT avg_delay DESC
+| EVAL 
+</input>
+<output>
+avg_delay_text = CONCAT(TO_STRING(avg_delay::long), " minutes")
+</output>
+</example>
+`;
+  }
+};
+
+const prepareRequest = (
+  input: ReferenceOptions & PromptOptions & PrepareRequestOptions
+): { system: SystemMessage[]; messages: TextMessage[] } => {
+  const { esqlGuideText, schemaGuideText, esqlInput } = input;
+
+  const systemTexts = [
+    "You are an AI assistant specialized in Elasticsearch Query Language (ES|QL). You'll help the user compose ES|QL queries. Here's some reference material on ES|QL.",
+    esqlGuideText,
+  ];
+
+  if (schemaGuideText) {
+    systemTexts.push(
+      `Here's the schema of the Elasticsearch data you're working with: <schema>\n${schemaGuideText}\n</schema>`
     );
   }
+
+  systemTexts.push(systemTextForOptions(input));
 
   const system: SystemMessage[] = systemTexts.map((content) => ({
     type: "text",
@@ -243,32 +325,86 @@ FROM logs-endpoint
 
   system[system.length - 1].cache_control = { type: "ephemeral" };
 
-  let requestText;
+  const messages: TextMessage[] = [];
 
-  if (naturalInput === undefined) {
-    // Completion request
-    requestText =
-      "Please complete the following ES|QL query at the last token, marked *. Return only the completion:\n";
-  } else {
-    // Generation/update request
-    requestText = "Prompt: " + naturalInput + "\n";
+  if (input.type === "transformation") {
+    const { field } = input;
+    const exampleText =
+      field.examples.length > 0 ? `, example: ${field.examples[0]}` : "";
+    system.push({
+      type: "text",
+      text: `Field: ${field.name} (type: ${field.type}${exampleText})`,
+    });
+
+    switch (input.field.type) {
+      case "keyword":
+      case "text":
+        messages.push({
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: requestTextForOptions({
+                type: "transformation",
+                naturalInput: "uppercase",
+                field,
+              }),
+            },
+          ],
+        });
+        messages.push({
+          role: "assistant",
+          content: [
+            {
+              type: "text",
+              text: `${escape(field.name + " Uppercased")} = TO_UPPER(${escape(
+                field.name
+              )})
+// Converted to uppercase`,
+            },
+          ],
+        });
+        break;
+      case "double":
+      case "float":
+        messages.push({
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: requestTextForOptions({
+                type: "transformation",
+                naturalInput: "round to 2 places",
+                field,
+              }),
+            },
+          ],
+        });
+        messages.push({
+          role: "assistant",
+          content: [
+            {
+              type: "text",
+              text: `${escape(field.name + " Rounded")} = ROUND(${escape(
+                field.name
+              )}, 2)
+// Rounded to two decimal places`,
+            },
+          ],
+        });
+        break;
+    }
   }
 
-  if (esqlInput) {
-    requestText += esqlInput;
-  }
-
-  const messages: TextMessage[] = [
-    {
-      role: "user",
-      content: [
-        {
-          type: "text",
-          text: requestText,
-        },
-      ],
-    },
-  ];
+  messages.push({
+    role: "user",
+    content: [
+      {
+        type: "text",
+        text: requestTextForOptions(input) + (esqlInput || ""),
+      },
+    ],
+  });
 
   return { system, messages };
 };
@@ -301,8 +437,8 @@ export const generateESQLUpdate = async (
 ): Promise<GenerateUpdateOutput> => {
   const anthropic = createAnthropicInstance(input.apiKey);
   const {
+    type,
     modelSelected,
-    naturalInput,
     haveESQLLine,
     doneESQL,
     haveExplanationLine,
@@ -311,10 +447,9 @@ export const generateESQLUpdate = async (
   } = input;
 
   const requestTime = Date.now();
-  const isCompletionRequest = naturalInput === undefined;
   let first_token_time: number | null = null;
   let esql_time: number | null = null;
-  let isInsideEsql = isCompletionRequest ? true : undefined;
+  let isInsideEsql = type === "completion" ? true : undefined;
   let currentLine = "";
 
   let message_start_stats = null as {
@@ -365,7 +500,7 @@ export const generateESQLUpdate = async (
         first_token_time = Date.now() - requestTime;
       }
       currentLine += textDelta;
-      if (isCompletionRequest && currentLine.startsWith("*")) {
+      if (type === "completion" && currentLine.startsWith("*")) {
         currentLine = currentLine.slice(1);
       }
       if (currentLine.includes("\n")) {
@@ -423,6 +558,7 @@ export const reduceSize = async (input: ReduceSizeInput) => {
     input;
 
   return await generateESQLUpdate({
+    type: "update",
     apiKey,
     modelSelected,
     esqlGuideText,
@@ -447,4 +583,87 @@ export const countTokens = async (params: CountTokensInput) => {
   });
 
   return response.input_tokens;
+};
+
+export const transformField = async (params: TransformFieldInput) => {
+  const client = createAnthropicInstance(params.apiKey);
+  const request = prepareRequest({ ...params });
+
+  const requestTime = Date.now();
+  let first_token_time: number | null = null;
+  let esql_time: number | null = null;
+
+  let message_start_stats = null as {
+    model: string;
+    start_time: number;
+    input_cached: number;
+    input_uncached: number;
+    saved_to_cache: number;
+  } | null;
+
+  let message_delta_stats: {
+    output: number;
+  } = { output: 0 };
+
+  let isInsideESQL = true;
+  let currentLine = "";
+
+  const stream = client.beta.promptCaching.messages
+    .stream({
+      stream: true,
+      model: MODEL_LIST[params.modelSelected],
+      max_tokens: params.maxTokens ?? 128,
+      ...request,
+    })
+    .on("text", (textDelta, _) => {
+      if (!first_token_time) {
+        first_token_time = Date.now() - requestTime;
+      }
+      currentLine += textDelta;
+      const lines = currentLine.split("\n");
+      console.log("lines and current", lines);
+      currentLine = lines.pop()!;
+      lines.forEach((line) => {
+        if (isInsideESQL) {
+          params.doneESQLLine(line);
+          isInsideESQL = false;
+          esql_time = Date.now() - requestTime;
+        } else {
+          params.haveExplanationLine?.(line);
+        }
+      });
+    })
+    .on("streamEvent", (event) => {
+      if (event.type === "message_start") {
+        const usage = event.message.usage;
+        message_start_stats = {
+          model: event.message.model,
+          start_time: Date.now() - requestTime,
+          input_cached: usage.cache_read_input_tokens || 0,
+          input_uncached: usage.input_tokens,
+          saved_to_cache: usage.cache_creation_input_tokens || 0,
+        };
+      } else if (event.type === "message_delta") {
+        message_delta_stats = { output: event.usage.output_tokens };
+      }
+    });
+
+  await stream.finalMessage();
+
+  if (message_start_stats === null) {
+    throw new Error("No message_start event received");
+  }
+
+  return {
+    stats: {
+      model: message_start_stats.model,
+      input_cached: message_start_stats.input_cached,
+      input_uncached: message_start_stats.input_uncached,
+      saved_to_cache: message_start_stats.saved_to_cache,
+      output: message_delta_stats.output,
+      first_token_time: first_token_time || Infinity,
+      esql_time: esql_time || Infinity,
+      total_time: Date.now() - requestTime,
+    },
+  };
 };

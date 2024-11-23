@@ -73,7 +73,7 @@ const ensureBase64Encoded = (apiKey: string): string => {
   }
 
   return trimmed;
-}
+};
 
 const fetchJSON = async (
   method: string,
@@ -111,9 +111,13 @@ const fetchJSON = async (
 const postJSON = async (
   url: string,
   apiKey: string,
-  bodyObject: object
+  bodyObject: object,
+  paramObject: Record<string, string> | null = null
 ): Promise<object> => {
-  return await fetchJSON("POST", apiKey, url, JSON.stringify(bodyObject));
+  const newURL = paramObject
+    ? `${url}?${new URLSearchParams(paramObject)}`
+    : url;
+  return await fetchJSON("POST", apiKey, newURL, JSON.stringify(bodyObject));
 };
 
 const getJSON = async (
@@ -141,7 +145,79 @@ export const performESQLQuery = async ({
   return answer;
 };
 
-interface Field {
+/**
+ * Information about a deployment returned by SHOW INFO.
+ */
+export interface ESQLShowInfo {
+  "date": string;
+  "hash": string;
+  "version": string;
+}
+
+/**
+ * Type guard function to check if the given data is of type ESQLShowInfo.
+ *
+ * @param data - The data to be checked.
+ * @returns A boolean indicating whether the data is of type ESQLShowInfo.
+ */
+const isESQLShowInfo = (data: any): data is ESQLShowInfo => {
+  return (
+    "date" in data &&
+    "hash" in data &&
+    "version" in data &&
+    typeof data.date === "string" &&
+    typeof data.hash === "string" &&
+    typeof data.version === "string"
+  );
+}
+
+/**
+ * Converts table data into an array of records.
+ *
+ * @param data - The table data to convert, which includes columns and values.
+ * @returns An array of records where each record is an object with keys corresponding to column names and values corresponding to the row values.
+ */
+const tableDataToRecords = (data: TableData): Record<string, any>[] => {
+  return data.values.map((row) =>
+    row.reduce(
+      (acc, val, idx) => ({
+        ...acc,
+        [data.columns[idx].name]: val,
+      }),
+      {}
+    )
+  );
+}
+
+/**
+ * Executes an ESQL query to retrieve information about the Elasticsearch instance.
+ *
+ * @param {ESAPIOptions} options - The options for the Elasticsearch API.
+ * @param {string} options.apiURL - The URL of the Elasticsearch API.
+ * @param {string} options.apiKey - The API key for authenticating with the Elasticsearch API.
+ * @returns {Promise<ESQLShowInfo>} A promise that resolves to the information about the Elasticsearch instance.
+ * @throws {QueryAPIError} If the response data is in an invalid format.
+ */
+export const performESQLShowInfoQuery = async ({
+  apiURL,
+  apiKey,
+}: ESAPIOptions): Promise<ESQLShowInfo> => {
+  const answer = await performESQLQuery({
+    apiURL,
+    apiKey,
+    query: "SHOW INFO",
+  });
+
+  const info = tableDataToRecords(answer)[0];
+
+  if (!isESQLShowInfo(info)) {
+    throw new QueryAPIError(undefined, "Invalid format of the response data");
+  }
+
+  return info;
+};
+
+export interface Field {
   key: string;
   isAggregatable: boolean;
   isSearchable: boolean;
@@ -366,7 +442,7 @@ const parseSamplingAggregationResults = (
           sortedValues[1][0] > 75 &&
           sortedValues[0][1] !== null &&
           sortedValues[1][1] !== null
-         ) {
+        ) {
           const lowerValue = humanizeValue(sortedValues[0][1], field_key);
           const upperValue = humanizeValue(sortedValues[1][1], field_key);
           if (lowerValue === upperValue) {
@@ -392,7 +468,7 @@ export type ESQLSchema = {
   indexPattern: string;
   knownFields: Field[];
   guide: string;
-}
+};
 
 export const deriveSchema = async ({
   apiURL,

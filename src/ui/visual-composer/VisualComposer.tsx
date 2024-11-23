@@ -34,6 +34,106 @@ const toSliderValue = (limit: number | null) => {
   }
 };
 
+const renderLimitBlock = (
+  index: number,
+  handleLimitChange: (index: number, limit: number | null) => void,
+  block: ESQLBlock & BlockHasStableId & { command: "LIMIT" }
+) => {
+  return (
+    <Slider
+      value={toSliderValue(block.limit)}
+      max={sliderValues.length - 1}
+      onChange={(value) => handleLimitChange(index, sliderValues[value])}
+      ml="2em"
+      mr="2em"
+    >
+      {sliderValues.map((value, idx) => (
+        <SliderMark
+          key={idx}
+          value={idx}
+          mt=".5em"
+          fontSize="xs"
+          textAlign="center"
+          transform={"translateX(-50%)"}
+        >
+          {value || "All"}
+        </SliderMark>
+      ))}
+      <SliderTrack>
+        <SliderFilledTrack />
+      </SliderTrack>
+      <SliderThumb borderColor={"blue.400"} />
+    </Slider>
+  );
+};
+
+const renderBlockContents = (
+  index: number,
+  block: ESQLBlock & BlockHasStableId,
+  updateBlock: (index: number, block: ESQLBlock) => void,
+  handleLimitChange: (index: number, limit: number | null) => void
+) => {
+  switch (block.command) {
+    case "LIMIT":
+      return renderLimitBlock(index, handleLimitChange, block);
+    case "DROP":
+      return <FieldTagMesh size="md" fields={block.fields} />;
+    case "KEEP":
+      return (
+        <FieldTagMesh
+          size="md"
+          fields={block.fields}
+          setFields={(fields) => updateBlock(index, { ...block, fields })}
+        />
+      );
+    case "WHERE":
+      return <Text>{block.field}</Text>;
+    case "EVAL":
+      return (
+        <VStack spacing={2} align="stretch" justify={"flex-start"}>
+          {block.expressions.map(({ field, expression }) => (
+            <HStack spacing={3} align="baseline" justify={"flex-initial"} key={field}>
+              <FieldTag size="lg" name={field}/>
+              <Text>←</Text>
+              <Text fontFamily={"monospace"} flex={1}>{expression}</Text>
+            </HStack>
+          ))}
+        </VStack>
+      );
+    case "SORT":
+      return (
+        <Wrap spacing={2}>
+          {block.order.map((atom) => (
+            <WrapItem key={atom.field}>
+              <FieldTag size="lg" name={atom.field}>
+                <TagRightIcon as={atom.asc ? GoSortAsc : GoSortDesc} />
+              </FieldTag>
+            </WrapItem>
+          ))}
+        </Wrap>
+      );
+    case "RENAME":
+      return (
+        <VStack spacing={2} align="stretch" justify={"center"}>
+          {Object.entries(block.map).map(
+            ([oldName, newName]: [string, string], idx: number) => (
+              <HStack
+                key={oldName}
+                align={"baseline"}
+                justify={"flex-start"}
+                spacing={1}
+              >
+                <FieldTag name={oldName} />
+                <Text>→</Text>
+                <FieldTag name={newName} />
+              </HStack>
+            )
+          )}
+        </VStack>
+      );
+  }
+};
+
 const VisualComposer: React.FC<ESQLComposerProps> = ({
   chain,
   updateBlock,
@@ -80,78 +180,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
             setHighlightedBlock(null);
           }}
         >
-          {block.command === "LIMIT" && (
-            <Slider
-              value={toSliderValue(block.limit)}
-              max={sliderValues.length - 1}
-              onChange={(value) =>
-                handleLimitChange(index, sliderValues[value])
-              }
-              ml="2em"
-              mr="2em"
-            >
-              {sliderValues.map((value, idx) => (
-                <SliderMark
-                  key={idx}
-                  value={idx}
-                  mt=".5em"
-                  fontSize="xs"
-                  textAlign="center"
-                  transform={"translateX(-50%)"}
-                >
-                  {value || "All"}
-                </SliderMark>
-              ))}
-
-              <SliderTrack>
-                <SliderFilledTrack />
-              </SliderTrack>
-              <SliderThumb borderColor={"blue.400"} />
-            </Slider>
-          )}
-          {block.command === "DROP" && (
-            <FieldTagMesh
-            size="md"
-            fields={block.fields}
-            />
-          )}
-          {block.command === "KEEP" && (
-            <FieldTagMesh
-              size="md"
-              fields={block.fields}
-              setFields={(fields) => updateBlock(index, { ...block, fields })}
-            />
-          )}
-          {block.command === "RENAME" && (
-            <VStack spacing={2} align="stretch" justify={"center"}>
-              {Object.entries(block.map).map(
-                ([oldName, newName]: [string, string], idx: number) => (
-                  <HStack
-                    key={oldName}
-                    align={"baseline"}
-                    justify={"flex-start"}
-                    spacing={1}
-                  >
-                    <FieldTag name={oldName} />
-                    <Text>→</Text>
-                    <FieldTag name={newName} />
-                  </HStack>
-                )
-              )}
-            </VStack>
-          )}
-          {block.command === "WHERE" && <Text>{block.field}</Text>}
-          {block.command === "SORT" && (
-            <Wrap spacing={2}>
-              {block.order.map((atom) => (
-                <WrapItem key={atom.field}>
-                  <FieldTag size="lg" name={atom.field}>
-                    <TagRightIcon as={atom.asc ? GoSortAsc : GoSortDesc} />
-                  </FieldTag>
-                </WrapItem>
-              ))}
-            </Wrap>
-          )}
+          {renderBlockContents(index, block, updateBlock, handleLimitChange)}
         </ComposerBlock>
       ))}
     </VStack>

@@ -13,6 +13,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import React from "react";
+import RecordView  from "./components/RecordView";
 import SpinningButton from "./components/SpinningButton";
 
 interface QueryAPIConfigurationAreaProps {
@@ -21,7 +22,7 @@ interface QueryAPIConfigurationAreaProps {
   apiKey: string;
   setApiKey: (value: string) => void;
   apiKeyWorks: boolean | null;
-  setApiKeyWorks: (value: boolean | null) => void;
+  info: Record<string, string> | null;
   tooltipsShown: boolean;
   handleShowInfo: () => Promise<void>;
 }
@@ -32,9 +33,9 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
   apiKey,
   setApiKey,
   apiKeyWorks,
-  setApiKeyWorks,
   tooltipsShown,
   handleShowInfo,
+  info,
 }) => {
   return (
     <VStack align="stretch" justify="space-between" spacing={6}>
@@ -55,7 +56,6 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
                 autoComplete="elasticsearch-api-url"
                 onChange={(e) => {
                   setApiURL(e.target.value);
-                  setApiKeyWorks(null);
                 }}
                 flex={1}
               />
@@ -92,7 +92,6 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
                 autoComplete="elasticsearch-api-key"
                 onChange={(e) => {
                   setApiKey(e.target.value);
-                  setApiKeyWorks(null);
                 }}
                 errorBorderColor="red.300"
                 flex={1}
@@ -112,19 +111,22 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
               </Link>
             </FormHelperText>
           </FormControl>
-          <Tooltip
-            isDisabled={!tooltipsShown}
-            label="Perform a test request to the API"
-          >
-            <SpinningButton
-              type="submit"
-              targets="es"
-              spinningAction={handleShowInfo}
-              disabled={!apiURL || !apiKey}
+          <VStack align="stretch" justify="space-between" flex={0}>
+            <Tooltip
+              isDisabled={!tooltipsShown}
+              label="Perform a test request to the API"
             >
-              Test
-            </SpinningButton>
-          </Tooltip>
+              <SpinningButton
+                type="submit"
+                targets="es"
+                spinningAction={handleShowInfo}
+                disabled={!apiURL || !apiKey}
+              >
+                Show Info
+              </SpinningButton>
+            </Tooltip>
+            {info && <RecordView record={info}/>}
+          </VStack>
         </HStack>
       </form>
     </VStack>

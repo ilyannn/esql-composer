@@ -24,12 +24,14 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 
-import { TableData } from "../services/es";
+import { TableData, Column } from "../services/es";
 import { ESQLChainAction } from "../models/esql";
 
 import { GoSortAsc, GoSortDesc, GoFilter, GoTrash } from "react-icons/go";
 import SpinningButton from "./components/SpinningButton";
 import DataTableBody from "./components/DataTableBody";
+import InputNaturalPrompt from "./modals/InputNaturalPrompt";
+import { FieldInfo } from "../services/llm";
 
 interface QueryResultAreaProps {
   data: TableData | null;
@@ -46,6 +48,10 @@ interface QueryResultAreaProps {
     action: ESQLChainAction,
     knownFields: string[]
   ) => boolean;
+  handleTransformFieldWithInfo: (
+    fieldInfo: FieldInfo,
+    naturalInput: string
+  ) => void;
 }
 
 const QueryResultArea: React.FC<QueryResultAreaProps> = ({
@@ -55,6 +61,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   tooltipsShown,
   clearData,
   handleChainActionInContext,
+  handleTransformFieldWithInfo,
   isFetchAvailable,
   isLimitRecommended,
   isKeepRecommended,
@@ -79,6 +86,20 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
       field,
       newName,
     });
+  };
+
+  const handleTransformColumn = (
+    column: Column,
+    columnIndex: number,
+    naturalInput: string
+  ) => {
+    const examples = data ? data.values.map((row) => row[columnIndex]) : [];
+    const fieldInfo: FieldInfo = {
+      ...column,
+      examples,
+    };
+    console.log("Transforming column with info", fieldInfo);
+    handleTransformFieldWithInfo(fieldInfo, naturalInput);
   };
 
   return (
@@ -109,7 +130,6 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
         )}
 
         <HStack align="center" justify={"flex-start"} spacing={6}>
-
           <SpinningButton
             targets="es"
             spinningAction={fetchQueryData}
@@ -137,7 +157,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
 
           <Spacer />
 
-          {isLimitRecommended &&
+          {isLimitRecommended && (
             <Tooltip
               isDisabled={!tooltipsShown}
               label="Set the limit below to avoid fetching too much data"
@@ -150,9 +170,9 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                 Add Limit
               </Button>
             </Tooltip>
-          }
+          )}
 
-          {isKeepRecommended &&
+          {isKeepRecommended && (
             <Tooltip
               isDisabled={!tooltipsShown}
               label="Add a KEEP clause to move around or select the columns"
@@ -166,7 +186,23 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                 Manage Columns
               </Button>
             </Tooltip>
-          }
+          )}
+
+          <Tooltip
+            isDisabled={!tooltipsShown}
+            label="Add a an EVAL to create a new column"
+          >
+            <InputNaturalPrompt
+              inputLabel="Create new columns"
+              onSubmit={() => {
+                //                handleChainAction({ action: "eval" });
+              }}
+            >
+              <Button variant="ghost" colorScheme="green" disabled={!data}>
+                Add
+              </Button>
+            </InputNaturalPrompt>
+          </Tooltip>
 
           {data && (
             <Tooltip
@@ -183,7 +219,6 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
               </Button>
             </Tooltip>
           )}
-
         </HStack>
 
         {data && (
@@ -193,15 +228,11 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                 <Tr>
                   {data.columns.map((col, colIndex) => {
                     return (
-                      <Th
-                        key={col.name}
-                        textTransform="none"
-                        fontFamily={"sans-serif"}
-                        fontSize={"md"}
-                      >
+                      <Th key={col.name} textTransform="none" fontSize={"md"}>
                         <Editable
                           defaultValue={col.name}
                           submitOnBlur={false}
+                          fontFamily={"sans-serif"}
                           onSubmit={(value) =>
                             handleRenameField(col.name, value)
                           }
@@ -245,6 +276,20 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                             })
                           }
                         />
+                        <InputNaturalPrompt
+                          inputLabel={`Transform field ${col.name}`}
+                          onSubmit={(input) => {                        
+                            handleTransformColumn(col, colIndex, input);
+                          }}
+                        >
+                          <Button
+                            variant={"ghost"}
+                            colorScheme="gray"
+                            aria-label="Transform Field"
+                          >
+                            <span style={{ fontFamily: "cursive" }}>f</span>
+                          </Button>
+                        </InputNaturalPrompt>
                         <IconButton
                           variant={"ghost"}
                           colorScheme="gray"
