@@ -464,7 +464,7 @@ export const generateESQLUpdate = async (
     output: number;
   } = { output: 0 };
 
-  let processLine;
+  let processLine: (line: string) => void;
 
   if (processESQLLines !== false) {
     processLine = (line: string) => {
