@@ -9,7 +9,7 @@ describe("PseudoXMLParser", () => {
   it("should parse simple single-line tags", () => {
     const results: any[] = [];
     const handler = {
-      onStartTag: (tag: string) => results.push(["start", tag]),
+      onOpenTag: (tag: string) => results.push(["start", tag]),
       onReadLine: (tag: string | null, line: string) =>
         results.push(["line", tag, line]),
       onCloseTag: (tag: string, text: string) =>
@@ -30,7 +30,7 @@ describe("PseudoXMLParser", () => {
   it("should parse multi-line tags", () => {
     const results: any[] = [];
     const handler = {
-      onStartTag: (tag: string) => results.push(["start", tag]),
+      onOpenTag: (tag: string) => results.push(["start", tag]),
       onReadLine: (tag: string | null, line: string) =>
         results.push(["line", tag, line]),
       onCloseTag: (tag: string, text: string) =>
@@ -57,7 +57,7 @@ describe("PseudoXMLParser", () => {
   it("should work when pushing smaller chunks", () => {
     const results: any[] = [];
     const handler = {
-      onStartTag: (tag: string) => results.push(["start", tag]),
+      onOpenTag: (tag: string) => results.push(["start", tag]),
       onReadLine: (tag: string | null, line: string) =>
         results.push(["line", tag, line]),
       onCloseTag: (tag: string, text: string) =>
@@ -87,7 +87,7 @@ describe("PseudoXMLParser", () => {
   it("should handle unclosed tags", () => {
     const results: any[] = [];
     const handler = {
-      onStartTag: (tag: string) => results.push(["start", tag]),
+      onOpenTag: (tag: string) => results.push(["start", tag]),
       onError: (error: any) => results.push(["error", error.type, error.tag]),
       onCloseTag: (tag: string, text: string) =>
         results.push(["close", tag, text]),
@@ -107,7 +107,7 @@ describe("PseudoXMLParser", () => {
   it("should ignore unregistered tags", () => {
     const results: any[] = [];
     const handler = {
-      onStartTag: (tag: string) => results.push(["start", tag]),
+      onOpenTag: (tag: string) => results.push(["start", tag]),
       onReadLine: (tag: string | null, line: string) =>
         results.push(["line", tag, line]),
     };
@@ -122,7 +122,7 @@ describe("PseudoXMLParser", () => {
   it("should parse multiple registered tags", () => {
     const results: any[] = [];
     const handler = {
-      onStartTag: (tag: string) => results.push(["start", tag]),
+      onOpenTag: (tag: string) => results.push(["start", tag]),
       onReadLine: (tag: string | null, line: string) =>
         results.push(["line", tag, line]),
       onCloseTag: (tag: string, text: string) =>

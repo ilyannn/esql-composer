@@ -78,11 +78,25 @@ const escape = (name: string): string => {
   return name;
 };
 
-const unescape = (name: string): string => {
-  if (name.startsWith(BACKTICK) && name.endsWith(BACKTICK)) {
-    return name.slice(1, -1).replace(new RegExp(`${BACKTICK}${BACKTICK}`, "g"), BACKTICK);
-  }
-  return name;
+// const unescape = (name: string): string => {
+//   if (name.startsWith(BACKTICK) && name.endsWith(BACKTICK)) {
+//     return name.slice(1, -1).replace(new RegExp(`${BACKTICK}${BACKTICK}`, "g"), BACKTICK);
+//   }
+//   return name;
+// }
+
+/**
+ * Applies a function to a specified field with optional arguments and returns the resulting string.
+ *
+ * The field names are escaped.
+ * 
+ * @param func - The name of the function to apply.
+ * @param field - The field to which the function will be applied.
+ * @param args - Additional arguments to pass to the function.
+ * @returns The resulting string after applying the function to the field with the provided arguments.
+ */
+export const applyFunctionToField = (func: string, field: string, ...args: any[]): string => {
+  return `${func}(${escape(field)}, ${args.map((arg) => JSON.stringify(arg)).join(", ")})`;
 }
 
 const limitBlockToString = (block: LimitBlock): string | null => {
@@ -187,7 +201,7 @@ interface ESQLFieldBaseAction {
 
 interface ESQLChainEvalAction {
   action: "eval";
-  expressions: string[];
+  expressions: EvalExpression[];
 }
 
 interface ESQLFieldSimpleAction extends ESQLFieldBaseAction {
@@ -311,24 +325,8 @@ const blockUpdateForRename = (
 
 const blockUpdateForEval = (
   prevBlock: EvalBlock | null,
-  assignments: string[]
+  expressions: EvalExpression[]
 ): EvalBlock => {
-  const expressions = assignments.flatMap((assignment) => {
-    if (assignment === "") {
-      return [];
-    }
-    const [field, expression] = assignment.split("=").map((part) => part.trim());
-    if (field && expression) {
-      return [
-        {
-          field: unescape(field),
-          expression,
-        },
-      ];
-    }
-    return [];
-  });
-
   return prevBlock
     ? { ...prevBlock, expressions: [...prevBlock.expressions, ...expressions] }
     : { command: "EVAL", expressions };

@@ -73,14 +73,19 @@ const defaultESQLGuidePromise = loadFile("esql-short.txt");
 const ESQLComposerMain = () => {
   const toast = useToast();
 
-  const [openedAreas, setOpenedAreas] = useState<number | number[]>([0, 1, 2, 3]);
+  const [openedAreas, setOpenedAreas] = useState<number | number[]>([
+    0, 1, 2, 3,
+  ]);
   const [tooltipsShown, setTooltipsShown] = useState(false);
 
   const [modelSelected, setModelSelected] = useState(0);
   const [anthropicAPIKey, setAnthropicAPIKey] = useState("");
   const [queryAPIURL, _setQueryAPIURL] = useState("");
   const [queryAPIKey, _setQueryAPIKey] = useState("");
-  const [queryAPIInfo, setQueryAPIInfo] = useState<Record<string, string>|null>(null);
+  const [queryAPIInfo, setQueryAPIInfo] = useState<Record<
+    string,
+    string
+  > | null>(null);
   const [esqlGuideText, setEsqlGuideText] = useState("");
   const [esqlSchema, _setEsqlSchema] = useState<ESQLSchema | null>(null);
 
@@ -213,13 +218,10 @@ const ESQLComposerMain = () => {
     [_setQueryAPIURL]
   );
 
-  const setQueryAPIKey = useCallback(
-    (value: string) => {
-      _setQueryAPIKey(value);
-      setQueryAPIKeyWorks(null);
-    },
-    []
-  );
+  const setQueryAPIKey = useCallback((value: string) => {
+    _setQueryAPIKey(value);
+    setQueryAPIKeyWorks(null);
+  }, []);
 
   /**
    * Handles API errors and updates the state of apiKeyWorks.
@@ -238,6 +240,8 @@ const ESQLComposerMain = () => {
         setAnthropicAPIKeyWorks(true);
         return;
       } catch (error) {
+        console.error(`Error when ${label}`, error);
+
         let title: ReactNode = <Text>{label} error</Text>;
         let description: ReactNode = undefined;
 
@@ -273,7 +277,7 @@ const ESQLComposerMain = () => {
         ) {
           description = error.message;
         }
-
+        
         toast({
           title,
           description,
@@ -292,6 +296,8 @@ const ESQLComposerMain = () => {
         setQueryAPIKeyWorks(true);
         return;
       } catch (error) {
+        console.error(`Error when ${label}`, error);
+
         let title: ReactNode = <Text>{label} error</Text>;
         let description: ReactNode = undefined;
 
@@ -524,7 +530,12 @@ const ESQLComposerMain = () => {
         }
       }
     },
-    [isESQLRequestAvailable, updatingESQLLineByLine, queryAPIDataAutoUpdate, fetchQueryData]
+    [
+      isESQLRequestAvailable,
+      updatingESQLLineByLine,
+      queryAPIDataAutoUpdate,
+      fetchQueryData,
+    ]
   );
 
   useEffect(() => {
@@ -607,7 +618,7 @@ const ESQLComposerMain = () => {
           typeof config["queryAPIKeyWorks"] === "boolean"
         ) {
           setQueryAPIKeyWorks(config["queryAPIKeyWorks"]);
-        }  
+        }
       }
       if (
         "esqlGuideText" in config &&
@@ -775,14 +786,13 @@ const ESQLComposerMain = () => {
   const handleTransformFieldWithInfo = useCallback(
     async (field: FieldInfo, naturalInput: string) => {
       await performAnthropicAPIAction("ES|QL field transform", async () => {
-
-        const doneESQLLine = (line: string) => {
+        const doneEvalExpression = (field: string, expr: string) => {
           const { chain } = performChainAction(
             visualChain,
-            { action: "eval", expressions: [line] },
+            { action: "eval", expressions: [{ field, expression: expr }] },
             []
           );
-          setVisualChain(chain);  
+          setVisualChain(chain);
         };
 
         const data = (await transformField({
@@ -794,7 +804,7 @@ const ESQLComposerMain = () => {
           esqlInput,
           field,
           naturalInput,
-          doneESQLLine,
+          doneEvalExpression,
         })) as any;
 
         setAllStats([...allStats, data.stats]);
@@ -832,7 +842,7 @@ const ESQLComposerMain = () => {
       setQueryAPIInfo({
         version: info.version,
         built: formattedMoment,
-        hash: info.hash,        
+        hash: info.hash,
       });
     });
   };
