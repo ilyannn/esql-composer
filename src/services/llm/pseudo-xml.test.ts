@@ -1,5 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
-import { PseudoXMLParser } from "./pseudo-xml";
+import {
+  PseudoXMLParser,
+  pseudoXMLToRecord,
+  recordToPseudoXML,
+} from "./pseudo-xml";
 
 describe("PseudoXMLParser", () => {
   it("should parse simple single-line tags", () => {
@@ -144,5 +148,32 @@ describe("PseudoXMLParser", () => {
       ["line", "eval", ""],
       ["close", "eval", "\n    this can be \nmultiline\n"],
     ]);
+  });
+
+  describe("recordToPseudoXML", () => {
+    it("should convert record to pseudo-XML", () => {
+      const record = {
+        field: "value1",
+        eval: ["value2", "value3"],
+      };
+      const tags = ["field", "eval"];
+      const result = recordToPseudoXML(record, tags);
+      expect(result).toEqual(
+        "<field>value1</field>\n<eval>value2</eval>\n<eval>value3</eval>"
+      );
+    });
+  });
+
+  describe("pseudoXMLToRecord", () => {
+    it("should convert pseudo-XML to record", () => {
+      const text =
+        "<field>value1</field>\n<eval>value2</eval>\n<eval>value3</eval>";
+      const tags = ["field", "eval"];
+      const result = pseudoXMLToRecord(text, tags);
+      expect(result).toEqual({
+        field: "value1",
+        eval: ["value2", "value3"],
+      });
+    });
   });
 });

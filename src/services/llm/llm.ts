@@ -4,7 +4,7 @@ import {
   PromptCachingBetaMessageParam,
   PromptCachingBetaTextBlockParam,
 } from "@anthropic-ai/sdk/resources/beta/prompt-caching";
-import { StatisticsRow } from "../common/types";
+import { StatisticsRow } from "../../common/types";
 import { escape } from "lodash";
 
 export type LLMOptions = {
