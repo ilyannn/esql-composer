@@ -91,12 +91,11 @@ We use some recently shipped and beta features of Anthropic API:
 
 ### Local Installation
 
-Just the regular frontend stuff, though I have not been able to fix dependencies yet:
+Just the regular frontend stuff:
 
 ```sh
 git clone git@github.com:ilyannn/esql-composer.git && cd esql-composer
-npm install --legacy-peer-deps
-npm start
+npm install && npm start
 ```
 
 ### Roadmap
