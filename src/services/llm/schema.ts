@@ -1,7 +1,14 @@
-import { MultivaluedRecord, recordToPseudoXML } from "./pseudo-xml";
+import {
+  MultivaluedRecord,
+  pairsToPseudoXML,
+  recordToPseudoXML,
+} from "./pseudo-xml";
 import { FieldInfo } from "./types";
 
-class Adapter<InputType extends MultivaluedRecord, OutputType extends MultivaluedRecord> {
+class Adapter<
+  InputType extends MultivaluedRecord,
+  OutputType extends MultivaluedRecord
+> {
   private inputSchema: string[];
   private outputSchema: string[];
 
@@ -49,7 +56,11 @@ class Adapter<InputType extends MultivaluedRecord, OutputType extends Multivalue
 
 export const ESQLEvalInputSchema = ["task"];
 export type ESQLEvalOutputTag = "field" | "expr" | "comment";
-export const ESQLEvalOutputSchema: ESQLEvalOutputTag[] = ["field", "expr", "comment"];
+export const ESQLEvalOutputSchema: ESQLEvalOutputTag[] = [
+  "field",
+  "expr",
+  "comment",
+];
 
 export interface ESQLEvalInput extends MultivaluedRecord {
   task: string;
@@ -61,26 +72,30 @@ export interface ESQLEvalOutput extends MultivaluedRecord {
   comment?: string;
 }
 
+const makeFieldExample = (field: FieldInfo): string => {
+  const exampleText =
+    field.examples.length > 0 ? `, example: ${field.examples[0]}` : "";
+  return `${field.name} (type: ${field.type}${exampleText})`;
+};
+
 class ESQLEvalAdapter extends Adapter<ESQLEvalInput, ESQLEvalOutput> {
   constructor() {
     super(ESQLEvalInputSchema, ESQLEvalOutputSchema);
   }
 
-  public formatContext(options: { esqlInput: string; field: FieldInfo }): string {
-    const { field, esqlInput } = options;
+  public formatContext(options: {
+    esqlInput: string;
+    sourceFields: [FieldInfo];
+  }): string {
+    const { sourceFields, esqlInput } = options;
 
-    const exampleText =
-      field.examples.length > 0 ? `, example: ${field.examples[0]}` : "";
-    const source = `${field.name} (type: ${field.type}${exampleText})`;
     const esql = esqlInput.trim() + "\n| EVAL ";
+    const examples: [string, string][] = sourceFields.map((field) => [
+      "source",
+      makeFieldExample(field),
+    ]);
 
-    return recordToPseudoXML(
-      {
-        esql,
-        source,
-      },
-      ["esql", "source"]
-    );
+    return pairsToPseudoXML([["esql", esql], ...examples]);
   }
 }
 

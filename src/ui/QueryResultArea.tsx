@@ -98,7 +98,6 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
       ...column,
       examples,
     };
-    console.log("Transforming column with info", fieldInfo);
     handleTransformFieldWithInfo(fieldInfo, naturalInput);
   };
 

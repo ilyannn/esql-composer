@@ -89,15 +89,21 @@ const escape = (name: string): string => {
  * Applies a function to a specified field with optional arguments and returns the resulting string.
  *
  * The field names are escaped.
- * 
+ *
  * @param func - The name of the function to apply.
  * @param field - The field to which the function will be applied.
  * @param args - Additional arguments to pass to the function.
  * @returns The resulting string after applying the function to the field with the provided arguments.
  */
-export const applyFunctionToField = (func: string, field: string, ...args: any[]): string => {
-  return `${func}(${escape(field)}, ${args.map((arg) => JSON.stringify(arg)).join(", ")})`;
-}
+export const applyFunctionToField = (
+  func: string,
+  field: string,
+  ...args: any[]
+): string => {
+  return `${func}(${escape(field)}, ${args
+    .map((arg) => JSON.stringify(arg))
+    .join(", ")})`;
+};
 
 const limitBlockToString = (block: LimitBlock): string | null => {
   if (block.limit === null) {
@@ -201,6 +207,7 @@ interface ESQLFieldBaseAction {
 
 interface ESQLChainEvalAction {
   action: "eval";
+  sourceField: string | null;
   expressions: EvalExpression[];
 }
 
@@ -342,6 +349,68 @@ class ChainActionError extends Error {
   }
 }
 
+type BubbleDownParams = null | {
+  sourceField: string | null;
+  newFields: string[];
+};
+
+const bubbleDown = (
+  params: BubbleDownParams,
+  afterBlocks: ESQLChain
+): ESQLChain => {
+  if (!params) {
+    return afterBlocks;
+  }
+
+  let { sourceField, newFields } = params;
+
+  const blocks: ESQLChain = [];
+  for (const block of afterBlocks) {
+    switch (block.command) {
+      case "DROP":
+        const currentNewFields = new Set(newFields);
+        const fields = block.fields.filter(
+          (f) => !currentNewFields.has(f)
+        );
+        blocks.push({ ...block, fields });
+        break;
+
+      case "KEEP":
+        let fieldsToKeep = block.fields;
+        for (const newField of newFields) {
+          if (!fieldsToKeep.includes(newField)) {
+            let insertIndex = sourceField
+              ? fieldsToKeep.indexOf(sourceField)
+              : -1;
+            console.log("fieldsToKeep", fieldsToKeep);
+            console.log("sourceField", sourceField);  
+            console.log("insertIndex", insertIndex);
+            fieldsToKeep = [
+              ...fieldsToKeep.slice(0, insertIndex + 1),
+              newField,
+              ...fieldsToKeep.slice(insertIndex + 1),
+            ];
+          }
+        }
+        blocks.push({ ...block, fields: fieldsToKeep });
+        break;
+
+      case "RENAME":
+        const map = block.map;
+        if (sourceField && sourceField in map) {
+          sourceField = map[sourceField];
+        }
+        newFields = newFields.map((f) => (f in map ? map[f] : f));
+        break;
+
+      default:
+        blocks.push(block);
+        break;
+    }
+  }
+  return blocks;
+};
+
 export const createInitialChain = (): ESQLChain => {
   const { chain } = performChainAction([], { action: "limit" }, []);
   return chain;
@@ -368,7 +437,7 @@ export const performChainAction = (
   const prevBlock = replace ? chain[updatePoint] : null;
   const beforeChain = chain.slice(0, updatePoint);
   const afterChain = chain.slice(updatePoint + (replace ? 1 : 0));
-
+  let bubbleDownParams: BubbleDownParams = null;
   let newBlock: ESQLBlock | null = null;
 
   switch (action.action) {
@@ -417,10 +486,21 @@ export const performChainAction = (
       break;
 
     case "eval":
-      newBlock = blockUpdateForEval(prevBlock as EvalBlock | null, action.expressions);
+      newBlock = blockUpdateForEval(
+        prevBlock as EvalBlock | null,
+        action.expressions
+      );
+      bubbleDownParams = {
+        sourceField: action.sourceField,
+        newFields: action.expressions.map((e) => e.field),
+      };
       break;
   }
-
-  const newChain = [...beforeChain, assignBlockId(newBlock), ...afterChain];
+  const updatedAfterChain = bubbleDown(bubbleDownParams, afterChain);
+  const newChain = [
+    ...beforeChain,
+    assignBlockId(newBlock),
+    ...updatedAfterChain,
+  ];
   return { chain: newChain, upsertedIndex: updatePoint };
 };

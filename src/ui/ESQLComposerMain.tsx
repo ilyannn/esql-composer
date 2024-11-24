@@ -784,12 +784,13 @@ const ESQLComposerMain = () => {
   };
 
   const handleTransformFieldWithInfo = useCallback(
-    async (field: FieldInfo, naturalInput: string) => {
+    async (sourceField: FieldInfo, naturalInput: string) => {
       await performAnthropicAPIAction("ES|QL field transform", async () => {
         const doneEvalExpression = (field: string, expr: string) => {
           const { chain } = performChainAction(
             visualChain,
-            { action: "eval", expressions: [{ field, expression: expr }] },
+            { action: "eval", sourceField: sourceField.name,
+               expressions: [{ field, expression: expr }] },
             []
           );
           setVisualChain(chain);
@@ -802,7 +803,7 @@ const ESQLComposerMain = () => {
           esqlGuideText,
           schemaGuideText,
           esqlInput,
-          field,
+          sourceFields: [sourceField],
           naturalInput,
           doneEvalExpression,
         })) as any;

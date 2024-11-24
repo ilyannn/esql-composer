@@ -33,7 +33,7 @@ export interface PrepareUpdateRequestOptions {
 
 export interface PrepareTransformationRequestOptions extends PromptOptions {
   type: "transformation";
-  field: FieldInfo;
+  sourceFields: [FieldInfo];
   esqlInput: string;
   naturalInput: string;
 }
@@ -197,11 +197,11 @@ Here are some examples for
     avg_delay = AVG(FlightDelayMin)
     BY Carrier
 | SORT avg_delay DESC`,
-            field: {
+            sourceFields: [{
               name: "avg_delay",
               type: "double",
               examples: ["49.59"],
-            },
+            }],
           }) +
           "\n\n" +
           evalAdapter.formatExamples([
@@ -292,8 +292,10 @@ export const prepareRequest = (
 
   let messages: TextMessage[] = [];
 
-  if (input.type === "transformation") {
-    switch (input.field.type) {
+  if (input.type === "transformation" && input.sourceFields.length === 1) {
+    const sourceField = input.sourceFields[0];
+
+    switch (sourceField.type) {
       case "keyword":
       case "text":
         messages = [
@@ -302,8 +304,8 @@ export const prepareRequest = (
             naturalInput: "uppercase",
           }),
           cachedAssistantMessageForEvalOutput({
-            field: newUppercaseFieldName(input.field.name),
-            expr: applyFunctionToField("TO_UPPER", input.field.name),
+            field: newUppercaseFieldName(sourceField.name),
+            expr: applyFunctionToField("TO_UPPER", sourceField.name),
           }),
         ];
         break;
@@ -313,11 +315,11 @@ export const prepareRequest = (
         messages = [
           userMessageForInput({
             ...input,
-            naturalInput: "round to 2 decimal places",
+            naturalInput: "round to tens",
           }),
           cachedAssistantMessageForEvalOutput({
-            field: input.field.name + " Rounded",
-            expr: applyFunctionToField("ROUND", input.field.name, 2),
+            field: sourceField.name + "_00",
+            expr: applyFunctionToField("ROUND", sourceField.name, -1) + '::long',
           }),
         ];
         break;
