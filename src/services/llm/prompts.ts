@@ -2,7 +2,7 @@ import {
   PromptCachingBetaMessageParam,
   PromptCachingBetaTextBlockParam,
 } from "@anthropic-ai/sdk/resources/beta/prompt-caching";
-import { applyFunctionToField } from "../../models/esql";
+import { applyFunctionToField } from "../../models/esql/esql";
 
 import { evalAdapter, ESQLEvalOutput } from "./schema";
 import { FieldInfo } from "./types";

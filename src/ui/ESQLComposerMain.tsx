@@ -32,7 +32,7 @@ import {
   createInitialChain,
   esqlChainAddToString,
   performChainAction,
-} from "../models/esql";
+} from "../models/esql/esql";
 
 import {
   countTokens,

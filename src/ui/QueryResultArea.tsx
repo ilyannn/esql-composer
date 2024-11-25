@@ -24,14 +24,17 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 
-import { TableData, Column } from "../services/es";
-import { ESQLChainAction } from "../models/esql";
+import { TableData, TableColumn } from "../services/es";
+import { ESQLChainAction } from "../models/esql/esql";
 
-import { GoSortAsc, GoSortDesc, GoFilter, GoTrash } from "react-icons/go";
+import { GoTrash } from "react-icons/go";
+import { CiFilter } from "react-icons/ci";
 import SpinningButton from "./components/SpinningButton";
 import DataTableBody from "./components/DataTableBody";
 import InputNaturalPrompt from "./modals/InputNaturalPrompt";
 import { FieldInfo } from "../services/llm";
+import SortIcon from "./components/SortIcon";
+import { esqlIsTypeSortable, esqlTypeToClass } from "../models/esql/esql_types";
 
 interface QueryResultAreaProps {
   data: TableData | null;
@@ -76,20 +79,20 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
     return handleChainActionInContext(action, knownFields);
   };
 
-  const handleRenameField = (field: string, newName: string) => {
-    if (field === newName) {
+  const handleRenameColumn = (column: TableColumn, newName: string) => {
+    if (column.name === newName) {
       return;
     }
 
     handleChainAction({
       action: "rename",
-      field,
+      column,
       newName,
     });
   };
 
   const handleTransformColumn = (
-    column: Column,
+    column: TableColumn,
     columnIndex: number,
     naturalInput: string
   ) => {
@@ -225,60 +228,64 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
             <Table variant="striped" colorScheme="teal" size="sm">
               <Thead>
                 <Tr>
-                  {data.columns.map((col, colIndex) => {
+                  {data.columns.map((column, colIndex) => {
                     return (
-                      <Th key={col.name} textTransform="none" fontSize={"md"}>
+                      <Th
+                        key={column.name}
+                        textTransform="none"
+                        fontSize={"md"}
+                      >
                         <Editable
-                          defaultValue={col.name}
+                          defaultValue={column.name}
                           submitOnBlur={false}
                           fontFamily={"sans-serif"}
                           onSubmit={(value) =>
-                            handleRenameField(col.name, value)
+                            handleRenameColumn(column, value)
                           }
                         >
                           <EditablePreview />
                           <EditableInput />
                         </Editable>
-                        <IconButton
-                          variant={"ghost"}
-                          colorScheme="gray"
-                          aria-label="Sort Ascending"
-                          icon={<GoSortAsc />}
-                          onClick={() =>
-                            handleChainAction({
-                              action: "sortAsc",
-                              field: col.name,
-                            })
-                          }
-                        />
-                        <IconButton
-                          variant={"ghost"}
-                          colorScheme="gray"
-                          aria-label="Sort Descending"
-                          icon={<GoSortDesc />}
-                          onClick={() =>
-                            handleChainAction({
-                              action: "sortDesc",
-                              field: col.name,
-                            })
-                          }
-                        />
+                        {esqlIsTypeSortable(column.type) && (
+                          <>
+                            <SortIcon
+                              variant={esqlTypeToClass(column.type)}
+                              ascending={true}
+                              onClick={() =>
+                                handleChainAction({
+                                  action: "sortAsc",
+                                  column,
+                                })
+                              }
+                            />
+                            <SortIcon
+                              variant={esqlTypeToClass(column.type)}
+                              ascending={false}
+                              onClick={() =>
+                                handleChainAction({
+                                  action: "sortDesc",
+                                  column,
+                                })
+                              }
+                            />
+                          </>
+                        )}
                         <IconButton
                           variant={"ghost"}
                           colorScheme="gray"
                           aria-label="Filter Field"
-                          icon={<GoFilter />}
+                          icon={<CiFilter size={22} />}
                           onClick={() =>
                             handleChainAction({
                               action: "filter",
-                              field: col.name,
+                              column,
                             })
                           }
                         />
                         <InputNaturalPrompt
-                          inputLabel={`Transform field ${col.name}`}
-                          onSubmit={(input) => {                        
-                            handleTransformColumn(col, colIndex, input);
+                          inputLabel={`Transform field ${column.name}`}
+                          onSubmit={(input) => {
+                            handleTransformColumn(column, colIndex, input);
                           }}
                         >
                           <Button
@@ -297,7 +304,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                           onClick={() =>
                             handleChainAction({
                               action: "drop",
-                              field: col.name,
+                              column,
                             })
                           }
                         />

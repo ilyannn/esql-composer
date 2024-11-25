@@ -1,3 +1,5 @@
+import { ESQLColumnType } from "../models/esql/esql_types";
+
 interface ESAPIOptions {
   apiURL: string;
   apiKey: string;
@@ -12,13 +14,13 @@ interface ESQLDeriveSchemaOptions extends ESAPIOptions {
   randomSamplingFactor: number;
 }
 
-export interface Column {
+export interface TableColumn {
   name: string;
-  type: string;
+  type: ESQLColumnType
 }
 
 export interface TableData {
-  columns: Column[];
+  columns: TableColumn[];
   values: Array<Array<string | number | boolean | any[] | null>>;
 }
 

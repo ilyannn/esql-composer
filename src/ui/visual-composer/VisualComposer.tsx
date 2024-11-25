@@ -7,16 +7,16 @@ import {
   SliderFilledTrack,
   SliderThumb,
   SliderMark,
-  TagRightIcon,
   HStack,
   Wrap,
   WrapItem,
+  TagCloseButton,
 } from "@chakra-ui/react";
-import { BlockHasStableId, ESQLBlock, ESQLChain } from "../../models/esql";
+import { BlockHasStableId, ESQLBlock, ESQLChain } from "../../models/esql/esql";
 import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
-import { GoSortAsc, GoSortDesc } from "react-icons/go";
 import FieldTag from "../components/FieldTag";
 import { FieldTagMesh } from "../components/FieldTagMesh";
+import SortIcon from "../components/SortIcon";
 
 interface ESQLComposerProps {
   chain: ESQLChain;
@@ -76,8 +76,10 @@ const renderBlockContents = (
   switch (block.command) {
     case "LIMIT":
       return renderLimitBlock(index, handleLimitChange, block);
+
     case "DROP":
       return <FieldTagMesh size="md" fields={block.fields} />;
+
     case "KEEP":
       return (
         <FieldTagMesh
@@ -86,32 +88,62 @@ const renderBlockContents = (
           setFields={(fields) => updateBlock(index, { ...block, fields })}
         />
       );
+
     case "WHERE":
       return <Text>{block.field}</Text>;
+
     case "EVAL":
       return (
         <VStack spacing={2} align="stretch" justify={"flex-start"}>
           {block.expressions.map(({ field, expression }) => (
-            <HStack spacing={3} align="baseline" justify={"flex-initial"} key={field}>
-              <FieldTag size="lg" name={field}/>
+            <HStack
+              spacing={3}
+              align="baseline"
+              justify={"flex-initial"}
+              key={field}
+            >
+              <FieldTag size="lg" name={field} />
               <Text>←</Text>
-              <Text fontFamily={"monospace"} flex={1}>{expression}</Text>
+              <Text fontFamily={"monospace"} flex={1}>
+                {expression}
+              </Text>
             </HStack>
           ))}
         </VStack>
       );
+
     case "SORT":
       return (
         <Wrap spacing={2}>
           {block.order.map((atom) => (
             <WrapItem key={atom.field}>
               <FieldTag size="lg" name={atom.field}>
-                <TagRightIcon as={atom.asc ? GoSortAsc : GoSortDesc} />
+                <SortIcon
+                  variant={atom.sort_class}
+                  ascending={atom.asc}
+                  onClick={() => {
+                    updateBlock(index, {
+                      ...block,
+                      order: block.order.map((a) =>
+                        a.field === atom.field ? { ...a, asc: !a.asc } : a
+                      ),
+                    });
+                  }}
+                />
+                <TagCloseButton
+                  onClick={() => {
+                    updateBlock(index, {
+                      ...block,
+                      order: block.order.filter((a) => a.field !== atom.field),
+                    });
+                  }}
+                />
               </FieldTag>
             </WrapItem>
           ))}
         </Wrap>
       );
+
     case "RENAME":
       return (
         <VStack spacing={2} align="stretch" justify={"center"}>

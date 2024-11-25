@@ -1,6 +1,9 @@
 // This implements the subset of the Elasticsearch Query Language (ES|QL)
 // data that is used in the visual composer application.
 
+import { TableColumn } from "../../services/es";
+import { esqlTypeToClass, ESQLColumnTypeClass } from "./esql_types";
+
 interface BaseESQLBlock {
   command: string;
   stableId?: string;
@@ -48,6 +51,7 @@ export interface EvalBlock extends BaseESQLBlock {
 
 interface OrderItem {
   field: string;
+  sort_class: ESQLColumnTypeClass;
   asc: boolean;
 }
 
@@ -200,9 +204,9 @@ interface ESQLChainSimpleAction {
   action: "keep" | "limit";
 }
 
-interface ESQLFieldBaseAction {
+interface ESQLColumnBaseAction {
   action: string;
-  field: string;
+  column: TableColumn;
 }
 
 interface ESQLChainEvalAction {
@@ -211,19 +215,19 @@ interface ESQLChainEvalAction {
   expressions: EvalExpression[];
 }
 
-interface ESQLFieldSimpleAction extends ESQLFieldBaseAction {
+interface ESQLColumnSimpleAction extends ESQLColumnBaseAction {
   action: "drop" | "sortAsc" | "sortDesc" | "filter";
 }
 
-interface ESQLFieldRenameAction extends ESQLFieldBaseAction {
+interface ESQLColumnRenameAction extends ESQLColumnBaseAction {
   action: "rename";
   newName: string;
 }
 
-export type ESQLFieldAction = ESQLFieldSimpleAction | ESQLFieldRenameAction;
+export type ESQLColumnAction = ESQLColumnSimpleAction | ESQLColumnRenameAction;
 export type ESQLChainAction =
   | ESQLChainSimpleAction
-  | ESQLFieldAction
+  | ESQLColumnAction
   | ESQLChainEvalAction;
 
 interface FindUpdatePointResult {
@@ -247,7 +251,7 @@ const canActOnThisBlock = (
     case "sortDesc":
       return block.command === "SORT";
     case "filter":
-      return block.command === "WHERE" && block.field === action.field;
+      return block.command === "WHERE" && block.field === action.column.name;
     case "rename":
       return block.command === "RENAME";
     default:
@@ -369,9 +373,7 @@ const bubbleDown = (
     switch (block.command) {
       case "DROP":
         const currentNewFields = new Set(newFields);
-        const fields = block.fields.filter(
-          (f) => !currentNewFields.has(f)
-        );
+        const fields = block.fields.filter((f) => !currentNewFields.has(f));
         blocks.push({ ...block, fields });
         break;
 
@@ -383,7 +385,7 @@ const bubbleDown = (
               ? fieldsToKeep.indexOf(sourceField)
               : -1;
             console.log("fieldsToKeep", fieldsToKeep);
-            console.log("sourceField", sourceField);  
+            console.log("sourceField", sourceField);
             console.log("insertIndex", insertIndex);
             fieldsToKeep = [
               ...fieldsToKeep.slice(0, insertIndex + 1),
@@ -452,26 +454,28 @@ export const performChainAction = (
     case "drop":
       newBlock = blockUpdateForDrop(
         prevBlock as DropBlock | KeepBlock | null,
-        action.field
+        action.column.name
       );
       break;
 
     case "sortAsc":
       newBlock = blockUpdateForSort(prevBlock as SortBlock | null, {
-        field: action.field,
+        field: action.column.name,
+        sort_class: esqlTypeToClass(action.column.type),
         asc: true,
       });
       break;
 
     case "sortDesc":
       newBlock = blockUpdateForSort(prevBlock as SortBlock | null, {
-        field: action.field,
+        field: action.column.name,
+        sort_class: esqlTypeToClass(action.column.type),
         asc: false,
       });
       break;
 
     case "filter":
-      newBlock = { command: "WHERE", field: action.field, values: [] };
+      newBlock = { command: "WHERE", field: action.column.name, values: [] };
       break;
 
     case "rename":
@@ -480,7 +484,7 @@ export const performChainAction = (
       }
       newBlock = blockUpdateForRename(
         prevBlock as RenameBlock | null,
-        action.field,
+        action.column.name,
         action.newName
       );
       break;
