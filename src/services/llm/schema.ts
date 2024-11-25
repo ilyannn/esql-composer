@@ -25,9 +25,6 @@ class Adapter<
     if (outputSet.size !== this.outputSchema.length) {
       throw new Error("Duplicate output schema fields");
     }
-    if (inputSet.intersection(outputSet).size > 0) {
-      throw new Error("Input and output schema fields overlap");
-    }
   }
 
   public formatInput(input: InputType): string {
