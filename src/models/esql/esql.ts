@@ -2,7 +2,13 @@
 // data that is used in the visual composer application.
 
 import { TableColumn } from "../../services/es";
-import { esqlTypeToClass, ESQLColumnTypeClass } from "./esql_types";
+import {
+  esqlTypeToClass,
+  ESQLColumnTypeClass,
+  ESQLAtomValue,
+  ESQLSentinelOtherValues,
+  esqlRepresentation,
+} from "./esql_types";
 
 interface BaseESQLBlock {
   command: string;
@@ -33,10 +39,23 @@ export interface RenameBlock extends BaseESQLBlock {
   map: { [oldName: string]: string };
 }
 
+interface FilterValue {
+  value: ESQLAtomValue | typeof ESQLSentinelOtherValues;
+  included: boolean;
+}
+
+export interface ValueStatistics {
+  totalCount: number;
+  valueCounts: Record<ESQLAtomValue, number>;
+}
+
 export interface FilterBlock extends BaseESQLBlock {
   command: "WHERE";
   field: string;
-  values: any[];
+  values: FilterValue[];
+  localStats: ValueStatistics;
+  topStatsRetrieved: number;
+  topStats: ValueStatistics | undefined;
 }
 
 interface EvalExpression {
@@ -141,10 +160,32 @@ const renameBlockToString = (block: RenameBlock): string | null => {
 };
 
 const whereBlockToString = (block: FilterBlock): string | null => {
+  console.log("block", block);
+
   if (block.values.length === 0) {
     return null;
   }
-  return `WHERE ${escape(block.field)} = ...`;
+
+  const otherValuesIncluded = block.values.some((v) => v.value === ESQLSentinelOtherValues && v.included);
+ 
+  const keyValues: ESQLAtomValue[] = block.values
+    .filter((v) => v.included !== otherValuesIncluded)
+    .map((v) => v.value)
+    .filter((v) => v !== ESQLSentinelOtherValues); // not necessary from the logical standpoint, but makes the type checker happy
+
+  if (keyValues.length === 0) {
+    return `WHERE ${otherValuesIncluded}`
+  }
+
+  if (keyValues.length === 1) {
+    const op = otherValuesIncluded ? "!=" : "==";
+    return `WHERE ${block.field} ${op} ${esqlRepresentation(keyValues[0])}`;
+  }
+
+  const op = otherValuesIncluded ? "NOT IN" : "IN";
+  const expr: string = '(' + keyValues.map((v) => esqlRepresentation(v)).join(", ") + ')';
+  
+  return `WHERE ${block.field} ${op} ${expr}`;
 };
 
 const sortBlockToString = (block: SortBlock): string | null => {
@@ -216,7 +257,7 @@ interface ESQLChainEvalAction {
 }
 
 interface ESQLColumnSimpleAction extends ESQLColumnBaseAction {
-  action: "drop" | "sortAsc" | "sortDesc" | "filter";
+  action: "drop" | "sortAsc" | "sortDesc";
 }
 
 interface ESQLColumnRenameAction extends ESQLColumnBaseAction {
@@ -224,7 +265,16 @@ interface ESQLColumnRenameAction extends ESQLColumnBaseAction {
   newName: string;
 }
 
-export type ESQLColumnAction = ESQLColumnSimpleAction | ESQLColumnRenameAction;
+interface ESQLColumnFilterAction extends ESQLColumnBaseAction {
+  action: "filter";
+  stats: ValueStatistics;
+}
+
+export type ESQLColumnAction =
+  | ESQLColumnSimpleAction
+  | ESQLColumnRenameAction
+  | ESQLColumnFilterAction;
+
 export type ESQLChainAction =
   | ESQLChainSimpleAction
   | ESQLColumnAction
@@ -413,6 +463,18 @@ const bubbleDown = (
   return blocks;
 };
 
+const provideValues = (stats: ValueStatistics): FilterValue[] => {
+  const entries = Object.entries(stats.valueCounts);
+  entries.sort((a, b) => b[1] - a[1]);
+
+  const entryValues = entries.map(([value, count]) => ({
+    value,
+    included: true,
+  }));
+  
+  return [...entryValues, { value: ESQLSentinelOtherValues, included: true }];
+};
+
 export const createInitialChain = (): ESQLChain => {
   const { chain } = performChainAction([], { action: "limit" }, []);
   return chain;
@@ -475,7 +537,14 @@ export const performChainAction = (
       break;
 
     case "filter":
-      newBlock = { command: "WHERE", field: action.column.name, values: [] };
+      newBlock = {
+        command: "WHERE",
+        field: action.column.name,
+        values: provideValues(action.stats),
+        localStats: action.stats,
+        topStatsRetrieved: 0,
+        topStats: undefined,
+      };
       break;
 
     case "rename":

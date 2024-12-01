@@ -1,5 +1,5 @@
 import { HStack, Wrap, WrapItem } from "@chakra-ui/react";
-import { FieldTag } from "./FieldTag";
+import { FieldTag } from "./atoms/FieldTag";
 import { useCallback, useState } from "react";
 
 interface FieldTagMeshProps {

@@ -22,10 +22,10 @@ import {
   useDisclosure,
   CloseButton,
 } from "@chakra-ui/react";
-import React from "react";
+import React, { useCallback } from "react";
 
 import { TableData, TableColumn } from "../services/es";
-import { ESQLChainAction } from "../models/esql/esql";
+import { ESQLChainAction, ValueStatistics } from "../models/esql/esql";
 
 import { GoTrash } from "react-icons/go";
 import { CiFilter } from "react-icons/ci";
@@ -34,7 +34,12 @@ import DataTableBody from "./components/DataTableBody";
 import InputNaturalPrompt from "./modals/InputNaturalPrompt";
 import { FieldInfo } from "../services/llm";
 import SortIcon from "./components/SortIcon";
-import { esqlIsTypeSortable, esqlTypeToClass } from "../models/esql/esql_types";
+import {
+  esqlIsTypeSortable,
+  esqlTypeToClass,
+  esqlRawToHashableValue,
+  ESQLAtomValue,
+} from "../models/esql/esql_types";
 
 interface QueryResultAreaProps {
   data: TableData | null;
@@ -74,10 +79,10 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   const { isOpen: isLimitWarningVisible, onClose: closeLimitWarning } =
     useDisclosure({ defaultIsOpen: true });
 
-  const handleChainAction = (action: ESQLChainAction): boolean => {
+  const handleChainAction = useCallback((action: ESQLChainAction): boolean => {
     const knownFields = data?.columns.map((col) => col.name) ?? [];
     return handleChainActionInContext(action, knownFields);
-  };
+  }, [data, handleChainActionInContext]);
 
   const handleRenameColumn = (column: TableColumn, newName: string) => {
     if (column.name === newName) {
@@ -103,6 +108,34 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
     };
     handleTransformFieldWithInfo(fieldInfo, naturalInput);
   };
+
+  const handleFilterColumn = useCallback(
+    (column: TableColumn, columnIndex: number) => {
+      const values = data
+        ? data.values
+            .map((row) => row[columnIndex])
+            .flatMap((value) => (Array.isArray(value) ? value : [value]))
+        : [];
+
+      const valueCounts = values.reduce((acc, value) => {
+        const key = esqlRawToHashableValue(value);
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {} as Record<ESQLAtomValue, number>);
+
+      const stats: ValueStatistics = {
+        totalCount: values.length,
+        valueCounts,
+      };
+      
+      handleChainAction({
+        action: "filter",
+        column,
+        stats,
+      });
+    },
+    [data, handleChainAction]
+  );
 
   return (
     <>
@@ -275,12 +308,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                           colorScheme="gray"
                           aria-label="Filter Field"
                           icon={<CiFilter size={22} />}
-                          onClick={() =>
-                            handleChainAction({
-                              action: "filter",
-                              column,
-                            })
-                          }
+                          onClick={() => handleFilterColumn(column, colIndex)}
                         />
                         <InputNaturalPrompt
                           inputLabel={`Transform field ${column.name}`}

@@ -12,7 +12,7 @@ export const FieldTag: React.FC<{
     size={size}
     variant="outline"
     alignItems={"center"}
-    colorScheme={disabled ? "gray" : "teal"}
+    colorScheme={disabled ? "gray" :"pink"}
     opacity={disabled ? 0.5 : 1}
     onClick={onClick}
   >

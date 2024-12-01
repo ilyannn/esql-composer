@@ -1,3 +1,53 @@
+export type ESQLNonNullRawValue = string | number | boolean;
+export type ESQLAtomRawValue = ESQLNonNullRawValue | null;
+export type ESQLAtomRawMultivalue = ESQLAtomRawValue[];
+
+export const ESQLValueTrue = Symbol("ES|QL true value");
+export const ESQLValueFalse = Symbol("ES|QL false value");
+export const ESQLValueNull = Symbol("ES|QL null value");
+export const ESQLSentinelOtherValues = Symbol(
+  "Represents values not listed otherwise"
+);
+
+export type ESQLAtomValue =
+  | string
+  | number
+  | typeof ESQLValueTrue
+  | typeof ESQLValueFalse
+  | typeof ESQLValueNull;
+
+export const esqlRawToHashableValue = (
+  value: ESQLAtomRawValue
+): ESQLAtomValue => {
+  if (value === true) {
+    return ESQLValueTrue;
+  }
+  if (value === false) {
+    return ESQLValueFalse;
+  }
+  if (value === null) {
+    return ESQLValueNull;
+  }
+  return value;
+};
+
+// Representation of the value that can be parsed back.
+export const esqlRepresentation = (value: ESQLAtomValue): string => {
+  if (value === ESQLValueTrue) {
+    return "true";
+  }
+  if (value === ESQLValueFalse) {
+    return "false";
+  }
+  if (value === ESQLValueNull) {
+    return "null";
+  }
+  if (typeof value === "number") {
+    return value.toString();
+  }
+  return JSON.stringify(value);
+};
+
 export type ESQLNumberType =
   | "double"
   | "integer"

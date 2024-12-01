@@ -11,12 +11,25 @@ import {
   Wrap,
   WrapItem,
   TagCloseButton,
+  Checkbox,
+  CheckboxGroup,
 } from "@chakra-ui/react";
-import { BlockHasStableId, ESQLBlock, ESQLChain } from "../../models/esql/esql";
+import {
+  BlockHasStableId,
+  ESQLBlock,
+  ESQLChain,
+  ValueStatistics,
+} from "../../models/esql/esql";
 import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
-import FieldTag from "../components/FieldTag";
+import FieldTag from "../components/atoms/FieldTag";
 import { FieldTagMesh } from "../components/FieldTagMesh";
 import SortIcon from "../components/SortIcon";
+import {
+  ESQLAtomValue,
+  ESQLSentinelOtherValues,
+} from "../../models/esql/esql_types";
+import FieldValue from "../components/atoms/FieldValue";
+import SpinningButton from "../components/SpinningButton";
 
 interface ESQLComposerProps {
   chain: ESQLChain;
@@ -67,6 +80,30 @@ const renderLimitBlock = (
   );
 };
 
+const getStatsText = (
+  value: ESQLAtomValue,
+  localStats: ValueStatistics,
+  globalStats: ValueStatistics | undefined
+): string => {
+  const globalCount = globalStats?.valueCounts[value];
+
+  if (globalCount === undefined) {
+    const localCount = localStats.valueCounts[value];
+    const localTotal = localStats.totalCount;
+    return localCount && localTotal ? `${localCount}/${localTotal}` : "";
+  }
+
+  const fractionPercentage = Math.round(
+    (globalCount / globalStats!.totalCount) * 100
+  );
+
+  if (fractionPercentage === 0) {
+    return "";
+  }
+
+  return `${fractionPercentage}%`;
+};
+
 const renderBlockContents = (
   index: number,
   block: ESQLBlock & BlockHasStableId,
@@ -90,7 +127,62 @@ const renderBlockContents = (
       );
 
     case "WHERE":
-      return <Text>{block.field}</Text>;
+      return (
+        <CheckboxGroup colorScheme="blackAlpha">
+          <Wrap spacingX={6} align={"center"}>
+            <FieldTag size="lg" name={block.field} />
+            {block.values.map((v, valueIndex) => {
+              const statsText =
+                v.value === ESQLSentinelOtherValues
+                  ? undefined
+                  : getStatsText(v.value, block.localStats, block.topStats);
+
+              return (
+                <>
+                  {block.topStatsRetrieved === valueIndex && (
+                    <WrapItem key={"loading"}>
+                      <SpinningButton
+                        targets="es"
+                        type="submit"
+                        size="sm"
+                        spinningAction={function (): Promise<void> {
+                          throw new Error("Function not implemented.");
+                        }}
+                      >
+                        Get Top {block.topStatsRetrieved + 10}
+                      </SpinningButton>
+                    </WrapItem>
+                  )}
+                  <WrapItem key={v.value.toString()}>
+                    <Checkbox
+                      isChecked={v.included}
+                      onChange={(e) => {
+                        updateBlock(index, {
+                          ...block,
+                          values: block.values.map((v, i) =>
+                            i === valueIndex
+                              ? { ...v, included: e.target.checked }
+                              : v
+                          ),
+                        });
+                      }}
+                    >
+                      <HStack spacing={2} align={"baseline"}>
+                        <FieldValue value={v.value} />
+                        {statsText !== "" && (
+                          <Text color={"gray.500"} fontSize={"xs"}>
+                            {statsText}
+                          </Text>
+                        )}
+                      </HStack>
+                    </Checkbox>
+                  </WrapItem>
+                </>
+              );
+            })}
+          </Wrap>
+        </CheckboxGroup>
+      );
 
     case "EVAL":
       return (

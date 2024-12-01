@@ -7,12 +7,24 @@ interface SpinningButtonProps {
   disabled?: boolean;
   children: ReactNode;
   type: "button" | "submit" | "reset" | undefined;
-  targets?: "es" | "llm"; 
+  targets?: "es" | "llm";
+  size?: "sm" | "md" | "lg";
   gratisAction?: boolean;
 }
 
 const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
-  ({ spinningAction, disabled, children, targets = "llm", type, gratisAction }, ref) => {
+  (
+    {
+      spinningAction,
+      disabled,
+      children,
+      targets = "llm",
+      type,
+      size = "md",
+      gratisAction,
+    },
+    ref
+  ) => {
     const [isLoading, setIsLoading] = useState(false);
 
     const onClick = useCallback(async () => {
@@ -32,15 +44,16 @@ const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
         type={type}
         onClick={onClick}
         isLoading={isLoading}
+        size={size}
         isDisabled={disabled || false}
         spinner={
           gratisAction === true ? (
-            <PacmanLoader size={15} color="blue" speedMultiplier={2}/>
+            <PacmanLoader size={15} color="blue" speedMultiplier={2} />
           ) : (
             <ScaleLoader height={25} margin={4} color="white" />
           )
         }
-        colorScheme={targets === "es" ? "teal": "orange"}
+        colorScheme={targets === "es" ? "teal" : "orange"}
         variant={gratisAction === true ? "outline" : "solid"}
       >
         {children}

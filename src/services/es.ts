@@ -1,4 +1,4 @@
-import { ESQLColumnType } from "../models/esql/esql_types";
+import { ESQLColumnType, ESQLAtomRawValue, ESQLAtomRawMultivalue } from "../models/esql/esql_types";
 
 interface ESAPIOptions {
   apiURL: string;
@@ -21,7 +21,7 @@ export interface TableColumn {
 
 export interface TableData {
   columns: TableColumn[];
-  values: Array<Array<string | number | boolean | any[] | null>>;
+  values: Array<Array<ESQLAtomRawValue | ESQLAtomRawMultivalue>>;
 }
 
 export class QueryAPIError extends Error {
