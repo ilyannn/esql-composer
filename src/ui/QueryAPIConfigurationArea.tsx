@@ -11,9 +11,10 @@ import {
   StackDivider,
   Tooltip,
   VStack,
+  useToast,
 } from "@chakra-ui/react";
-import React from "react";
-import RecordView  from "./components/RecordView";
+import React, { useCallback } from "react";
+import RecordView from "./components/RecordView";
 import SpinningButton from "./components/SpinningButton";
 
 interface QueryAPIConfigurationAreaProps {
@@ -37,6 +38,63 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
   handleShowInfo,
   info,
 }) => {
+  const toast = useToast();
+  const [isAPIKeyDragging, setIsAPIKeyDragging] = React.useState(false);
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "copy";
+    setIsAPIKeyDragging(true);
+  }, []);
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      setIsAPIKeyDragging(false);
+      const droppedFiles = event.dataTransfer.files;
+
+      if (droppedFiles.length > 0) {
+        for (const file of droppedFiles) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const json = JSON.parse(e.target?.result as string);
+              if ("encoded" in json && typeof json.encoded === "string") {
+                setApiKey(json.encoded);
+                const name =
+                  "name" in json && typeof json.name === "string"
+                    ? `named '${json.name}' `
+                    : "";
+                toast({
+                  title: "API Key Drag & Drop",
+                  description: `API key ${name}successfully loaded from file.`,
+                  status: "success",
+                  duration: 2500,
+                  isClosable: true,
+                });
+              } else {
+                throw new Error("Invalid API key file.");
+              }
+            } catch (e) {
+              toast({
+                title: "API Key Drag & Drop",
+                description:
+                  "Failed to load API key from file. Make sure the file is a valid JSON object with an 'encoded' field.",
+                status: "error",
+                duration: 4000,
+                isClosable: true,
+              });
+            }
+          };
+          reader.readAsText(file);
+        }
+      }
+    },
+    [toast, setApiKey]
+  );
+
   return (
     <VStack align="stretch" justify="space-between" spacing={6}>
       <form onSubmit={(e) => e.preventDefault()}>
@@ -82,6 +140,10 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
           <FormControl
             isInvalid={apiKey.length !== 0 && apiKeyWorks === false}
             flex={1}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+            onDragEnter={() => setIsAPIKeyDragging(true)}
+            onDragLeave={() => setIsAPIKeyDragging(false)}
           >
             <FormLabel>Elasticsearch API Key</FormLabel>
             <InputGroup>
@@ -93,6 +155,11 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
                 onChange={(e) => {
                   setApiKey(e.target.value);
                 }}
+                style={
+                  isAPIKeyDragging
+                    ? { border: "1px dashed blue", color: "blue" }
+                    : {}
+                }
                 errorBorderColor="red.300"
                 flex={1}
               />
@@ -125,7 +192,7 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
                 Show Info
               </SpinningButton>
             </Tooltip>
-            {info && <RecordView record={info}/>}
+            {info && <RecordView record={info} />}
           </VStack>
         </HStack>
       </form>
