@@ -1,39 +1,33 @@
-import React, { useState } from "react";
 import {
-  VStack,
-  Text,
-  Slider,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb,
-  SliderMark,
+  CheckboxGroup,
   HStack,
+  Slider,
+  SliderFilledTrack,
+  SliderMark,
+  SliderThumb,
+  SliderTrack,
+  Spacer,
+  TagCloseButton,
+  Text,
+  VStack,
   Wrap,
   WrapItem,
-  TagCloseButton,
-  Checkbox,
-  CheckboxGroup,
 } from "@chakra-ui/react";
-import {
-  BlockHasStableId,
-  ESQLBlock,
-  ESQLChain,
-  ValueStatistics,
-} from "../../models/esql/esql";
-import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
+import { toInteger } from "lodash";
+import React, { useState } from "react";
+import { BlockHasStableId, ESQLBlock, ESQLChain, FilterBlock, ValueStatistics } from "../../models/esql/esql";
+import { ESQLSentinelOtherValues } from "../../models/esql/esql_types";
 import FieldTag from "../components/atoms/FieldTag";
 import { FieldTagMesh } from "../components/FieldTagMesh";
+import FilterValueCheckbox from "../components/FilterValueCheckbox";
 import SortIcon from "../components/SortIcon";
-import {
-  ESQLAtomValue,
-  ESQLSentinelOtherValues,
-} from "../../models/esql/esql_types";
-import FieldValue from "../components/atoms/FieldValue";
 import SpinningButton from "../components/SpinningButton";
+import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
 
 interface ESQLComposerProps {
   chain: ESQLChain;
   updateBlock(index: number, block: ESQLBlock): void;
+  getGlobalTopStats: (index: number, fieldName: string, topN: number) => Promise<ValueStatistics>;
   handleBlockAction(index: number, action: ComposerBlockAction): void;
 }
 
@@ -80,35 +74,12 @@ const renderLimitBlock = (
   );
 };
 
-const getStatsText = (
-  value: ESQLAtomValue,
-  localStats: ValueStatistics,
-  globalStats: ValueStatistics | undefined
-): string => {
-  const globalCount = globalStats?.valueCounts[value];
-
-  if (globalCount === undefined) {
-    const localCount = localStats.valueCounts[value];
-    const localTotal = localStats.totalCount;
-    return localCount && localTotal ? `${localCount}/${localTotal}` : "";
-  }
-
-  const fractionPercentage = Math.round(
-    (globalCount / globalStats!.totalCount) * 100
-  );
-
-  if (fractionPercentage === 0) {
-    return "";
-  }
-
-  return `${fractionPercentage}%`;
-};
-
 const renderBlockContents = (
   index: number,
   block: ESQLBlock & BlockHasStableId,
   updateBlock: (index: number, block: ESQLBlock) => void,
-  handleLimitChange: (index: number, limit: number | null) => void
+  handleLimitChange: (index: number, limit: number | null) => void,
+  handleWhereTopStats: (index: number, requestedFor: number) => Promise<void>
 ) => {
   switch (block.command) {
     case "LIMIT":
@@ -127,60 +98,72 @@ const renderBlockContents = (
       );
 
     case "WHERE":
+      const onCheckValueAt = (valueIndex: number, newChecked: boolean) => {
+        updateBlock(index, {
+          ...block,
+          values: block.values.map((f, i) =>
+            i === valueIndex ? { ...f, included: newChecked } : f
+          ),
+        });
+      };
       return (
         <CheckboxGroup colorScheme="blackAlpha">
-          <Wrap spacingX={6} align={"center"}>
-            <FieldTag size="lg" name={block.field} />
-            {block.values.map((v, valueIndex) => {
-              const statsText =
-                v.value === ESQLSentinelOtherValues
-                  ? undefined
-                  : getStatsText(v.value, block.localStats, block.topStats);
+          <VStack spacing={3} align="stretch">
+            <HStack spacing={3} align="baseline" justify={"flex-start"}>
+              <FieldTag size="lg" name={block.field} />
+              <Spacer flex={2} />
+              {block.values.map((v, valueIndex) => {
+                return (
+                  v.value === ESQLSentinelOtherValues && (
+                    <FilterValueCheckbox
+                      valueIndex={valueIndex}
+                      block={block}
+                      updateChecked={(newChecked) =>
+                        onCheckValueAt(valueIndex, newChecked)
+                      }
+                    />
+                  )
+                );
+              })}
+            </HStack>
 
-              return (
-                <>
-                  {block.topStatsRetrieved === valueIndex && (
-                    <WrapItem key={"loading"}>
-                      <SpinningButton
-                        targets="es"
-                        type="submit"
-                        size="sm"
-                        spinningAction={function (): Promise<void> {
-                          throw new Error("Function not implemented.");
-                        }}
-                      >
-                        Get Top {block.topStatsRetrieved + 10}
-                      </SpinningButton>
-                    </WrapItem>
-                  )}
-                  <WrapItem key={v.value.toString()}>
-                    <Checkbox
-                      isChecked={v.included}
-                      onChange={(e) => {
-                        updateBlock(index, {
-                          ...block,
-                          values: block.values.map((v, i) =>
-                            i === valueIndex
-                              ? { ...v, included: e.target.checked }
-                              : v
-                          ),
-                        });
-                      }}
-                    >
-                      <HStack spacing={2} align={"baseline"}>
-                        <FieldValue value={v.value} />
-                        {statsText !== "" && (
-                          <Text color={"gray.500"} fontSize={"xs"}>
-                            {statsText}
-                          </Text>
-                        )}
-                      </HStack>
-                    </Checkbox>
-                  </WrapItem>
-                </>
-              );
-            })}
-          </Wrap>
+            <Wrap spacingX={6} align={"center"}>
+              {block.values.map((v, valueIndex) => {
+                return (
+                  <>
+                    {block.topStatsRetrieved === valueIndex && (
+                      <WrapItem key={"loading"}>
+                        <SpinningButton
+                          targets="es"
+                          type="submit"
+                          size="sm"
+                          spinningAction={async () =>
+                            handleWhereTopStats(
+                              index,
+                              block.topStatsRetrieved + 10
+                            )
+                          }
+                        >
+                          Get Top {block.topStatsRetrieved + 10}
+                        </SpinningButton>
+                      </WrapItem>
+                    )}
+                    {v.value !== ESQLSentinelOtherValues && (
+                      <WrapItem key={v.value.toString()}>
+                        <FilterValueCheckbox
+                          valueIndex={valueIndex}
+                          block={block}
+                          updateChecked={(newChecked) =>
+                            onCheckValueAt(valueIndex, newChecked)
+                          }
+                        />
+                      </WrapItem>
+                    )}
+                  </>
+                );
+              })}
+            </Wrap>
+          </VStack>
         </CheckboxGroup>
       );
 
@@ -262,6 +245,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
   chain,
   updateBlock,
   handleBlockAction,
+  getGlobalTopStats,
 }) => {
   const [highlightedBlock, setHighlightedBlock] = useState<
     [number, ComposerBlockAction] | null
@@ -289,6 +273,35 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
     updateBlock(index, { command: "LIMIT", limit: limit });
   };
 
+  const handleWhereTopStats = async (
+    index: number,
+  ): Promise<void> => {
+    const filterBlock = chain[index] as FilterBlock & BlockHasStableId;
+    const otherValuesIncluded = filterBlock.values.some((v) => v.value === ESQLSentinelOtherValues && v.included);
+    const topN = filterBlock.topStatsRetrieved + 10;
+    const topStats = await getGlobalTopStats(index, filterBlock.field, topN);
+    const oldValues = new Set(filterBlock.values.map((v) => v.value));
+    const newValues = new Set(Object.keys(topStats.valueCounts)).difference(oldValues);
+    const valuesArray = [...Array.from(newValues).map((v) => ({
+      value: v,
+      included: otherValuesIncluded,
+    })), ...filterBlock.values];
+
+    valuesArray.sort((a, b) => {
+      if (b.value === ESQLSentinelOtherValues || a.value === ESQLSentinelOtherValues) {
+        return toInteger(a.value === ESQLSentinelOtherValues) - toInteger(b.value === ESQLSentinelOtherValues);
+      };
+      return (topStats.valueCounts[b.value] || 0) - (topStats.valueCounts[a.value] || 0)
+    });
+
+    updateBlock(index, {
+      ...filterBlock,
+      topStatsRetrieved: topN,
+      topStats,
+      values: valuesArray,      
+    });
+  }
+
   return (
     <VStack spacing={4} align="stretch">
       {chain.map((block: ESQLBlock & BlockHasStableId, index) => (
@@ -304,7 +317,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
             setHighlightedBlock(null);
           }}
         >
-          {renderBlockContents(index, block, updateBlock, handleLimitChange)}
+          {renderBlockContents(index, block, updateBlock, handleLimitChange, handleWhereTopStats)}
         </ComposerBlock>
       ))}
     </VStack>

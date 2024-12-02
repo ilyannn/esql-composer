@@ -3,11 +3,11 @@
 
 import { TableColumn } from "../../services/es";
 import {
-  esqlTypeToClass,
-  ESQLColumnTypeClass,
   ESQLAtomValue,
+  ESQLColumnTypeClass,
   ESQLSentinelOtherValues,
   esqlRepresentation,
+  esqlTypeToClass,
 } from "./esql_types";
 
 interface BaseESQLBlock {
@@ -39,7 +39,7 @@ export interface RenameBlock extends BaseESQLBlock {
   map: { [oldName: string]: string };
 }
 
-interface FilterValue {
+export interface FilterValue {
   value: ESQLAtomValue | typeof ESQLSentinelOtherValues;
   included: boolean;
 }

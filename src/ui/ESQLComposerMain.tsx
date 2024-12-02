@@ -29,14 +29,15 @@ import {
   ESQLBlock,
   ESQLChain,
   ESQLChainAction,
+  ValueStatistics,
   createInitialChain,
   esqlChainAddToString,
   performChainAction,
 } from "../models/esql/esql";
 
 import {
-  countTokens,
   FieldInfo,
+  countTokens,
   generateESQLUpdate,
   reduceSize,
   testWithSimpleUtterance,
@@ -56,6 +57,11 @@ import {
 import { loadFile } from "../services/files";
 
 import { ExternalLinkIcon } from "@chakra-ui/icons";
+import {
+  ESQLAtomRawValue,
+  ESQLAtomValue,
+  esqlRawToHashableValue,
+} from "../models/esql/esql_types";
 import CacheWarmedNotice from "./components/CacheWarmedNotice";
 import Section from "./components/Section";
 import Statistics from "./components/Statistics";
@@ -277,7 +283,7 @@ const ESQLComposerMain = () => {
         ) {
           description = error.message;
         }
-        
+
         toast({
           title,
           description,
@@ -789,8 +795,11 @@ const ESQLComposerMain = () => {
         const doneEvalExpression = (field: string, expr: string) => {
           const { chain } = performChainAction(
             visualChain,
-            { action: "eval", sourceField: sourceField.name,
-               expressions: [{ field, expression: expr }] },
+            {
+              action: "eval",
+              sourceField: sourceField.name,
+              expressions: [{ field, expression: expr }],
+            },
             []
           );
           setVisualChain(chain);
@@ -916,6 +925,51 @@ const ESQLComposerMain = () => {
     }
   };
 
+  const handleGlobalTopStats = useCallback(
+    async (
+      index: number,
+      fieldName: string,
+      topN: number
+    ): Promise<ValueStatistics> => {
+      let valueCounts = {} as Record<ESQLAtomValue, number>;
+      let totalCount = 0;
+
+      await performQueryAPIAction(
+        `Top ${topN} values for ${fieldName}`,
+        async () => {
+          const queryESQL = esqlChainAddToString(
+            esqlInput,
+            visualChain.slice(0, index)
+          );
+          const countCol = fieldName === "c" ? "cc" : "c";
+
+          const query = `${queryESQL}\n| stats ${countCol}=count() by ${fieldName}\n| sort ${countCol} desc\n | KEEP ${fieldName}, ${countCol} | LIMIT ${topN}`;
+
+          const response = await performESQLQuery({
+            apiURL: queryAPIURL,
+            apiKey: queryAPIKey,
+            query,
+          });
+
+          if (response && response.values) {
+            response.values.forEach((row) => {
+              const value = row[0] as ESQLAtomRawValue;
+              const count = row[1] as number;
+              valueCounts[esqlRawToHashableValue(value)] = count;
+              totalCount += count;
+            });
+          }
+        }
+      );
+
+      return {
+        totalCount,
+        valueCounts,
+      };
+    },
+    [performQueryAPIAction, queryAPIURL, queryAPIKey, esqlInput, visualChain]
+  );
+
   return (
     <Box p={4}>
       <VStack spacing={4} align="stretch">
@@ -1012,6 +1066,7 @@ const ESQLComposerMain = () => {
                 handleBlockAction={(index, action) => {
                   handleVisualBlockAction(index, action);
                 }}
+                getGlobalTopStats={handleGlobalTopStats}
               />
 
               <QueryResultArea
