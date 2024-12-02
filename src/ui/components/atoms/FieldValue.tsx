@@ -18,7 +18,7 @@ const getColor = (
 ): string => {
   if (typeof val === "string") return "green";
   if (typeof val === "number") return "blue";
-  if (val === ESQLValueFalse || val === ESQLValueTrue) return "orange";
+  if (val === ESQLValueFalse || val === ESQLValueTrue) return "purple";
   if (val === ESQLValueNull) return "red";
   return "black";
 };
@@ -28,7 +28,7 @@ const getFontStyle = (
 ): string => {
   if (typeof val === "string") return "oblique";
   if (typeof val === "number") return "normal";
-  if (val === ESQLValueFalse || val === ESQLValueTrue) return "italic";
+  if (val === ESQLValueFalse || val === ESQLValueTrue) return "normal";
   if (val === ESQLValueNull) return "normal";
   return "normal";
 };

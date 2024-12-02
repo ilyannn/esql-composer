@@ -1,9 +1,10 @@
 import { ListItem, Tbody, Td, Tr, UnorderedList } from "@chakra-ui/react";
 import { isEqual } from "lodash";
 import React from "react";
+import { ESQLAtomRawMultivalue, ESQLAtomRawValue } from "../../models/esql/esql_types";
 
 interface DataTableBodyProps {
-  values: any[][];
+  values: (ESQLAtomRawValue | ESQLAtomRawMultivalue)[][];
 }
 
 const DataTableBody = ({ values }: DataTableBodyProps) => {
@@ -15,12 +16,12 @@ const DataTableBody = ({ values }: DataTableBodyProps) => {
             <Td key={colIndex}>
               {typeof val === "object" && Array.isArray(val) ? (
                 <UnorderedList>
-                  {val.map((v: any, i: number) => (
+                  {val.map((v: ESQLAtomRawValue, i: number) => (
                     <ListItem key={i}>{v}</ListItem>
                   ))}
                 </UnorderedList>
               ) : (
-                val
+                val?.toString()
               )}
             </Td>
           ))}

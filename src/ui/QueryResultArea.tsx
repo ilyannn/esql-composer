@@ -1,45 +1,51 @@
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
+  AlertTitle,
   Button,
-  HStack,
   Checkbox,
+  CloseButton,
+  Editable,
+  EditableInput,
+  EditablePreview,
+  HStack,
+  IconButton,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
+  Spacer,
   Table,
   TableContainer,
-  Tooltip,
   Tfoot,
   Th,
   Thead,
+  Tooltip,
   Tr,
-  VStack,
-  IconButton,
-  Editable,
-  EditablePreview,
-  EditableInput,
-  Spacer,
-  Alert,
-  AlertIcon,
-  AlertDescription,
-  AlertTitle,
   useDisclosure,
-  CloseButton,
+  VStack,
 } from "@chakra-ui/react";
 import React, { useCallback } from "react";
 
-import { TableData, TableColumn } from "../services/es";
 import { ESQLChainAction, ValueStatistics } from "../models/esql/esql";
+import { TableColumn, TableData } from "../services/es";
 
-import { GoTrash } from "react-icons/go";
+import { ChevronDownIcon } from "@chakra-ui/icons";
 import { CiFilter } from "react-icons/ci";
-import SpinningButton from "./components/SpinningButton";
-import DataTableBody from "./components/DataTableBody";
-import InputNaturalPrompt from "./modals/InputNaturalPrompt";
-import { FieldInfo } from "../services/llm";
-import SortIcon from "./components/SortIcon";
+import { GoTrash } from "react-icons/go";
 import {
-  esqlIsTypeSortable,
-  esqlTypeToClass,
-  esqlRawToHashableValue,
   ESQLAtomValue,
+  esqlIsTypeSortable,
+  esqlRawToHashableValue,
+  esqlTypeToClass,
 } from "../models/esql/esql_types";
+import { FieldInfo } from "../services/llm";
+import DataTableBody from "./components/DataTableBody";
+import DataTableCombinedColumn from "./components/DataTableCombinedColumn";
+import SortIcon from "./components/SortIcon";
+import SpinningButton from "./components/SpinningButton";
+import InputNaturalPrompt from "./modals/InputNaturalPrompt";
 
 interface QueryResultAreaProps {
   data: TableData | null;
@@ -79,10 +85,15 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   const { isOpen: isLimitWarningVisible, onClose: closeLimitWarning } =
     useDisclosure({ defaultIsOpen: true });
 
-  const handleChainAction = useCallback((action: ESQLChainAction): boolean => {
-    const knownFields = data?.columns.map((col) => col.name) ?? [];
-    return handleChainActionInContext(action, knownFields);
-  }, [data, handleChainActionInContext]);
+  const [isCombinedColumnView, setIsCombinedColumnView] = React.useState(false);
+
+  const handleChainAction = useCallback(
+    (action: ESQLChainAction): boolean => {
+      const knownFields = data?.columns.map((col) => col.name) ?? [];
+      return handleChainActionInContext(action, knownFields);
+    },
+    [data, handleChainActionInContext]
+  );
 
   const handleRenameColumn = (column: TableColumn, newName: string) => {
     if (column.name === newName) {
@@ -127,7 +138,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
         totalCount: values.length,
         valueCounts,
       };
-      
+
       handleChainAction({
         action: "filter",
         column,
@@ -192,7 +203,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
 
           <Spacer />
 
-          {isLimitRecommended && (
+          {/* {isLimitRecommended && (
             <Tooltip
               isDisabled={!tooltipsShown}
               label="Set the limit below to avoid fetching too much data"
@@ -205,9 +216,44 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                 Add Limit
               </Button>
             </Tooltip>
+          )} */}
+
+          {data && (
+            <Menu>
+              <MenuButton
+                as={Button}
+                variant={"ghost"}
+                colorScheme="green"
+                rightIcon={<ChevronDownIcon />}
+              >
+                Table
+              </MenuButton>
+              <MenuList>
+                {isLimitRecommended && (
+                  <MenuItem
+                    onClick={() => handleChainAction({ action: "limit" })}
+                  >
+                    Add Limit 
+                  </MenuItem>
+                )}
+                {isKeepRecommended && (
+                  <MenuItem
+                    onClick={() => handleChainAction({ action: "keep" })}
+                  >
+                    Manage Columns
+                  </MenuItem>
+                )}
+                <MenuItem
+                  onClick={() => setIsCombinedColumnView(!isCombinedColumnView)}
+                >
+                  {isCombinedColumnView ? "Separate" : "Combine"} Columns
+                </MenuItem>
+                <MenuItem onClick={clearData}>Hide Table</MenuItem>
+              </MenuList>
+            </Menu>
           )}
 
-          {isKeepRecommended && (
+          {/* {isKeepRecommended && (
             <Tooltip
               isDisabled={!tooltipsShown}
               label="Add a KEEP clause to move around or select the columns"
@@ -221,9 +267,9 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                 Manage Columns
               </Button>
             </Tooltip>
-          )}
+          )} */}
 
-          <Tooltip
+          {/* <Tooltip
             isDisabled={!tooltipsShown}
             label="Add a an EVAL to create a new column"
           >
@@ -237,9 +283,9 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                 Add
               </Button>
             </InputNaturalPrompt>
-          </Tooltip>
+          </Tooltip> */}
 
-          {data && (
+          {/* {data && (
             <Tooltip
               isDisabled={!tooltipsShown}
               label="Hide the table section until data is fetched again"
@@ -253,10 +299,10 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                 Hide Table
               </Button>
             </Tooltip>
-          )}
+          )} */}
         </HStack>
 
-        {data && (
+        {data && !isCombinedColumnView && (
           <TableContainer>
             <Table variant="striped" colorScheme="teal" size="sm">
               <Thead>
@@ -351,6 +397,10 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
               </Tfoot>
             </Table>
           </TableContainer>
+        )}
+
+        {data && isCombinedColumnView && (
+          <DataTableCombinedColumn fields={data.columns} values={data.values} />
         )}
       </VStack>
     </>
