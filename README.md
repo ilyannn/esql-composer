@@ -108,10 +108,12 @@ Some features that I might (no promise) get to implement if I have time:
 - Read [Prompt Engineering Text-to-QueryDSL Using Claude 3 Models](https://github.com/aws-samples/text-to-queryDSL/blob/main/text2ES_prompting_guide.ipynb).
 - Healing queries with and without an LLM trip.
 - More useful descriptions of user-provided indices.
+- Importing Data Views from Kibana.
 - Improve the color palette.
 - Show ES|QL errors inside the editor.
 - Modernize the dependencies.
-- Additional demo datasets.
+- Switch to [react-aria](https://react-spectrum.adobe.com/react-aria/index.html) for better accessibility.
+- Provide additional demo datasets.
 
 ## Acknowledgements
 
