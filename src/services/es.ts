@@ -36,6 +36,13 @@ export class QueryAPIError extends Error {
   }
 }
 
+/**
+ * Checks if the provided data conforms to the TableData interface.
+ *
+ * @param data - The data to check.
+ * @returns A boolean indicating whether the data is of type TableData.
+ *
+ */
 function isTableData(data: any): data is TableData {
   return (
     "columns" in data &&
