@@ -40,7 +40,6 @@ const InputNaturalPrompt = React.forwardRef<
     <Popover
       isLazy
       isOpen={isOpen}
-      initialFocusRef={firstFieldRef}
       onOpen={onOpen}
       onClose={onClose}
       closeOnBlur={true}

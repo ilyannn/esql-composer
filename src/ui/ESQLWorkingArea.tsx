@@ -3,6 +3,7 @@ import {
   FormControl,
   HStack,
   Input,
+  Textarea,
   VStack,
   // Button,
   // Tooltip,
@@ -28,9 +29,9 @@ interface ESQLWorkingAreaProps {
   history: HistoryRow[];
   resetESQL: () => void;
 
-  naturalInputRef: React.RefObject<HTMLInputElement>;
-  esqlInputRef: React.RefObject<HTMLTextAreaElement>;
-  esqlCompleteButtonRef: React.RefObject<HTMLButtonElement>;
+  naturalInputRef: React.RefObject<HTMLInputElement | null>;
+  esqlInputRef: React.RefObject<HTMLTextAreaElement | null>;
+  esqlCompleteButtonRef: React.RefObject<HTMLButtonElement | null>;
 
   handleCompleteESQL: () => Promise<void>;
   performESQLRequest: (action: string) => Promise<void>;
@@ -58,44 +59,44 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
     await performESQLRequest(naturalInput);
   };
 
-/*
-  const toast = useToast();
-
-  const copyESQL = () => {
-    navigator.clipboard.writeText(esqlInput);
-    toast({
-      title: "ES|QL copied to clipboard",
-      status: "success",
-      duration: 750,
-      isClosable: true,
-    });
-  };
-
-  const revertUpdate = () => {
-    if (history.length > 0) {
-      const last = history.pop();
-      if (last) {
-        setNaturalInput(last.text);
-        setEsqlInput(last.esqlInput);
-      }
-    }
-  };
-
-  const showHistory = () => {
-    const jsonHistory = JSON.stringify(history, null, 2);
-    const newWindow = window.open();
-    if (newWindow !== null) {
-      newWindow.document.write(`<pre>${jsonHistory}</pre>`);
-    } else {
+  /*
+    const toast = useToast();
+  
+    const copyESQL = () => {
+      navigator.clipboard.writeText(esqlInput);
       toast({
-        title: "Pop-up blocked",
-        description: "Please allow pop-ups to show history",
-        status: "error",
-        duration: 5000,
+        title: "ES|QL copied to clipboard",
+        status: "success",
+        duration: 750,
         isClosable: true,
       });
-    }
-  };*/
+    };
+  
+    const revertUpdate = () => {
+      if (history.length > 0) {
+        const last = history.pop();
+        if (last) {
+          setNaturalInput(last.text);
+          setEsqlInput(last.esqlInput);
+        }
+      }
+    };
+  
+    const showHistory = () => {
+      const jsonHistory = JSON.stringify(history, null, 2);
+      const newWindow = window.open();
+      if (newWindow !== null) {
+        newWindow.document.write(`<pre>${jsonHistory}</pre>`);
+      } else {
+        toast({
+          title: "Pop-up blocked",
+          description: "Please allow pop-ups to show history",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    };*/
 
   return (
     <HStack justify="flex-start" align="stretch" spacing={8}>
@@ -139,13 +140,13 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             <Box flex={1}>
               <AutoResizeTextarea
                 flex={1}
-                placeholder="ES|QL"
+                placeholder="ES|QL\n\n"
                 value={esqlInput}
                 ref={esqlInputRef}
                 onChange={(e) => setEsqlInput(e.target.value)}
                 fontFamily={"monospace"}
                 whiteSpace="pre-wrap"
-                style={{ height: "auto", background: "none" }}
+                style={{ background: "none" }}
                 transition="height none"
                 spellCheck={false}
                 onKeyDown={(e) => {
