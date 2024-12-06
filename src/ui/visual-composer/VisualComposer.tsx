@@ -1,4 +1,5 @@
 import {
+  Button,
   CheckboxGroup,
   HStack,
   Slider,
@@ -16,7 +17,12 @@ import {
 import { toInteger } from "lodash";
 import React, { useState } from "react";
 import { ESQLChain } from "../../models/esql/ESQLChain";
-import { BlockHasStableId, ESQLBlock, FilterBlock, ValueStatistics } from "../../models/esql/ESQLBlock";
+import {
+  BlockHasStableId,
+  ESQLBlock,
+  FilterBlock,
+  ValueStatistics,
+} from "../../models/esql/ESQLBlock";
 import { ESQLSentinelOtherValues } from "../../models/esql/esql_types";
 import FieldTag from "../components/atoms/FieldTag";
 import { FieldTagMesh } from "../components/FieldTagMesh";
@@ -28,7 +34,11 @@ import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
 interface ESQLComposerProps {
   chain: ESQLChain;
   updateBlock(index: number, block: ESQLBlock): void;
-  getGlobalTopStats: (index: number, fieldName: string, topN: number) => Promise<ValueStatistics>;
+  getGlobalTopStats: (
+    index: number,
+    fieldName: string,
+    topN: number
+  ) => Promise<ValueStatistics>;
   handleBlockAction(index: number, action: ComposerBlockAction): void;
 }
 
@@ -107,25 +117,23 @@ const renderBlockContents = (
           ),
         });
       };
+
+      const onInvert = () => {
+        updateBlock(index, {
+          ...block,
+          values: block.values.map((f) => ({ ...f, included: !f.included })),
+        });
+      };
+
       return (
         <CheckboxGroup colorScheme="blackAlpha">
           <VStack spacing={3} align="stretch">
-            <HStack spacing={3} align="baseline" justify={"flex-start"}>
+            <HStack spacing={5} align="baseline" justify={"flex-start"}>
               <FieldTag size="lg" name={block.field} />
               <Spacer flex={2} />
-              {block.values.map((v, valueIndex) => {
-                return (
-                  v.value === ESQLSentinelOtherValues && (
-                    <FilterValueCheckbox
-                      valueIndex={valueIndex}
-                      block={block}
-                      updateChecked={(newChecked) =>
-                        onCheckValueAt(valueIndex, newChecked)
-                      }
-                    />
-                  )
-                );
-              })}
+              <Button variant={"ghost"} colorScheme="green" onClick={onInvert}>
+                Invert
+              </Button>
             </HStack>
 
             <Wrap spacingX={6} align={"center"}>
@@ -149,20 +157,20 @@ const renderBlockContents = (
                         </SpinningButton>
                       </WrapItem>
                     )}
-                    {v.value !== ESQLSentinelOtherValues && (
-                      <WrapItem key={v.value.toString()}>
-                        <FilterValueCheckbox
-                          valueIndex={valueIndex}
-                          block={block}
-                          updateChecked={(newChecked) =>
-                            onCheckValueAt(valueIndex, newChecked)
-                          }
-                        />
-                      </WrapItem>
-                    )}
+                    {v.value === ESQLSentinelOtherValues && <Spacer />}
+                    <WrapItem key={v.value.toString()}>
+                      <FilterValueCheckbox
+                        valueIndex={valueIndex}
+                        block={block}
+                        updateChecked={(newChecked) =>
+                          onCheckValueAt(valueIndex, newChecked)
+                        }
+                      />
+                    </WrapItem>
                   </>
                 );
               })}
+              <WrapItem key="..."></WrapItem>
             </Wrap>
           </VStack>
         </CheckboxGroup>
@@ -274,34 +282,48 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
     updateBlock(index, { command: "LIMIT", limit: limit });
   };
 
-  const handleWhereTopStats = async (
-    index: number,
-  ): Promise<void> => {
+  const handleWhereTopStats = async (index: number): Promise<void> => {
     const filterBlock = chain[index] as FilterBlock & BlockHasStableId;
-    const otherValuesIncluded = filterBlock.values.some((v) => v.value === ESQLSentinelOtherValues && v.included);
+    const otherValuesIncluded = filterBlock.values.some(
+      (v) => v.value === ESQLSentinelOtherValues && v.included
+    );
     const topN = filterBlock.topStatsRetrieved + 10;
     const topStats = await getGlobalTopStats(index, filterBlock.field, topN);
     const oldValues = new Set(filterBlock.values.map((v) => v.value));
-    const newValues = new Set(Object.keys(topStats.valueCounts)).difference(oldValues);
-    const valuesArray = [...Array.from(newValues).map((v) => ({
-      value: v,
-      included: otherValuesIncluded,
-    })), ...filterBlock.values];
+    const newValues = new Set(Object.keys(topStats.valueCounts)).difference(
+      oldValues
+    );
+    const valuesArray = [
+      ...Array.from(newValues).map((v) => ({
+        value: v,
+        included: otherValuesIncluded,
+      })),
+      ...filterBlock.values,
+    ];
 
     valuesArray.sort((a, b) => {
-      if (b.value === ESQLSentinelOtherValues || a.value === ESQLSentinelOtherValues) {
-        return toInteger(a.value === ESQLSentinelOtherValues) - toInteger(b.value === ESQLSentinelOtherValues);
-      };
-      return (topStats.valueCounts[b.value] || 0) - (topStats.valueCounts[a.value] || 0)
+      if (
+        b.value === ESQLSentinelOtherValues ||
+        a.value === ESQLSentinelOtherValues
+      ) {
+        return (
+          toInteger(a.value === ESQLSentinelOtherValues) -
+          toInteger(b.value === ESQLSentinelOtherValues)
+        );
+      }
+      return (
+        (topStats.valueCounts[b.value] || 0) -
+        (topStats.valueCounts[a.value] || 0)
+      );
     });
 
     updateBlock(index, {
       ...filterBlock,
       topStatsRetrieved: topN,
       topStats,
-      values: valuesArray,      
+      values: valuesArray,
     });
-  }
+  };
 
   return (
     <VStack spacing={4} align="stretch">
@@ -318,7 +340,13 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
             setHighlightedBlock(null);
           }}
         >
-          {renderBlockContents(index, block, updateBlock, handleLimitChange, handleWhereTopStats)}
+          {renderBlockContents(
+            index,
+            block,
+            updateBlock,
+            handleLimitChange,
+            handleWhereTopStats
+          )}
         </ComposerBlock>
       ))}
     </VStack>
