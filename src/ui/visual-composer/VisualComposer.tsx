@@ -15,7 +15,8 @@ import {
 } from "@chakra-ui/react";
 import { toInteger } from "lodash";
 import React, { useState } from "react";
-import { BlockHasStableId, ESQLBlock, ESQLChain, FilterBlock, ValueStatistics } from "../../models/esql/esql";
+import { ESQLChain } from "../../models/esql/ESQLChain";
+import { BlockHasStableId, ESQLBlock, FilterBlock, ValueStatistics } from "../../models/esql/ESQLBlock";
 import { ESQLSentinelOtherValues } from "../../models/esql/esql_types";
 import FieldTag from "../components/atoms/FieldTag";
 import { FieldTagMesh } from "../components/FieldTagMesh";

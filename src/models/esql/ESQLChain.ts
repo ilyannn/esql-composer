@@ -2,234 +2,23 @@
 // data that is used in the visual composer application.
 
 import { TableColumn } from "../../services/es";
+
+import { ESQLSentinelOtherValues, esqlTypeToClass } from "./esql_types";
+
 import {
-  ESQLAtomValue,
-  ESQLColumnTypeClass,
-  ESQLSentinelOtherValues,
-  esqlRepresentation,
-  esqlTypeToClass,
-} from "./esql_types";
-
-interface BaseESQLBlock {
-  command: string;
-  stableId?: string;
-}
-
-export interface BlockHasStableId {
-  stableId: string;
-}
-
-export interface LimitBlock extends BaseESQLBlock {
-  command: "LIMIT";
-  limit: number | null;
-}
-
-export interface KeepBlock extends BaseESQLBlock {
-  command: "KEEP";
-  fields: string[];
-}
-
-export interface DropBlock extends BaseESQLBlock {
-  command: "DROP";
-  fields: string[];
-}
-
-export interface RenameBlock extends BaseESQLBlock {
-  command: "RENAME";
-  map: { [oldName: string]: string };
-}
-
-export interface FilterValue {
-  value: ESQLAtomValue | typeof ESQLSentinelOtherValues;
-  included: boolean;
-}
-
-export interface ValueStatistics {
-  totalCount: number;
-  valueCounts: Record<ESQLAtomValue, number>;
-}
-
-export interface FilterBlock extends BaseESQLBlock {
-  command: "WHERE";
-  field: string;
-  values: FilterValue[];
-  localStats: ValueStatistics;
-  topStatsRetrieved: number;
-  topStats: ValueStatistics | undefined;
-}
-
-interface EvalExpression {
-  field: string;
-  expression: string;
-}
-
-export interface EvalBlock extends BaseESQLBlock {
-  command: "EVAL";
-  expressions: EvalExpression[];
-}
-
-interface OrderItem {
-  field: string;
-  sort_class: ESQLColumnTypeClass;
-  asc: boolean;
-}
-
-export interface SortBlock extends BaseESQLBlock {
-  command: "SORT";
-  order: OrderItem[];
-}
-
-export type ESQLBlock =
-  | EvalBlock
-  | LimitBlock
-  | KeepBlock
-  | DropBlock
-  | RenameBlock
-  | FilterBlock
-  | SortBlock;
-
-const BACKTICK = "`";
-
-// https://www.elastic.co/guide/en/elasticsearch/reference/current/esql-syntax.html
-const escape = (name: string): string => {
-  if (!/^[a-zA-Z_@]/.test(name) || /[^a-zA-Z0-9_]/.test(name.slice(1))) {
-    return `${BACKTICK}${name.replace(
-      BACKTICK,
-      BACKTICK + BACKTICK
-    )}${BACKTICK}`;
-  }
-  return name;
-};
-
-// const unescape = (name: string): string => {
-//   if (name.startsWith(BACKTICK) && name.endsWith(BACKTICK)) {
-//     return name.slice(1, -1).replace(new RegExp(`${BACKTICK}${BACKTICK}`, "g"), BACKTICK);
-//   }
-//   return name;
-// }
-
-/**
- * Applies a function to a specified field with optional arguments and returns the resulting string.
- *
- * The field names are escaped.
- *
- * @param func - The name of the function to apply.
- * @param field - The field to which the function will be applied.
- * @param args - Additional arguments to pass to the function.
- * @returns The resulting string after applying the function to the field with the provided arguments.
- */
-export const applyFunctionToField = (
-  func: string,
-  field: string,
-  ...args: any[]
-): string => {
-  return `${func}(${escape(field)}, ${args
-    .map((arg) => JSON.stringify(arg))
-    .join(", ")})`;
-};
-
-const limitBlockToString = (block: LimitBlock): string | null => {
-  if (block.limit === null) {
-    return null;
-  }
-  return `LIMIT ${block.limit}`;
-};
-
-const keepBlockToString = (block: KeepBlock): string | null => {
-  if (block.fields.length === 0) {
-    return null;
-  }
-  return `KEEP ${block.fields.map(escape).join(", ")}`;
-};
-
-const dropBlockToString = (block: DropBlock): string | null => {
-  if (block.fields.length === 0) {
-    return null;
-  }
-  return `DROP ${block.fields.map(escape).join(", ")}`;
-};
-
-const renameBlockToString = (block: RenameBlock): string | null => {
-  if (Object.keys(block.map).length === 0) {
-    return null;
-  }
-  const fields = Object.entries(block.map)
-    .map(([oldName, newName]) => `${escape(oldName)} AS ${escape(newName)}`)
-    .join(", ");
-  return `RENAME ${fields}`;
-};
-
-const whereBlockToString = (block: FilterBlock): string | null => {
-  console.log("block", block);
-
-  if (block.values.length === 0) {
-    return null;
-  }
-
-  const otherValuesIncluded = block.values.some((v) => v.value === ESQLSentinelOtherValues && v.included);
- 
-  const keyValues: ESQLAtomValue[] = block.values
-    .filter((v) => v.included !== otherValuesIncluded)
-    .map((v) => v.value)
-    .filter((v) => v !== ESQLSentinelOtherValues); // not necessary from the logical standpoint, but makes the type checker happy
-
-  if (keyValues.length === 0) {
-    return `WHERE ${otherValuesIncluded}`
-  }
-
-  if (keyValues.length === 1) {
-    const op = otherValuesIncluded ? "!=" : "==";
-    return `WHERE ${block.field} ${op} ${esqlRepresentation(keyValues[0])}`;
-  }
-
-  const op = otherValuesIncluded ? "NOT IN" : "IN";
-  const expr: string = '(' + keyValues.map((v) => esqlRepresentation(v)).join(", ") + ')';
-  
-  return `WHERE ${block.field} ${op} ${expr}`;
-};
-
-const sortBlockToString = (block: SortBlock): string | null => {
-  if (block.order.length === 0) {
-    return null;
-  }
-  const fields = block.order
-    .map((field) => `${escape(field.field)}${field.asc ? "" : " DESC"}`)
-    .join(", ");
-  return `SORT ${fields}`;
-};
-
-const evalBlockToString = (block: EvalBlock): string | null => {
-  const expressions = block.expressions.filter((e) => e.expression !== "");
-
-  if (expressions.length === 0) {
-    return null;
-  }
-  return (
-    "EVAL " +
-    expressions
-      .map(({ field, expression }) => `${escape(field)} = ${expression}`)
-      .join(", ")
-  );
-};
-
-const esqlBlockToString = (block: ESQLBlock): string | null => {
-  switch (block.command) {
-    case "EVAL":
-      return evalBlockToString(block);
-    case "LIMIT":
-      return limitBlockToString(block);
-    case "KEEP":
-      return keepBlockToString(block);
-    case "DROP":
-      return dropBlockToString(block);
-    case "RENAME":
-      return renameBlockToString(block);
-    case "WHERE":
-      return whereBlockToString(block);
-    case "SORT":
-      return sortBlockToString(block);
-  }
-};
+  BlockHasStableId,
+  DropBlock,
+  ESQLBlock,
+  esqlBlockToESQL,
+  EvalBlock,
+  EvalExpression,
+  FilterValue,
+  KeepBlock,
+  OrderItem,
+  RenameBlock,
+  SortBlock,
+  ValueStatistics,
+} from "./ESQLBlock";
 
 export type ESQLChain = (ESQLBlock & BlockHasStableId)[];
 
@@ -237,7 +26,7 @@ export const esqlChainAddToString = (
   existingESQL: string,
   chain: ESQLChain
 ): string => {
-  const chunks = chain.map(esqlBlockToString).filter((block) => block !== null);
+  const chunks = chain.map(esqlBlockToESQL).filter((block) => block !== null);
   return [existingESQL.trimEnd(), ...chunks].join("\n| ");
 };
 
@@ -471,7 +260,7 @@ const provideValues = (stats: ValueStatistics): FilterValue[] => {
     value,
     included: true,
   }));
-  
+
   return [...entryValues, { value: ESQLSentinelOtherValues, included: true }];
 };
 

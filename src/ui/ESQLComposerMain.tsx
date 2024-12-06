@@ -25,15 +25,16 @@ import Anthropic from "@anthropic-ai/sdk";
 
 import type { HistoryRow, StatisticsRow } from "../common/types";
 import {
-  BlockHasStableId,
-  ESQLBlock,
   ESQLChain,
   ESQLChainAction,
-  ValueStatistics,
   createInitialChain,
   esqlChainAddToString,
   performChainAction,
-} from "../models/esql/esql";
+} from "../models/esql/ESQLChain";
+import {
+  BlockHasStableId,
+  ESQLBlock, ValueStatistics
+} from "../models/esql/ESQLBlock";
 
 import {
   FieldInfo,

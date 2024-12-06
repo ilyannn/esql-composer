@@ -1,5 +1,5 @@
 import { Checkbox, HStack, Text } from "@chakra-ui/react";
-import { FilterBlock, ValueStatistics } from "../../models/esql";
+import { FilterBlock, ValueStatistics } from "../../models/esql/ESQLBlock";
 import {
     ESQLAtomValue,
     ESQLSentinelOtherValues,

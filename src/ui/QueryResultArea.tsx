@@ -28,7 +28,8 @@ import {
 } from "@chakra-ui/react";
 import React, { useCallback } from "react";
 
-import { ESQLChainAction, ValueStatistics } from "../models/esql/esql";
+import { ESQLChainAction } from "../models/esql/ESQLChain";
+import { ValueStatistics } from "../models/esql/ESQLBlock";
 import { TableColumn, TableData } from "../services/es";
 
 import { ChevronDownIcon } from "@chakra-ui/icons";
