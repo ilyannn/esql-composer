@@ -20,18 +20,18 @@ const SortIcon: React.FC<SortIconProps> = ({ ascending, onClick, variant }) => {
   const getIcon = () => {
     if (ascending) {
       switch (variant) {
-        case "number":
+        case "numeric":
           return <BsSortNumericDown size={22} />;
-        case "string":
+        case "stringy":
           return <BsSortAlphaDown size={22} />;
         default:
           return <BsSortDownAlt size={22} />;
       }
     } else {
       switch (variant) {
-        case "number":
+        case "numeric":
           return <BsSortNumericUpAlt size={22} />;
-        case "string":
+        case "stringy":
           return <BsSortAlphaUpAlt size={22} />;
         default:
           return <BsSortUp size={22} />;

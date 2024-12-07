@@ -188,7 +188,7 @@ FROM logs-endpoint
 The prompt is given on the first line then the query is given from the second line and it ends with the '| EVAL '.
 For each request (in the examples between <input> and </input> tags) please complete the ES|QL EVAL command.
 Output a new field name and the evaluation expression using the format below. Try to only use the field itself but use the other fields as necessary as well. 
-Try to keep the expression on a single line. If an explanation is necessary, provide a short one in the corresponding field. 
+Try to keep the expression on a single line. If asked to convert to a specific currency, add the 3-letter ISO code in brackets, such as (JPY) in the new column name. If an explanation is necessary, provide a short one in the corresponding field. 
 Here are some examples for 
 ` +
           evalAdapter.formatContext({
@@ -197,11 +197,13 @@ Here are some examples for
     avg_delay = AVG(FlightDelayMin)
     BY Carrier
 | SORT avg_delay DESC`,
-            sourceFields: [{
-              name: "avg_delay",
-              type: "double",
-              examples: ["49.59"],
-            }],
+            sourceFields: [
+              {
+                name: "avg_delay",
+                type: "double",
+                examples: ["49.59"],
+              },
+            ],
           }) +
           "\n\n" +
           evalAdapter.formatExamples([
@@ -319,7 +321,8 @@ export const prepareRequest = (
           }),
           cachedAssistantMessageForEvalOutput({
             field: sourceField.name + "_00",
-            expr: applyFunctionToField("ROUND", sourceField.name, -1) + '::long',
+            expr:
+              applyFunctionToField("ROUND", sourceField.name, -1) + "::long",
           }),
         ];
         break;

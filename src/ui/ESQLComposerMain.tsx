@@ -75,6 +75,7 @@ import QueryAPIConfigurationArea from "./QueryAPIConfigurationArea";
 import QueryResultArea from "./QueryResultArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import VisualComposer from "./visual-composer/VisualComposer";
+import { add } from "lodash";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
 
@@ -813,7 +814,7 @@ const ESQLComposerMain = () => {
           modelSelected,
           esqlGuideText,
           schemaGuideText,
-          esqlInput,
+          esqlInput: esqlChainAddToString(esqlInput, visualChain),
           sourceFields: [sourceField],
           naturalInput,
           doneEvalExpression,

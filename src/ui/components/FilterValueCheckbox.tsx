@@ -1,11 +1,14 @@
 import { Checkbox, HStack, Text } from "@chakra-ui/react";
 import { FilterBlock } from "../../models/esql/ESQLBlock";
-import { getValueCount, ValueStatistics } from "../../models/esql/ValueStatistics";
+import {
+  getValueCount,
+  ValueStatistics,
+} from "../../models/esql/ValueStatistics";
 import {
   ESQLAtomValue,
   ESQLSentinelOtherValues,
 } from "../../models/esql/esql_types";
-import FieldValue from "./atoms/FieldValue";
+import FieldValue from "./data-table/FieldValue";
 
 interface FilterValueCheckboxProps {
   valueIndex: number;

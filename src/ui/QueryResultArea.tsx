@@ -26,23 +26,17 @@ import {
   useDisclosure,
   VStack,
 } from "@chakra-ui/react";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 
 import { ESQLChainAction } from "../models/esql/ESQLChain";
-import {
-  countRawValues,
-  ValueStatistics,
-} from "../models/esql/ValueStatistics";
+import { countRawValues } from "../models/esql/ValueStatistics";
 import { TableColumn, TableData } from "../services/es";
 
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import { CiFilter } from "react-icons/ci";
 import { GoTrash } from "react-icons/go";
 import {
-  ESQLAtomRawValue,
-  ESQLAtomValue,
   esqlIsTypeSortable,
-  esqlRawToHashableValue,
   esqlTypeToClass,
   flattenMultivalues,
 } from "../models/esql/esql_types";
@@ -379,7 +373,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                   })}
                 </Tr>
               </Thead>
-              <DataTableBody values={data.values} />
+              <DataTableBody columns={data.columns} values={data.values} />
               <Tfoot>
                 <Tr opacity={0.33}>
                   {data.columns.map((col, colIndex) => (
@@ -392,7 +386,10 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
         )}
 
         {data && isCombinedColumnView && (
-          <DataTableCombinedColumn fields={data.columns} values={data.values} />
+          <DataTableCombinedColumn
+            columns={data.columns}
+            values={data.values}
+          />
         )}
       </VStack>
     </>

@@ -71,7 +71,7 @@ export type ESQLColumnType =
   | ESQLStringType
   | ESQLGeoType;
 
-export type ESQLColumnTypeClass = "boolean" | "number" | "string" | "geo";
+export type ESQLColumnTypeClass = "boolean" | "numeric" | "stringy" | "geo";
 
 export const esqlTypeToClass = (type: ESQLColumnType): ESQLColumnTypeClass => {
   switch (type) {
@@ -88,12 +88,12 @@ export const esqlTypeToClass = (type: ESQLColumnType): ESQLColumnTypeClass => {
     case "counter_long":
     case "counter_double":
     case "version":
-      return "number";
+      return "numeric";
 
     case "keyword":
     case "text":
     case "ip":
-      return "string";
+      return "stringy";
 
     case "geo_point":
     case "geo_shape":

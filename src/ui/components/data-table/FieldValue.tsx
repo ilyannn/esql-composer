@@ -11,6 +11,7 @@ import { Text } from "@chakra-ui/react";
 
 interface FieldValueProps {
   value: ESQLAtomValue | typeof ESQLSentinelOtherValues;
+  formattedValue?: string | undefined;
 }
 
 const getColor = (
@@ -33,16 +34,26 @@ const getFontStyle = (
   return "normal";
 };
 
-const FieldValue: React.FC<FieldValueProps> = ({ value }) => {
+const FieldValue: React.FC<FieldValueProps> = ({
+  value,
+  formattedValue = undefined,
+}) => {
+  if (formattedValue !== undefined) {
+    return <Text>{formattedValue}</Text>;
+  }
+
+  const stringToDisplay =
+    value === ESQLSentinelOtherValues
+      ? "Other Values"
+      : typeof value === "string"
+      ? value
+      : esqlRepresentation(value);
+
   return (
     <Text color={getColor(value)} fontStyle={getFontStyle(value)}>
-      {typeof value === "string"
-        ? value
-        : value === ESQLSentinelOtherValues
-        ? "Other Values"
-        : esqlRepresentation(value)}
+      {stringToDisplay}
     </Text>
   );
 };
 
-export default FieldValue;
+export default React.memo(FieldValue);

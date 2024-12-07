@@ -109,7 +109,7 @@ export const statisticsEntries = (
   if (stats.falseCount > 0) {
     items.push([ESQLValueFalse, stats.falseCount]);
   }
-  
+   
   if (stats.nullCount > 0) {
     items.push([ESQLValueNull, stats.nullCount]);
   }
