@@ -3,6 +3,10 @@ import {
   FormControl,
   FormLabel,
   HStack,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuList,
   StackDivider,
   Textarea,
   Tooltip,
@@ -17,6 +21,7 @@ import SpinningButton from "./components/SpinningButton";
 import TokenCountNotice from "./components/TokenCountNotice";
 import { ESQLSchema } from "../services/es";
 import axios from "axios";
+import { ChevronUpIcon } from "@chakra-ui/icons";
 
 interface ReferenceGuidesAreaProps {
   esqlGuideText: string;
@@ -91,11 +96,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
         divider={<StackDivider borderColor="gray.200" />}
       >
         <VStack align="stretch" justify="flex-start" flex={1} spacing={3}>
-          <FormControl
-            flex={1}
-            display="flex"
-            flexDirection={"column"}
-          >
+          <FormControl flex={1} display="flex" flexDirection={"column"}>
             <HStack justify={"space-between"}>
               <FormLabel>ES|QL Reference</FormLabel>
               <TokenCountNotice
@@ -157,11 +158,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
         </VStack>
 
         <VStack align="stretch" justify="flex-start" flex={1} spacing={3}>
-          <FormControl
-            flex={1}
-            display="flex"
-            flexDirection={"column"}
-          >
+          <FormControl flex={1} display="flex" flexDirection={"column"}>
             <HStack justify={"space-between"}>
               <FormLabel>Schema Description</FormLabel>
               <TokenCountNotice
@@ -197,18 +194,33 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
                 From ES...
               </Button>
             </Tooltip>
+
             <Tooltip
               isDisabled={!tooltipsShown}
-              label="Load a prepackaged schema description for Kibana sample flight data"
+              label="Load a prepackaged schema description"
             >
-              <Button
-                variant="ghost"
-                colorScheme="green"
-                onClick={() => loadSchemaFile("demo-flights.json")}
-              >
-                Demo
-              </Button>
+              <Menu>
+                <MenuButton
+                  as={Button}
+                  variant="ghost"
+                  colorScheme="green"
+                  rightIcon={<ChevronUpIcon />}
+                >
+                  Demo
+                </MenuButton>
+                <MenuList>
+                  <MenuItem onClick={() => loadSchemaFile("demo-flights.json")}>
+                    Flights
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => loadSchemaFile("demo-ecommerce.json")}
+                  >
+                    E-Commerce
+                  </MenuItem>
+                </MenuList>
+              </Menu>
             </Tooltip>
+
             <Tooltip
               isDisabled={!tooltipsShown}
               label="Remove the schema description"
