@@ -943,7 +943,14 @@ const ESQLComposerMain = () => {
             esqlInput,
             visualChain.slice(0, index)
           );
+
           const countCol = fieldName === "c" ? "cc" : "c";
+
+          const totalCountResponse = await performESQLQuery({
+            apiURL: queryAPIURL,
+            apiKey: queryAPIKey,
+            query: `${queryESQL}\n| stats ${countCol}=count()`,
+          });
 
           const query = `${queryESQL}\n| stats ${countCol}=count() by ${fieldName}\n| sort ${countCol} desc\n | KEEP ${fieldName}, ${countCol} | LIMIT ${topN}`;
 
@@ -959,6 +966,15 @@ const ESQLComposerMain = () => {
               number
             ][];
             stats = countRawValuesWithCount(values_counts);
+
+            if (
+              totalCountResponse &&
+              totalCountResponse.values &&
+              totalCountResponse.values[0] &&
+              typeof totalCountResponse.values[0][0] === "number"
+            ) {
+              stats.totalCount = totalCountResponse.values[0][0];
+            }
           }
         }
       );
