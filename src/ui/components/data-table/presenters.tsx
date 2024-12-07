@@ -1,7 +1,6 @@
 import { JSX } from "react";
 import {
   ESQLAtomValue,
-  ESQLColumnType,
   esqlTypeToClass,
 } from "../../../models/esql/esql_types";
 import FieldValue from "./FieldValue";
@@ -83,29 +82,38 @@ const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
 };
 
 const getPresenter = (column: TableColumn): Presenter => {
-  if (column.name.endsWith("UTC")) {
-    return datePresenter("UTC");
-  }
+  try {
+    if (column.name.endsWith("(UTC)")) {
+      return datePresenter("UTC");
+    }
 
-  if (
-    column.type === "date" ||
-    column.type === "date_nanos" ||
-    column.name.endsWith("(Date)")
-  ) {
-    return datePresenter(undefined);
-  }
+    const timezoneMatch = column.name.match(/\b([A-Za-z_]+\/[A-Za-z_]+)\b/);
+    if (timezoneMatch) {
+      return datePresenter(timezoneMatch[1]);
+    }
 
-  if (column.type === "geo_point") {
-    return geoPointPresenter;
-  }
+    if (
+      column.type === "date" ||
+      column.type === "date_nanos" ||
+      column.name.endsWith("(Date)")
+    ) {
+      return datePresenter(undefined);
+    }
 
-  const currencyMatch = column.name.match(/\(([A-Z][A-Z][A-Z])\)$/);
-  if (currencyMatch) {
-    return moneyPresenter(currencyMatch[1]);
-  }
+    if (column.type === "geo_point") {
+      return geoPointPresenter;
+    }
 
-  if (esqlTypeToClass(column.type) === "numeric") {
-    return numberPresenter(undefined);
+    const currencyMatch = column.name.match(/\(([A-Z][A-Z][A-Z])\)$/);
+    if (currencyMatch) {
+      return moneyPresenter(currencyMatch[1]);
+    }
+
+    if (esqlTypeToClass(column.type) === "numeric") {
+      return numberPresenter(undefined);
+    }
+  } catch (e) {
+    console.error("Failed to create presenter for ", column, e);
   }
 
   return defaultPresenter;
