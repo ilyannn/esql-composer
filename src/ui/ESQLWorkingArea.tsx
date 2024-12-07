@@ -53,7 +53,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   performESQLRequest,
   resetESQL,
 }) => {
-
   const handleUpdateESQL = async () => {
     await performESQLRequest(naturalInput);
   };
@@ -139,7 +138,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             <Box flex={1}>
               <AutoResizeTextarea
                 flex={1}
-                placeholder="ES|QL\n\n"
+                placeholder={"ES|QL\n\n"}
                 value={esqlInput}
                 ref={esqlInputRef}
                 onChange={(e) => setEsqlInput(e.target.value)}
