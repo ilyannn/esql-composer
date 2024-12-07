@@ -10,37 +10,49 @@ import { GeoPointFormatter } from "./geoPointFormatter";
 
 export type Presenter = (value: ESQLAtomValue) => JSX.Element;
 
-const IntlNumberFormatter = new Intl.NumberFormat();
-const IntlDateTimeFormatter = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "medium",
-});
-
-const DefaultPresenter: Presenter = (value: ESQLAtomValue) => (
+const defaultPresenter: Presenter = (value: ESQLAtomValue) => (
   <FieldValue value={value} />
 );
 
-const NumberPresenter: Presenter = (value: ESQLAtomValue) => (
-  <FieldValue
-    value={value}
-    formattedValue={
-      typeof value === "number" ? IntlNumberFormatter.format(value) : undefined
-    }
-  />
-);
+const numberPresenter = (
+  maximumFractionDigits: number | undefined
+): Presenter => {
+  const localNumberFormatter = new Intl.NumberFormat(undefined, {
+    maximumFractionDigits,
+  });
 
-const DatePresenter: Presenter = (value: ESQLAtomValue) => (
-  <FieldValue
-    value={value}
-    formattedValue={
-      typeof value === "string"
-        ? IntlDateTimeFormatter.format(new Date(value))
-        : undefined
-    }
-  />
-);
+  return (value: ESQLAtomValue) => (
+    <FieldValue
+      value={value}
+      formattedValue={
+        typeof value === "number"
+          ? localNumberFormatter.format(value)
+          : undefined
+      }
+    />
+  );
+};
 
-const MoneyPresenter = (currency: string): Presenter => {
+const datePresenter = (timezone: string | undefined): Presenter => {
+  const formatter = new Intl.DateTimeFormat(undefined, {
+    timeZone: timezone,
+    dateStyle: "medium",
+    timeStyle: "medium",
+  });
+
+  return (value: ESQLAtomValue) => (
+    <FieldValue
+      value={value}
+      formattedValue={
+        typeof value === "string"
+          ? formatter.format(new Date(value))
+          : undefined
+      }
+    />
+  );
+};
+
+const moneyPresenter = (currency: string): Presenter => {
   const formatter = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
@@ -56,7 +68,7 @@ const MoneyPresenter = (currency: string): Presenter => {
   );
 };
 
-const GeoPointPresenter: Presenter = (value: ESQLAtomValue) => {
+const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
   let formattedValue: string | undefined = undefined;
 
   if (typeof value === "string" && value.startsWith("POINT")) {
@@ -71,28 +83,32 @@ const GeoPointPresenter: Presenter = (value: ESQLAtomValue) => {
 };
 
 const getPresenter = (column: TableColumn): Presenter => {
+  if (column.name.endsWith("UTC")) {
+    return datePresenter("UTC");
+  }
+
   if (
     column.type === "date" ||
     column.type === "date_nanos" ||
     column.name.endsWith("(Date)")
   ) {
-    return DatePresenter;
+    return datePresenter(undefined);
   }
 
   if (column.type === "geo_point") {
-    return GeoPointPresenter;
+    return geoPointPresenter;
   }
 
   const currencyMatch = column.name.match(/\(([A-Z][A-Z][A-Z])\)$/);
   if (currencyMatch) {
-    return MoneyPresenter(currencyMatch[1]);
+    return moneyPresenter(currencyMatch[1]);
   }
 
   if (esqlTypeToClass(column.type) === "numeric") {
-    return NumberPresenter;
+    return numberPresenter(undefined);
   }
 
-  return DefaultPresenter;
+  return defaultPresenter;
 };
 
 export const createPresenters = (columns: TableColumn[]): Presenter[] => {
