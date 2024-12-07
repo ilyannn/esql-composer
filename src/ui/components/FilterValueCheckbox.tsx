@@ -1,8 +1,9 @@
 import { Checkbox, HStack, Text } from "@chakra-ui/react";
-import { FilterBlock, ValueStatistics } from "../../models/esql/ESQLBlock";
+import { FilterBlock } from "../../models/esql/ESQLBlock";
+import { getValueCount, ValueStatistics } from "../../models/esql/ValueStatistics";
 import {
-    ESQLAtomValue,
-    ESQLSentinelOtherValues,
+  ESQLAtomValue,
+  ESQLSentinelOtherValues,
 } from "../../models/esql/esql_types";
 import FieldValue from "./atoms/FieldValue";
 
@@ -12,23 +13,21 @@ interface FilterValueCheckboxProps {
   updateChecked: (newChecked: boolean) => void;
 }
 
-type NewType = ValueStatistics;
-
 const getStatsText = (
   value: ESQLAtomValue,
   localStats: ValueStatistics,
-  globalStats: NewType | undefined
+  globalStats: ValueStatistics | undefined
 ): string => {
-  const globalCount = globalStats?.valueCounts[value];
+  const globalCount = getValueCount(value, globalStats);
 
-  if (globalCount === undefined) {
-    const localCount = localStats.valueCounts[value];
+  if (globalStats === undefined || globalCount === undefined) {
+    const localCount = getValueCount(value, localStats);
     const localTotal = localStats.totalCount;
     return localCount && localTotal ? `${localCount}/${localTotal}` : "";
   }
 
   const fractionPercentage = Math.round(
-    (globalCount / globalStats!.totalCount) * 100
+    (globalCount / globalStats.totalCount) * 100
   );
 
   if (fractionPercentage === 0) {

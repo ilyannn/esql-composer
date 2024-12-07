@@ -31,10 +31,11 @@ import {
   esqlChainAddToString,
   performChainAction,
 } from "../models/esql/ESQLChain";
+import { BlockHasStableId, ESQLBlock } from "../models/esql/ESQLBlock";
 import {
-  BlockHasStableId,
-  ESQLBlock, ValueStatistics
-} from "../models/esql/ESQLBlock";
+  countRawValuesWithCount,
+  ValueStatistics,
+} from "../models/esql/ValueStatistics";
 
 import {
   FieldInfo,
@@ -931,9 +932,8 @@ const ESQLComposerMain = () => {
       index: number,
       fieldName: string,
       topN: number
-    ): Promise<ValueStatistics> => {
-      let valueCounts = {} as Record<ESQLAtomValue, number>;
-      let totalCount = 0;
+    ): Promise<ValueStatistics | undefined> => {
+      let stats: ValueStatistics | undefined = undefined;
 
       await performQueryAPIAction(
         `Top ${topN} values for ${fieldName}`,
@@ -953,20 +953,16 @@ const ESQLComposerMain = () => {
           });
 
           if (response && response.values) {
-            response.values.forEach((row) => {
-              const value = row[0] as ESQLAtomRawValue;
-              const count = row[1] as number;
-              valueCounts[esqlRawToHashableValue(value)] = count;
-              totalCount += count;
-            });
+            const values_counts = response.values as [
+              ESQLAtomRawValue,
+              number
+            ][];
+            stats = countRawValuesWithCount(values_counts);
           }
         }
       );
 
-      return {
-        totalCount,
-        valueCounts,
-      };
+      return stats;
     },
     [performQueryAPIAction, queryAPIURL, queryAPIKey, esqlInput, visualChain]
   );

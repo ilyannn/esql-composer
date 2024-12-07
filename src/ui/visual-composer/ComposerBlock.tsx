@@ -39,11 +39,12 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
           : "white"
       }
     >
-      <HStack justify="space-between" align="baseline" spacing={6}>
-        <Heading as="h4" size={"sm"} textColor={"purple"}>{command}</Heading>
-        {children}
-        <Spacer />
-        <HStack spacing={2}>
+      <HStack justify="flex-start" align="baseline" spacing={6}>
+        <Heading as="h4" size={"sm"} textColor={"purple"}>
+          {command}
+        </Heading>
+        <Box flex="1">{children}</Box>
+        <HStack spacing={2} justify={"normal"} flex="none">
           <Button
             variant="ghost"
             colorScheme="green"
@@ -59,7 +60,7 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
             onMouseEnter={() => onHover("reject")}
             onMouseLeave={() => onHover(null)}
             onClick={() => onAction("reject")}
-          > 
+          >
             <CloseIcon />
           </Button>
         </HStack>

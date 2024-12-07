@@ -5,6 +5,7 @@ import {
   esqlRepresentation,
   ESQLSentinelOtherValues,
 } from "./esql_types";
+import { ValueStatistics } from "./ValueStatistics";
 
 interface BaseESQLBlock {
   command: string;
@@ -38,11 +39,6 @@ export interface RenameBlock extends BaseESQLBlock {
 export interface FilterValue {
   value: ESQLAtomValue | typeof ESQLSentinelOtherValues;
   included: boolean;
-}
-
-export interface ValueStatistics {
-  totalCount: number;
-  valueCounts: Record<ESQLAtomValue, number>;
 }
 
 export interface FilterBlock extends BaseESQLBlock {

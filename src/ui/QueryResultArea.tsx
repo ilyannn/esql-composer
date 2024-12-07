@@ -29,17 +29,22 @@ import {
 import React, { useCallback } from "react";
 
 import { ESQLChainAction } from "../models/esql/ESQLChain";
-import { ValueStatistics } from "../models/esql/ESQLBlock";
+import {
+  countRawValues,
+  ValueStatistics,
+} from "../models/esql/ValueStatistics";
 import { TableColumn, TableData } from "../services/es";
 
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import { CiFilter } from "react-icons/ci";
 import { GoTrash } from "react-icons/go";
 import {
+  ESQLAtomRawValue,
   ESQLAtomValue,
   esqlIsTypeSortable,
   esqlRawToHashableValue,
   esqlTypeToClass,
+  flattenMultivalues,
 } from "../models/esql/esql_types";
 import { FieldInfo } from "../services/llm";
 import DataTableBody from "./components/DataTableBody";
@@ -123,22 +128,8 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
 
   const handleFilterColumn = useCallback(
     (column: TableColumn, columnIndex: number) => {
-      const values = data
-        ? data.values
-            .map((row) => row[columnIndex])
-            .flatMap((value) => (Array.isArray(value) ? value : [value]))
-        : [];
-
-      const valueCounts = values.reduce((acc, value) => {
-        const key = esqlRawToHashableValue(value);
-        acc[key] = (acc[key] || 0) + 1;
-        return acc;
-      }, {} as Record<ESQLAtomValue, number>);
-
-      const stats: ValueStatistics = {
-        totalCount: values.length,
-        valueCounts,
-      };
+      const values = data ? data.values.map((row) => row[columnIndex]) : [];
+      const stats = countRawValues(flattenMultivalues(values));
 
       handleChainAction({
         action: "filter",
@@ -234,7 +225,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                   <MenuItem
                     onClick={() => handleChainAction({ action: "limit" })}
                   >
-                    Add Limit 
+                    Add Limit
                   </MenuItem>
                 )}
                 {isKeepRecommended && (

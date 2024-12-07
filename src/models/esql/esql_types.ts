@@ -106,3 +106,8 @@ export const esqlTypeToClass = (type: ESQLColumnType): ESQLColumnTypeClass => {
 export const esqlIsTypeSortable = (type: ESQLColumnType): boolean => {
   return esqlTypeToClass(type) !== "geo";
 };
+
+export const flattenMultivalues = (data: (ESQLAtomRawValue | ESQLAtomRawMultivalue)[]) => {
+  return data.flatMap((d) => (Array.isArray(d) ? d : [d]));
+};
+

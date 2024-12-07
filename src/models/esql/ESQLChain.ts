@@ -1,6 +1,7 @@
 // This implements the subset of the Elasticsearch Query Language (ES|QL)
 // data that is used in the visual composer application.
 
+import { stat } from "fs";
 import { TableColumn } from "../../services/es";
 
 import { ESQLSentinelOtherValues, esqlTypeToClass } from "./esql_types";
@@ -17,8 +18,8 @@ import {
   OrderItem,
   RenameBlock,
   SortBlock,
-  ValueStatistics,
 } from "./ESQLBlock";
+import { statisticsEntries, ValueStatistics } from "./ValueStatistics";
 
 export type ESQLChain = (ESQLBlock & BlockHasStableId)[];
 
@@ -253,10 +254,10 @@ const bubbleDown = (
 };
 
 const provideValues = (stats: ValueStatistics): FilterValue[] => {
-  const entries = Object.entries(stats.valueCounts);
+  const entries = statisticsEntries(stats);
   entries.sort((a, b) => b[1] - a[1]);
 
-  const entryValues = entries.map(([value, count]) => ({
+  const entryValues: FilterValue[] = entries.map(([value, count]) => ({
     value,
     included: true,
   }));

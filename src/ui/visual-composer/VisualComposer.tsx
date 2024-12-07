@@ -13,6 +13,11 @@ import {
   VStack,
   Wrap,
   WrapItem,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
 } from "@chakra-ui/react";
 import { toInteger } from "lodash";
 import React, { useState } from "react";
@@ -21,9 +26,10 @@ import {
   BlockHasStableId,
   ESQLBlock,
   FilterBlock,
-  ValueStatistics,
+  FilterValue,
 } from "../../models/esql/ESQLBlock";
-import { ESQLSentinelOtherValues } from "../../models/esql/esql_types";
+import { getValueCount, statisticsEntries, ValueStatistics } from "../../models/esql/ValueStatistics";
+import { ESQLAtomValue, ESQLSentinelOtherValues } from "../../models/esql/esql_types";
 import FieldTag from "../components/atoms/FieldTag";
 import { FieldTagMesh } from "../components/FieldTagMesh";
 import FilterValueCheckbox from "../components/FilterValueCheckbox";
@@ -38,7 +44,7 @@ interface ESQLComposerProps {
     index: number,
     fieldName: string,
     topN: number
-  ) => Promise<ValueStatistics>;
+  ) => Promise<ValueStatistics | undefined>;
   handleBlockAction(index: number, action: ComposerBlockAction): void;
 }
 
@@ -127,9 +133,19 @@ const renderBlockContents = (
 
       return (
         <CheckboxGroup colorScheme="blackAlpha">
-          <VStack spacing={3} align="stretch">
-            <HStack spacing={5} align="baseline" justify={"flex-start"}>
+          <VStack spacing={3} align={"stretch"} justify={"stretch"}>
+            <HStack spacing={5} align="baseline" justify={"stretch"}>
               <FieldTag size="lg" name={block.field} />
+              {block.topStatsRetrieved === 0 && (
+                <SpinningButton
+                  targets="es"
+                  type="submit"
+                  size="sm"
+                  spinningAction={async () => handleWhereTopStats(index, 10)}
+                >
+                  Top 10
+                </SpinningButton>
+              )}
               <Spacer flex={2} />
               <Button variant={"ghost"} colorScheme="green" onClick={onInvert}>
                 Invert
@@ -140,23 +156,24 @@ const renderBlockContents = (
               {block.values.map((v, valueIndex) => {
                 return (
                   <>
-                    {block.topStatsRetrieved === valueIndex && (
-                      <WrapItem key={"loading"}>
-                        <SpinningButton
-                          targets="es"
-                          type="submit"
-                          size="sm"
-                          spinningAction={async () =>
-                            handleWhereTopStats(
-                              index,
-                              block.topStatsRetrieved + 10
-                            )
-                          }
-                        >
-                          Get Top {block.topStatsRetrieved + 10}
-                        </SpinningButton>
-                      </WrapItem>
-                    )}
+                    {valueIndex > 0 &&
+                      block.topStatsRetrieved === valueIndex && (
+                        <WrapItem key={"loading"}>
+                          <SpinningButton
+                            targets="es"
+                            type="submit"
+                            size="sm"
+                            spinningAction={async () =>
+                              handleWhereTopStats(
+                                index,
+                                block.topStatsRetrieved + 10
+                              )
+                            }
+                          >
+                            Get 10 More
+                          </SpinningButton>
+                        </WrapItem>
+                      )}
                     {v.value === ESQLSentinelOtherValues && <Spacer />}
                     <WrapItem key={v.value.toString()}>
                       <FilterValueCheckbox
@@ -290,39 +307,44 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
     const topN = filterBlock.topStatsRetrieved + 10;
     const topStats = await getGlobalTopStats(index, filterBlock.field, topN);
     const oldValues = new Set(filterBlock.values.map((v) => v.value));
-    const newValues = new Set(Object.keys(topStats.valueCounts)).difference(
-      oldValues
-    );
-    const valuesArray = [
-      ...Array.from(newValues).map((v) => ({
-        value: v,
-        included: otherValuesIncluded,
-      })),
-      ...filterBlock.values,
-    ];
+    const newValues = statisticsEntries(topStats).map(([v, _]) => v).filter(_ => !oldValues.has(_));
 
-    valuesArray.sort((a, b) => {
-      if (
-        b.value === ESQLSentinelOtherValues ||
-        a.value === ESQLSentinelOtherValues
-      ) {
-        return (
-          toInteger(a.value === ESQLSentinelOtherValues) -
-          toInteger(b.value === ESQLSentinelOtherValues)
-        );
-      }
-      return (
-        (topStats.valueCounts[b.value] || 0) -
-        (topStats.valueCounts[a.value] || 0)
-      );
-    });
-
-    updateBlock(index, {
+    const newFilterBlock: FilterBlock & BlockHasStableId = {
       ...filterBlock,
       topStatsRetrieved: topN,
       topStats,
-      values: valuesArray,
+      values: [
+        ...Array.from(newValues).map((v: ESQLAtomValue) => ({
+          value: v,
+          included: otherValuesIncluded,
+        } as FilterValue)),
+        ...filterBlock.values,
+      ]
+    };
+
+    newFilterBlock.values.sort((a, b) => {
+      if (
+        b.value === ESQLSentinelOtherValues &&
+        a.value === ESQLSentinelOtherValues
+      ) {
+        return 0;
+      }
+
+      if (b.value === ESQLSentinelOtherValues) {
+        return -1;
+      }
+      
+      if (a.value === ESQLSentinelOtherValues) {
+        return 1;
+      }
+      
+      return (
+      (getValueCount(b.value, topStats) -
+        getValueCount(a.value, topStats))
+      );
     });
+
+    updateBlock(index, newFilterBlock);
   };
 
   return (
