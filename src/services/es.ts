@@ -1,4 +1,10 @@
-import { ESQLColumnType, ESQLAtomRawValue, ESQLAtomRawMultivalue } from "../models/esql/esql_types";
+import { initial } from "lodash";
+import {
+  ESQLColumnType,
+  ESQLAtomRawValue,
+  ESQLAtomRawMultivalue,
+} from "../models/esql/esql_types";
+import { ESQLChainAction } from "../models/esql/ESQLChain";
 
 interface ESAPIOptions {
   apiURL: string;
@@ -16,7 +22,7 @@ interface ESQLDeriveSchemaOptions extends ESAPIOptions {
 
 export interface TableColumn {
   name: string;
-  type: ESQLColumnType
+  type: ESQLColumnType;
 }
 
 export interface TableData {
@@ -158,9 +164,9 @@ export const performESQLQuery = async ({
  * Information about a deployment returned by SHOW INFO.
  */
 export interface ESQLShowInfo {
-  "date": string;
-  "hash": string;
-  "version": string;
+  date: string;
+  hash: string;
+  version: string;
 }
 
 /**
@@ -178,7 +184,7 @@ const isESQLShowInfo = (data: any): data is ESQLShowInfo => {
     typeof data.hash === "string" &&
     typeof data.version === "string"
   );
-}
+};
 
 /**
  * Converts table data into an array of records.
@@ -196,7 +202,7 @@ const tableDataToRecords = (data: TableData): Record<string, any>[] => {
       {}
     )
   );
-}
+};
 
 /**
  * Executes an ESQL query to retrieve information about the Elasticsearch instance.
@@ -477,6 +483,7 @@ export type ESQLSchema = {
   indexPattern: string;
   knownFields: Field[];
   guide: string;
+  initialActions: ESQLChainAction[];
 };
 
 export const deriveSchema = async ({
@@ -533,5 +540,6 @@ export const deriveSchema = async ({
     guide,
     indexPattern,
     knownFields,
+    initialActions: [],
   };
 };

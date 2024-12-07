@@ -75,7 +75,7 @@ import QueryAPIConfigurationArea from "./QueryAPIConfigurationArea";
 import QueryResultArea from "./QueryResultArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import VisualComposer from "./visual-composer/VisualComposer";
-import { add } from "lodash";
+import { add, reduce } from "lodash";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
 
@@ -211,7 +211,12 @@ const ESQLComposerMain = () => {
   const setSchemaGuideText = useCallback(
     (value: string) => {
       _setEsqlSchema({
-        ...(esqlSchema ?? { indexPattern: "", knownFields: [], guide: "" }),
+        ...(esqlSchema ?? {
+          indexPattern: "",
+          knownFields: [],
+          guide: "",
+          initialActions: [],
+        }),
         guide: value,
       });
     },
@@ -561,18 +566,30 @@ const ESQLComposerMain = () => {
     [performQueryAPIDataAutoUpdate]
   );
 
-  const _resetESQL = useCallback((indexPattern: string | undefined) => {
-    const initialESQL = indexPattern ? `FROM ${indexPattern}\n` : "";
-    setEsqlInput(initialESQL);
-    setNaturalInput("");
-    setQueryAPIData(null);
-    setVisualChain(createInitialChain());
-  }, []);
+  const _resetESQL = useCallback(
+    (indexPattern: string | undefined, initialActions: ESQLChainAction[]) => {
+      const initialESQL = indexPattern ? `FROM ${indexPattern}\n` : "";
+      setEsqlInput(initialESQL);
+      setNaturalInput("");
+      setQueryAPIData(null);
+      setQueryAPIDataAutoUpdate(false);
+
+      const newChain = reduce(
+        initialActions,
+        (chain: ESQLChain, action) =>
+          performChainAction(chain, action, []).chain,
+        createInitialChain()
+      );
+
+      setVisualChain(newChain);
+    },
+    []
+  );
 
   const setEsqlSchema = useCallback(
     (schema: ESQLSchema | null) => {
       _setEsqlSchema(schema);
-      _resetESQL(schema?.indexPattern);
+      _resetESQL(schema?.indexPattern, schema?.initialActions || []);
     },
     [_resetESQL]
   );
@@ -643,8 +660,8 @@ const ESQLComposerMain = () => {
   );
 
   const resetESQL = useCallback(() => {
-    _resetESQL(esqlSchema?.indexPattern);
-  }, [_resetESQL, esqlSchema?.indexPattern]);
+    _resetESQL(esqlSchema?.indexPattern, esqlSchema?.initialActions || []);
+  }, [_resetESQL, esqlSchema]);
 
   const performESQLRequest = useCallback(
     async (text: string) => {
