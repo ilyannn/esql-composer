@@ -13,13 +13,7 @@ import {
   VStack,
   Wrap,
   WrapItem,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
 } from "@chakra-ui/react";
-import { toInteger } from "lodash";
 import React, { useState } from "react";
 import { ESQLChain } from "../../models/esql/ESQLChain";
 import {
