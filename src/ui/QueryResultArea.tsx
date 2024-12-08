@@ -30,7 +30,7 @@ import React, { useCallback, useMemo } from "react";
 
 import { ESQLChainAction } from "../models/esql/ESQLChain";
 import { countRawValues } from "../models/esql/ValueStatistics";
-import { TableData } from "../services/es";
+import { ESQLTableData } from "../services/es";
 import { ESQLColumn } from "../models/esql/esql_types";
 
 import { ChevronDownIcon } from "@chakra-ui/icons";
@@ -47,9 +47,11 @@ import DataTableCombinedColumn from "./components/DataTableCombinedColumn";
 import SortIcon from "./components/SortIcon";
 import SpinningButton from "./components/SpinningButton";
 import InputNaturalPrompt from "./modals/InputNaturalPrompt";
+import { TableColumn } from "./components/data-table/types";
+import { getPresenter } from "./components/data-table/presenters";
 
 interface QueryResultAreaProps {
-  data: TableData | null;
+  data: ESQLTableData | null;
   clearData: () => void;
   isFetchAvailable: boolean;
   fetchQueryData: () => Promise<void>;
@@ -122,7 +124,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   };
 
   const handleFilterColumn = useCallback(
-    (column: ESQLColumn, columnIndex: number) => {
+    (column: TableColumn, columnIndex: number) => {
       const values = data ? data.values.map((row) => row[columnIndex]) : [];
       const stats = countRawValues(flattenMultivalues(values));
 
@@ -134,6 +136,33 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
     },
     [data, handleChainAction]
   );
+
+  const columns: TableColumn[] = useMemo(
+    () =>
+      (data?.columns ?? []).map((col) => ({
+        name: col.name,
+        type: col.type,
+        presenter: getPresenter(col),
+      })),
+    [data]
+  );
+
+  const idColumnIndex: number = useMemo(
+    () => columns.findIndex((col) => col.name === "_id"),
+    [columns]
+  );
+
+  const row_keys: string[] = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+    if (idColumnIndex === -1) {
+      return data.values.map((_, i) => i.toString());
+    }
+    return data.values.map((row, rowIndex) =>
+      (row[idColumnIndex] || rowIndex).toString()
+    );
+  }, [idColumnIndex, data?.values]);
 
   return (
     <>
@@ -294,7 +323,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
             <Table variant="striped" colorScheme="teal" size="sm">
               <Thead>
                 <Tr>
-                  {data.columns.map((column, colIndex) => {
+                  {columns.map((column, colIndex) => {
                     return (
                       <Th
                         key={column.name}
@@ -309,7 +338,11 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                             handleRenameColumn(column, value)
                           }
                         >
-                          <EditablePreview />
+                          <EditablePreview
+                            borderWidth={2}
+                            borderColor={"transparent"}
+                            style={{ fontVariant: "small-caps" }}
+                          />
                           <EditableInput />
                         </Editable>
                         {esqlIsTypeSortable(column.type) && (
@@ -374,7 +407,11 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                   })}
                 </Tr>
               </Thead>
-              <DataTableBody columns={data.columns} values={data.values} />
+              <DataTableBody
+                columns={columns}
+                rows={data.values}
+                row_keys={row_keys}
+              />
               <Tfoot>
                 <Tr opacity={0.33}>
                   {data.columns.map((col, colIndex) => (
@@ -388,8 +425,9 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
 
         {data && isCombinedColumnView && (
           <DataTableCombinedColumn
-            columns={data.columns}
-            values={data.values}
+            columns={columns}
+            rows={data.values}
+            row_keys={row_keys}
           />
         )}
       </VStack>

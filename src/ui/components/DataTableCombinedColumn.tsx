@@ -1,54 +1,60 @@
 import { Box, Wrap, VStack, Divider } from "@chakra-ui/react";
-import { isEqual } from "lodash";
 import React from "react";
 import {
   ESQLAtomRawMultivalue,
   ESQLAtomRawValue,
+  ESQLColumn,
   esqlRawToHashableValue,
 } from "../../models/esql/esql_types";
 import FieldTag from "./atoms/FieldTag";
-import { createPresenters, type Presenter } from "./data-table/presenters";
-import { ESQLColumn } from "../../models/esql/esql_types";
+import {
+  TableColumn,
+  TableData,
+  TableRow,
+  isTableDataEqual,
+} from "./data-table/types";
 
-interface DataTableCombinedColumnProps {
-  columns: ESQLColumn[];
-  values: (ESQLAtomRawValue | ESQLAtomRawMultivalue)[][];
+interface DataTableCombinedColumnCellProps {
+  columns: TableColumn[];
+  row: TableRow;
 }
 
-const DataTableCombinedColumn = ({
-  columns,
-  values,
-}: DataTableCombinedColumnProps) => {
-  const presenters = createPresenters(columns);
+const DataTableCombinedColumnCell = React.memo(
+  ({ columns, row }: DataTableCombinedColumnCellProps) => {
+    return (
+      <Wrap justify={"flex-start"}>
+        {row.map((val, colIndex) => {
+          const { name, presenter } = columns[colIndex];
+          const values =
+            typeof val === "object" && Array.isArray(val) ? val : [val];
+          return (
+            <>
+              <FieldTag key={name} name={name} size="sm" />
+              {values.map((v: ESQLAtomRawValue, i: number) =>
+                presenter(esqlRawToHashableValue(v))
+              )}
+            </>
+          );
+        })}
+      </Wrap>
+    );
+  }
+);
 
+const DataTableCombinedColumn = ({ columns, rows, row_keys }: TableData) => {
   return (
     <VStack align="stretch" divider={<Divider />} spacing={3}>
-      {values.map((row, rowIndex) => (
-        <Box width="100%" key={rowIndex}>
-          <Wrap justify={"flex-start"}>
-            {row.map((val, fieldIndex) => {
-              const { name } = columns[fieldIndex];
-              const values =
-                typeof val === "object" && Array.isArray(val) ? val : [val];
-              return (
-                <>
-                  <FieldTag key={name} name={name} size="sm" />
-                  {values.map((v: ESQLAtomRawValue, i: number) =>
-                    presenters[fieldIndex](esqlRawToHashableValue(v))
-                  )}
-                </>
-              );
-            })}
-          </Wrap>
-        </Box>
+      {rows.map((row, rowIndex) => (
+        <DataTableCombinedColumnCell
+          key={row_keys[rowIndex]}
+          columns={columns}
+          row={row}
+        ></DataTableCombinedColumnCell>
       ))}
     </VStack>
   );
 };
 
-export default React.memo(DataTableCombinedColumn, (prevProps, nextProps) => {
-  return (
-    isEqual(prevProps.columns, nextProps.columns) &&
-    isEqual(prevProps.values, nextProps.values)
-  );
-});
+export default React.memo(DataTableCombinedColumn, (prevProps, nextProps) =>
+  isTableDataEqual(prevProps, nextProps)
+);

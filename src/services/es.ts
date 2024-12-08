@@ -1,4 +1,3 @@
-import { initial } from "lodash";
 import {
   ESQLAtomRawMultivalue,
   ESQLAtomRawValue,
@@ -20,7 +19,7 @@ interface ESQLDeriveSchemaOptions extends ESAPIOptions {
   randomSamplingFactor: number;
 }
 
-export interface TableData {
+export interface ESQLTableData {
   columns: ESQLColumn[];
   values: Array<Array<ESQLAtomRawValue | ESQLAtomRawMultivalue>>;
 }
@@ -44,7 +43,7 @@ export class QueryAPIError extends Error {
  * @returns A boolean indicating whether the data is of type TableData.
  *
  */
-function isTableData(data: any): data is TableData {
+function isESQLTableData(data: any): data is ESQLTableData {
   return (
     "columns" in data &&
     "values" in data &&
@@ -145,10 +144,10 @@ export const performESQLQuery = async ({
   apiURL,
   apiKey,
   query,
-}: ESQLQueryOptions): Promise<TableData> => {
+}: ESQLQueryOptions): Promise<ESQLTableData> => {
   const answer = await postJSON(`${apiURL}/_query`, apiKey, { query });
 
-  if (!isTableData(answer)) {
+  if (!isESQLTableData(answer)) {
     throw new QueryAPIError(undefined, "Invalid format of the response data");
   }
 
@@ -187,7 +186,7 @@ const isESQLShowInfo = (data: any): data is ESQLShowInfo => {
  * @param data - The table data to convert, which includes columns and values.
  * @returns An array of records where each record is an object with keys corresponding to column names and values corresponding to the row values.
  */
-const tableDataToRecords = (data: TableData): Record<string, any>[] => {
+const tableDataToRecords = (data: ESQLTableData): Record<string, any>[] => {
   return data.values.map((row) =>
     row.reduce(
       (acc, val, idx) => ({
@@ -478,6 +477,7 @@ export type ESQLSchema = {
   indexPattern: string;
   knownFields: Field[];
   guide: string;
+  initialESQL: string;
   initialActions: ESQLChainAction[];
 };
 
@@ -531,10 +531,34 @@ export const deriveSchema = async ({
     )
     .join("\n");
 
+  const metadataFields = ["_id"];
+
+  if (indices.length > 1) {
+    metadataFields.push("_index");
+  }
+
+  const metadataParameters = metadataFields.join(",");
+  const initialESQL = `FROM ${indexPattern} METADATA ${metadataParameters}`;
+
+  const initialActions: ESQLChainAction[] = [];
+  for (const field of knownFields) {
+    if (field.type === "date") {
+      if (field.name === "timestamp" || field.name === "@timestamp")
+        initialActions.push({
+          action: "sortDesc",
+          column: {
+            name: field.name,
+            type: field.type,
+          },
+        });
+    }
+  }
+
   return {
     guide,
     indexPattern,
     knownFields,
-    initialActions: [],
+    initialESQL,
+    initialActions,
   };
 };

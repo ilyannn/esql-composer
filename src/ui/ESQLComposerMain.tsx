@@ -50,7 +50,7 @@ import {
 import {
   ESQLSchema,
   QueryAPIError,
-  TableData,
+  ESQLTableData,
   deriveSchema,
   performESQLQuery,
   performESQLShowInfoQuery,
@@ -113,7 +113,7 @@ const ESQLComposerMain = () => {
   const [visualChain, setVisualChain] = useState<ESQLChain>(createInitialChain);
   const [updatingESQLLineByLine, setUpdatingESQLLineByLine] = useState(false);
 
-  const [queryAPIData, setQueryAPIData] = useState<TableData | null>(null);
+  const [queryAPIData, setQueryAPIData] = useState<ESQLTableData | null>(null);
   const [queryAPIDataAutoUpdate, _setQueryAPIDataAutoUpdate] = useState(false);
 
   const isLimitRecommended = useMemo(() => {
@@ -215,6 +215,7 @@ const ESQLComposerMain = () => {
           indexPattern: "",
           knownFields: [],
           guide: "",
+          initialESQL: "",
           initialActions: [],
         }),
         guide: value,
@@ -568,7 +569,9 @@ const ESQLComposerMain = () => {
 
   const _resetESQL = useCallback(
     (indexPattern: string | undefined, initialActions: ESQLChainAction[]) => {
-      const initialESQL = indexPattern ? `FROM ${indexPattern}\n` : "";
+      const initialESQL = indexPattern
+        ? `FROM ${indexPattern} METADATA _id\n`
+        : "";
       setEsqlInput(initialESQL);
       setNaturalInput("");
       setQueryAPIData(null);

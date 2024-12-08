@@ -1,53 +1,52 @@
 import { ListItem, Tbody, Td, Tr, UnorderedList } from "@chakra-ui/react";
 import { isEqual } from "lodash";
-import React from "react";
+import React, { useMemo } from "react";
 import {
   ESQLAtomRawMultivalue,
   ESQLAtomRawValue,
   esqlRawToHashableValue,
 } from "../../models/esql/esql_types";
-import { createPresenters, Presenter } from "./data-table/presenters";
-import { ESQLColumn } from "../../models/esql/esql_types";
+import { isTableDataEqual, TableColumn, TableData } from "./data-table/types";
+import { Presenter } from "./data-table/presenters";
 
-interface DataTableBodyProps {
-  columns: ESQLColumn[];
-  values: (ESQLAtomRawValue | ESQLAtomRawMultivalue)[][];
+interface DataTableCellProps {
+  presenter: Presenter;
+  value: ESQLAtomRawValue | ESQLAtomRawMultivalue;
 }
 
-const DataTableBody = ({ values, columns }: DataTableBodyProps) => {
-  const presenters = createPresenters(columns);
+const DataTableCell = React.memo(({ presenter, value }: DataTableCellProps) => (
+  <Td>
+    {typeof value === "object" && Array.isArray(value) ? (
+      <UnorderedList>
+        {value.map((v: ESQLAtomRawValue, i: number) => (
+          <ListItem key={i}>{presenter(esqlRawToHashableValue(v))}</ListItem>
+        ))}
+      </UnorderedList>
+    ) : (
+      presenter(esqlRawToHashableValue(value))
+    )}
+  </Td>
+));
 
+const DataTableBody = ({ rows, columns, row_keys }: TableData) => {
   return (
     <Tbody>
-      {values.map((row, rowIndex) => (
-        <Tr key={rowIndex}>
-          {row.map((val, colIndex) => {
-            const presenter = presenters[colIndex];
-            return (
-              <Td key={colIndex}>
-                {typeof val === "object" && Array.isArray(val) ? (
-                  <UnorderedList>
-                    {val.map((v: ESQLAtomRawValue, i: number) => (
-                      <ListItem key={i}>
-                        {presenter(esqlRawToHashableValue(v))}
-                      </ListItem>
-                    ))}
-                  </UnorderedList>
-                ) : (
-                  presenter(esqlRawToHashableValue(val))
-                )}
-              </Td>
-            );
-          })}
+      {rows.map((row, rowIndex) => (
+        // TODO: Documents might come from different indices or clusters, so this key should be extended.
+        <Tr key={row_keys[rowIndex]}>
+          {row.map((val, colIndex) => (
+            <DataTableCell
+              key={columns[colIndex].name}
+              presenter={columns[colIndex].presenter}
+              value={val}
+            />
+          ))}
         </Tr>
       ))}
     </Tbody>
   );
 };
 
-export default React.memo(DataTableBody, (prevProps, nextProps) => {
-  return (
-    isEqual(prevProps.columns, nextProps.columns) &&
-    isEqual(prevProps.values, nextProps.values)
-  );
-});
+export default React.memo(DataTableBody, (prevProps, nextProps) =>
+  isTableDataEqual(prevProps, nextProps)
+);

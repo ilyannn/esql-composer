@@ -1,7 +1,6 @@
 // This implements the subset of the Elasticsearch Query Language (ES|QL)
 // data that is used in the visual composer application.
 
-import { stat } from "fs";
 import { ESQLColumn } from "./esql_types";
 
 import { ESQLSentinelOtherValues, esqlTypeToClass } from "./esql_types";
@@ -20,6 +19,7 @@ import {
   SortBlock,
 } from "./ESQLBlock";
 import { statisticsEntries, ValueStatistics } from "./ValueStatistics";
+import { TableColumn } from "../../ui/components/data-table/types";
 
 export type ESQLChain = (ESQLBlock & BlockHasStableId)[];
 
@@ -58,6 +58,7 @@ interface ESQLColumnRenameAction extends ESQLColumnBaseAction {
 interface ESQLColumnFilterAction extends ESQLColumnBaseAction {
   action: "filter";
   stats: ValueStatistics;
+  column: TableColumn;
 }
 
 export type ESQLColumnAction =

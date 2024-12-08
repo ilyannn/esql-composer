@@ -199,7 +199,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
               isDisabled={!tooltipsShown}
               label="Load a prepackaged schema description"
             >
-              <Menu>
+              <Menu placement="top">
                 <MenuButton
                   as={Button}
                   variant="ghost"

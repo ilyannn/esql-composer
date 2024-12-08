@@ -1,3 +1,4 @@
+import { memoize } from "lodash";
 import { JSX } from "react";
 import {
   ESQLAtomValue,
@@ -13,7 +14,7 @@ const defaultPresenter: Presenter = (value: ESQLAtomValue) => (
   <FieldValue value={value} />
 );
 
-const numberPresenter = (
+const createNumberPresenter = (
   maximumFractionDigits: number | undefined
 ): Presenter => {
   const localNumberFormatter = new Intl.NumberFormat(undefined, {
@@ -32,7 +33,7 @@ const numberPresenter = (
   );
 };
 
-const datePresenter = (timezone: string | undefined): Presenter => {
+const createDatePresenter = (timezone: string | undefined): Presenter => {
   const formatter = new Intl.DateTimeFormat(undefined, {
     timeZone: timezone,
     dateStyle: "medium",
@@ -51,7 +52,7 @@ const datePresenter = (timezone: string | undefined): Presenter => {
   );
 };
 
-const moneyPresenter = (currency: string): Presenter => {
+const createMoneyPresenter = (currency: string): Presenter => {
   const formatter = new Intl.NumberFormat(undefined, {
     style: "currency",
     currency,
@@ -81,15 +82,19 @@ const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
   return <FieldValue value={value} formattedValue={formattedValue} />;
 };
 
-const getPresenter = (column: ESQLColumn): Presenter => {
+const memoizedCreateDatePresenter = memoize(createDatePresenter);
+const memoizedCreateMoneyPresenter = memoize(createMoneyPresenter);
+const memoizedCreateNumberPresenter = memoize(createNumberPresenter);
+
+export const getPresenter = (column: ESQLColumn): Presenter => {
   try {
     if (column.name.endsWith("(UTC)")) {
-      return datePresenter("UTC");
+      return memoizedCreateDatePresenter("UTC");
     }
 
     const timezoneMatch = column.name.match(/\b([A-Za-z_]+\/[A-Za-z_]+)\b/);
     if (timezoneMatch) {
-      return datePresenter(timezoneMatch[1]);
+      return memoizedCreateDatePresenter(timezoneMatch[1]);
     }
 
     if (
@@ -97,7 +102,7 @@ const getPresenter = (column: ESQLColumn): Presenter => {
       column.type === "date_nanos" ||
       column.name.endsWith("(Date)")
     ) {
-      return datePresenter(undefined);
+      return memoizedCreateDatePresenter(undefined);
     }
 
     if (column.type === "geo_point") {
@@ -106,19 +111,15 @@ const getPresenter = (column: ESQLColumn): Presenter => {
 
     const currencyMatch = column.name.match(/\(([A-Z][A-Z][A-Z])\)$/);
     if (currencyMatch) {
-      return moneyPresenter(currencyMatch[1]);
+      return memoizedCreateMoneyPresenter(currencyMatch[1]);
     }
 
     if (esqlTypeToClass(column.type) === "numeric") {
-      return numberPresenter(undefined);
+      return memoizedCreateNumberPresenter(undefined);
     }
   } catch (e) {
     console.error("Failed to create presenter for ", column, e);
   }
 
   return defaultPresenter;
-};
-
-export const createPresenters = (columns: ESQLColumn[]): Presenter[] => {
-  return columns.map(getPresenter);
 };
