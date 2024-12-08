@@ -152,17 +152,32 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
     [columns]
   );
 
+  const indexColumnIndex: number = useMemo(
+    () => columns.findIndex((col) => col.name === "_index"),
+    [columns]
+  );
+
   const row_keys: string[] = useMemo(() => {
     if (!data) {
       return [];
     }
-    if (idColumnIndex === -1) {
-      return data.values.map((_, i) => i.toString());
-    }
+
     return data.values.map((row, rowIndex) =>
-      (row[idColumnIndex] || rowIndex).toString()
+    {
+      const chunks = [];
+      if (indexColumnIndex !== -1) {
+        chunks.push(row[indexColumnIndex]);
+      }
+      if (idColumnIndex !== -1) {
+        chunks.push(row[idColumnIndex]);
+      }
+      if (chunks.length === 0) {
+        chunks.push(rowIndex.toString());
+      }
+      return chunks.join("/");
+    }
     );
-  }, [idColumnIndex, data?.values]);
+  }, [idColumnIndex, indexColumnIndex, data?.values]);
 
   return (
     <>

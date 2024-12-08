@@ -32,7 +32,6 @@ const DataTableBody = ({ rows, columns, row_keys }: TableData) => {
   return (
     <Tbody>
       {rows.map((row, rowIndex) => (
-        // TODO: Documents might come from different indices or clusters, so this key should be extended.
         <Tr key={row_keys[rowIndex]}>
           {row.map((val, colIndex) => (
             <DataTableCell
