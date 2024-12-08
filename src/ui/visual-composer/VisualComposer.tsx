@@ -129,7 +129,7 @@ const renderBlockContents = (
         <CheckboxGroup colorScheme="blackAlpha">
           <VStack spacing={3} align={"stretch"} justify={"stretch"}>
             <HStack spacing={5} align="baseline" justify={"stretch"}>
-              <FieldTag size="lg" name={block.field} />
+              <FieldTag size="lg" name={block.field.name} />
               {block.topStatsRetrieved === 0 && (
                 <SpinningButton
                   targets="es"
@@ -299,7 +299,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
       (v) => v.value === ESQLSentinelOtherValues && v.included
     );
     const topN = filterBlock.topStatsRetrieved + 10;
-    const topStats = await getGlobalTopStats(index, filterBlock.field, topN);
+    const topStats = await getGlobalTopStats(index, filterBlock.field.name, topN);
     const oldValues = new Set(filterBlock.values.map((v) => v.value));
     const newValues = statisticsEntries(topStats).map(([v, _]) => v).filter(_ => !oldValues.has(_));
 

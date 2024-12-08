@@ -31,21 +31,38 @@ export const esqlRawToHashableValue = (
   return value;
 };
 
+const quoteString = (value: string): string => {
+  if (!value.includes('"')) {
+    return '"' + value + '"';
+  }
+
+  if (value.includes('"') && !value.includes('"""')) {
+    return '"""' + value + '"""';
+  }
+
+  return '"' + value.replace(/"/g, '\\"') + '"';
+};
+
 // Representation of the value that can be parsed back.
-export const esqlRepresentation = (value: ESQLAtomValue): string => {
-  if (value === ESQLValueTrue) {
-    return "true";
-  }
-  if (value === ESQLValueFalse) {
-    return "false";
-  }
-  if (value === ESQLValueNull) {
-    return "null";
-  }
-  if (typeof value === "number") {
-    return value.toString();
-  }
-  return JSON.stringify(value);
+export const esqlRepresentation = (
+  value: ESQLAtomValue,
+  type: ESQLColumnType | undefined = undefined
+): string => {
+  const quoted =
+    value === ESQLValueTrue
+      ? "true"
+      : value === ESQLValueFalse
+      ? "false"
+      : value === ESQLValueNull
+      ? "null"
+      : typeof value === "number"
+      ? value.toString()
+      : typeof value === "string"
+      ? quoteString(value)
+      : JSON.stringify(value);
+
+  const needsConversion = type !== undefined && esqlTypeToClass(type) === "geo";
+  return needsConversion ? quoted + "::" + type : quoted;
 };
 
 export type ESQLNumberType =
@@ -107,7 +124,8 @@ export const esqlIsTypeSortable = (type: ESQLColumnType): boolean => {
   return esqlTypeToClass(type) !== "geo";
 };
 
-export const flattenMultivalues = (data: (ESQLAtomRawValue | ESQLAtomRawMultivalue)[]) => {
+export const flattenMultivalues = (
+  data: (ESQLAtomRawValue | ESQLAtomRawMultivalue)[]
+) => {
   return data.flatMap((d) => (Array.isArray(d) ? d : [d]));
 };
-

@@ -1,12 +1,14 @@
 
 const BACKTICK = "`";
 
-// https://www.elastic.co/guide/en/elasticsearch/reference/current/esql-syntax.html
+// Identifiers are described in https://www.elastic.co/guide/en/elasticsearch/reference/current/esql-syntax.html
+// But we actually need the qualifiedName from the AST grammar which is a series of identifiers
+// connected by dots. So we don't need to escape the dots either. 
 export const escape = (name: string): string => {
-  if (!/^[a-zA-Z_@]/.test(name) || /[^a-zA-Z0-9_]/.test(name.slice(1))) {
+  if (!/^[a-zA-Z_@]/.test(name) || /[^a-zA-Z0-9_.]/.test(name.slice(1))) {
     return `${BACKTICK}${name.replace(
-      BACKTICK,
-      BACKTICK + BACKTICK
+      new RegExp(BACKTICK, "g"),
+      BACKTICK + BACKTICK,
     )}${BACKTICK}`;
   }
   return name;

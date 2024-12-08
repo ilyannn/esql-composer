@@ -1,11 +1,17 @@
+import assert from "assert";
 import { escape } from "./esql_escape";
 import {
   ESQLAtomValue,
   ESQLColumnTypeClass,
   esqlRepresentation,
   ESQLSentinelOtherValues,
+  ESQLValueFalse,
+  ESQLValueNull,
+  ESQLValueTrue,
 } from "./esql_types";
 import { ValueStatistics } from "./ValueStatistics";
+import { constructWhereClause } from "./clauses";
+import { TableColumn } from "../../services/es";
 
 interface BaseESQLBlock {
   command: string;
@@ -43,7 +49,7 @@ export interface FilterValue {
 
 export interface FilterBlock extends BaseESQLBlock {
   command: "WHERE";
-  field: string;
+  field: TableColumn;
   values: FilterValue[];
   localStats: ValueStatistics;
   topStatsRetrieved: number;
@@ -163,36 +169,39 @@ const renameBlockToESQL = (block: RenameBlock): string | null => {
  * - `null` if the block does not do anything.
  * - `WHERE false` if all values are filtered out.
  * - `WHERE field == value` or `WHERE field != value` if there is one key value.
- * - `WHERE field IN (value1, value2, ...)` or `WHERE field NOT IN (value1, value2, ...)` if there are multiple key values.
+ * - `WHERE field IN (value1, value2, ...)` or `WHERE field NOT IN (value1, value2, ...)` if there are at least three key values.
  */
 const whereBlockToESQL = (block: FilterBlock): string | null => {
   if (block.values.length === 0) {
     return null;
   }
 
-  const otherValuesIncluded = block.values.some(
+  const defaultIncluded = block.values.some(
     (v) => v.value === ESQLSentinelOtherValues && v.included
   );
 
-  const keyValues: ESQLAtomValue[] = block.values
-    .filter((v) => v.included !== otherValuesIncluded)
+  const nullIsSpecial = block.values.some(
+    (v) => v.value === ESQLValueNull && v.included !== defaultIncluded
+  );
+
+  const specialValues: ESQLAtomValue[] = block.values
+    .filter((v) => v.included !== defaultIncluded)
     .map((v) => v.value)
-    .filter((v) => v !== ESQLSentinelOtherValues); // not necessary from the logical standpoint, but makes the type checker happy
+    .filter((v) => v !== ESQLSentinelOtherValues && v !== ESQLValueNull);
+  // Logically ESQLSentinelOtherValues will not be there, but makes the type checker happy
 
-  if (keyValues.length === 0) {
-    return otherValuesIncluded ? null : `WHERE false`;
+  const constructed = constructWhereClause({
+    field: block.field,
+    defaultIncluded,
+    specialValues,
+    nullIsSpecial,
+  });
+
+  if (constructed === "true") {
+    return null;
   }
 
-  if (keyValues.length === 1) {
-    const op = otherValuesIncluded ? "!=" : "==";
-    return `WHERE ${block.field} ${op} ${esqlRepresentation(keyValues[0])}`;
-  }
-
-  const op = otherValuesIncluded ? "NOT IN" : "IN";
-  const expr: string =
-    "(" + keyValues.map((v) => esqlRepresentation(v)).join(", ") + ")";
-
-  return `WHERE ${block.field} ${op} ${expr}`;
+  return `WHERE ${constructed}`;
 };
 
 /**

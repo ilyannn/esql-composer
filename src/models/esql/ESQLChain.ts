@@ -91,7 +91,7 @@ const canActOnThisBlock = (
     case "sortDesc":
       return block.command === "SORT";
     case "filter":
-      return block.command === "WHERE" && block.field === action.column.name;
+      return block.command === "WHERE" && block.field.name === action.column.name;
     case "rename":
       return block.command === "RENAME";
     default:
@@ -329,7 +329,7 @@ export const performChainAction = (
     case "filter":
       newBlock = {
         command: "WHERE",
-        field: action.column.name,
+        field: action.column,
         values: provideValues(action.stats),
         localStats: action.stats,
         topStatsRetrieved: 0,

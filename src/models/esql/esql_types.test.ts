@@ -62,6 +62,20 @@ describe("esqlRepresentation", () => {
   it("should return JSON string for string", () => {
     expect(esqlRepresentation("test")).toBe('"test"');
   });
+
+  it("should use triple quotes for string with double quotes", () => {
+    expect(esqlRepresentation('test "test"')).toBe('"""test "test""""');
+  });
+
+  it("should escape double quotes in string when triple quotes don't work", () => {
+    expect(esqlRepresentation('test """ test')).toBe('"test \\"\\"\\" test"');
+  });
+
+  it("should add conversion for geo types", () => {
+    expect(esqlRepresentation("POINT(1 2)", "geo_point")).toBe(
+      '"POINT(1 2)"::geo_point'
+    );
+  });
 });
 
 describe("esqlIsTypeSortable", () => {
