@@ -568,15 +568,16 @@ const ESQLComposerMain = () => {
   );
 
   const _resetESQL = useCallback(
-    (indexPattern: string | undefined, initialActions: ESQLChainAction[]) => {
-      const initialESQL = indexPattern
-        ? `FROM ${indexPattern} METADATA _id\n`
-        : "";
-      setEsqlInput(initialESQL);
+    (
+      initialESQL: string | undefined,
+      initialActions: ESQLChainAction[] | undefined
+    ) => {
       setNaturalInput("");
       setQueryAPIData(null);
       setQueryAPIDataAutoUpdate(false);
 
+      const esql = initialESQL || "";
+      setEsqlInput(esql + "\n");
       const newChain = reduce(
         initialActions,
         (chain: ESQLChain, action) =>
@@ -592,7 +593,7 @@ const ESQLComposerMain = () => {
   const setEsqlSchema = useCallback(
     (schema: ESQLSchema | null) => {
       _setEsqlSchema(schema);
-      _resetESQL(schema?.indexPattern, schema?.initialActions || []);
+      _resetESQL(schema?.initialESQL, schema?.initialActions);
     },
     [_resetESQL]
   );
