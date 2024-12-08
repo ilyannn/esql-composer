@@ -2,9 +2,9 @@ import { JSX } from "react";
 import {
   ESQLAtomValue,
   esqlTypeToClass,
+  type ESQLColumn,
 } from "../../../models/esql/esql_types";
 import FieldValue from "./FieldValue";
-import { type ESQLColumn } from "../../../models/esql/esql_types";
 import { GeoPointFormatter } from "./geoPointFormatter";
 
 export type Presenter = (value: ESQLAtomValue) => JSX.Element;
