@@ -1,5 +1,5 @@
 import { escape } from "lodash";
-import { TableColumn } from "../../services/es";
+import { ESQLColumn } from "./esql_types";
 import { esqlRepresentation, esqlTypeToClass } from "./esql_types";
 
 /**
@@ -11,7 +11,7 @@ import { esqlRepresentation, esqlTypeToClass } from "./esql_types";
  * @returns A string representing the main part of the SQL WHERE clause.
  */
 interface WhereClauseParams {
-  field: TableColumn;
+  field: ESQLColumn;
   defaultIncluded: boolean;
   specialValues?: any[];
   nullIsSpecial?: boolean;

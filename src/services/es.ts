@@ -1,8 +1,8 @@
 import { initial } from "lodash";
 import {
-  ESQLColumnType,
-  ESQLAtomRawValue,
   ESQLAtomRawMultivalue,
+  ESQLAtomRawValue,
+  ESQLColumn,
 } from "../models/esql/esql_types";
 import { ESQLChainAction } from "../models/esql/ESQLChain";
 
@@ -20,13 +20,8 @@ interface ESQLDeriveSchemaOptions extends ESAPIOptions {
   randomSamplingFactor: number;
 }
 
-export interface TableColumn {
-  name: string;
-  type: ESQLColumnType;
-}
-
 export interface TableData {
-  columns: TableColumn[];
+  columns: ESQLColumn[];
   values: Array<Array<ESQLAtomRawValue | ESQLAtomRawMultivalue>>;
 }
 

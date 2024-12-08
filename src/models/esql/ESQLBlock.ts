@@ -11,7 +11,7 @@ import {
 } from "./esql_types";
 import { ValueStatistics } from "./ValueStatistics";
 import { constructWhereClause } from "./clauses";
-import { TableColumn } from "../../services/es";
+import { ESQLColumn } from "./esql_types";
 
 interface BaseESQLBlock {
   command: string;
@@ -49,7 +49,7 @@ export interface FilterValue {
 
 export interface FilterBlock extends BaseESQLBlock {
   command: "WHERE";
-  field: TableColumn;
+  field: ESQLColumn;
   values: FilterValue[];
   localStats: ValueStatistics;
   topStatsRetrieved: number;

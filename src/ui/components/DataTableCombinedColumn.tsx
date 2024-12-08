@@ -8,10 +8,10 @@ import {
 } from "../../models/esql/esql_types";
 import FieldTag from "./atoms/FieldTag";
 import { createPresenters, type Presenter } from "./data-table/presenters";
-import { TableColumn } from "../../services/es";
+import { ESQLColumn } from "../../models/esql/esql_types";
 
 interface DataTableCombinedColumnProps {
-  columns: TableColumn[];
+  columns: ESQLColumn[];
   values: (ESQLAtomRawValue | ESQLAtomRawMultivalue)[][];
 }
 

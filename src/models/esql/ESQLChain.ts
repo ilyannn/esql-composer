@@ -2,7 +2,7 @@
 // data that is used in the visual composer application.
 
 import { stat } from "fs";
-import { TableColumn } from "../../services/es";
+import { ESQLColumn } from "./esql_types";
 
 import { ESQLSentinelOtherValues, esqlTypeToClass } from "./esql_types";
 
@@ -37,7 +37,7 @@ interface ESQLChainSimpleAction {
 
 interface ESQLColumnBaseAction {
   action: string;
-  column: TableColumn;
+  column: ESQLColumn;
 }
 
 interface ESQLChainEvalAction {
@@ -91,7 +91,9 @@ const canActOnThisBlock = (
     case "sortDesc":
       return block.command === "SORT";
     case "filter":
-      return block.command === "WHERE" && block.field.name === action.column.name;
+      return (
+        block.command === "WHERE" && block.field.name === action.column.name
+      );
     case "rename":
       return block.command === "RENAME";
     default:

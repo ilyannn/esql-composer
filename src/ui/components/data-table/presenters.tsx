@@ -4,7 +4,7 @@ import {
   esqlTypeToClass,
 } from "../../../models/esql/esql_types";
 import FieldValue from "./FieldValue";
-import { type TableColumn } from "../../../services/es";
+import { type ESQLColumn } from "../../../models/esql/esql_types";
 import { GeoPointFormatter } from "./geoPointFormatter";
 
 export type Presenter = (value: ESQLAtomValue) => JSX.Element;
@@ -81,7 +81,7 @@ const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
   return <FieldValue value={value} formattedValue={formattedValue} />;
 };
 
-const getPresenter = (column: TableColumn): Presenter => {
+const getPresenter = (column: ESQLColumn): Presenter => {
   try {
     if (column.name.endsWith("(UTC)")) {
       return datePresenter("UTC");
@@ -119,6 +119,6 @@ const getPresenter = (column: TableColumn): Presenter => {
   return defaultPresenter;
 };
 
-export const createPresenters = (columns: TableColumn[]): Presenter[] => {
+export const createPresenters = (columns: ESQLColumn[]): Presenter[] => {
   return columns.map(getPresenter);
 };

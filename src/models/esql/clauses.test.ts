@@ -1,8 +1,8 @@
-import { TableColumn } from "../../services/es";
+import { ESQLColumn } from "./esql_types";
 import { constructWhereClause } from "./clauses";
 
 describe("createWhereClause", () => {
-  const field: TableColumn = {
+  const field: ESQLColumn = {
     name: "field",
     type: "keyword",
   };

@@ -30,7 +30,8 @@ import React, { useCallback, useMemo } from "react";
 
 import { ESQLChainAction } from "../models/esql/ESQLChain";
 import { countRawValues } from "../models/esql/ValueStatistics";
-import { TableColumn, TableData } from "../services/es";
+import { TableData } from "../services/es";
+import { ESQLColumn } from "../models/esql/esql_types";
 
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import { CiFilter } from "react-icons/ci";
@@ -95,7 +96,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
     [data, handleChainActionInContext]
   );
 
-  const handleRenameColumn = (column: TableColumn, newName: string) => {
+  const handleRenameColumn = (column: ESQLColumn, newName: string) => {
     if (column.name === newName) {
       return;
     }
@@ -108,7 +109,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   };
 
   const handleTransformColumn = (
-    column: TableColumn,
+    column: ESQLColumn,
     columnIndex: number,
     naturalInput: string
   ) => {
@@ -121,7 +122,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   };
 
   const handleFilterColumn = useCallback(
-    (column: TableColumn, columnIndex: number) => {
+    (column: ESQLColumn, columnIndex: number) => {
       const values = data ? data.values.map((row) => row[columnIndex]) : [];
       const stats = countRawValues(flattenMultivalues(values));
 

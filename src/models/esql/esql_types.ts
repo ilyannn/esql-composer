@@ -129,3 +129,11 @@ export const flattenMultivalues = (
 ) => {
   return data.flatMap((d) => (Array.isArray(d) ? d : [d]));
 };
+
+/**
+ * Represents our knowledge about the column of the ESQL table.
+ */
+export interface ESQLColumn {
+  name: string;
+  type: ESQLColumnType;
+}
