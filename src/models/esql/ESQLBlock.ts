@@ -1,17 +1,13 @@
-import assert from "assert";
 import { escape } from "./esql_escape";
 import {
   ESQLAtomValue,
   ESQLColumnTypeClass,
-  esqlRepresentation,
   ESQLSentinelOtherValues,
-  ESQLValueFalse,
   ESQLValueNull,
-  ESQLValueTrue,
 } from "./esql_types";
 import { ValueStatistics } from "./ValueStatistics";
 import { constructWhereClause } from "./clauses";
-import { ESQLColumn } from "./esql_types";
+import { TableColumn } from "../../ui/components/data-table/types";
 
 interface BaseESQLBlock {
   command: string;
@@ -49,7 +45,7 @@ export interface FilterValue {
 
 export interface FilterBlock extends BaseESQLBlock {
   command: "WHERE";
-  field: ESQLColumn;
+  field: TableColumn;
   values: FilterValue[];
   localStats: ValueStatistics;
   topStatsRetrieved: number;

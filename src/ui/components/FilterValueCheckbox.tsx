@@ -6,6 +6,7 @@ import {
 } from "../../models/esql/ValueStatistics";
 import {
   ESQLAtomValue,
+  esqlRawToHashableValue,
   ESQLSentinelOtherValues,
 } from "../../models/esql/esql_types";
 import FieldValue from "./data-table/FieldValue";
@@ -51,6 +52,8 @@ export const FilterValueCheckbox = ({
       ? undefined
       : getStatsText(v.value, block.localStats, block.topStats);
 
+  const presenter = block.field.presenter;
+
   return (
     <>
       <Checkbox
@@ -60,7 +63,11 @@ export const FilterValueCheckbox = ({
         }}
       >
         <HStack spacing={2} align={"baseline"}>
-          <FieldValue value={v.value} />
+          {v.value === ESQLSentinelOtherValues ? (
+            <FieldValue value={v.value} />
+          ) : (
+            presenter(v.value)
+          )}
           {statsText !== "" && (
             <Text color={"gray.500"} fontSize={"xs"}>
               {statsText}
