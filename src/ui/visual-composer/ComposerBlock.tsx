@@ -40,7 +40,7 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
       }
     >
       <HStack justify="flex-start" align="baseline" spacing={6}>
-        <Heading as="h4" size={"sm"} textColor={"purple"}>
+        <Heading as="h4" size={"sm"}>
           {command}
         </Heading>
         <Box flex="1">{children}</Box>

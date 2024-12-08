@@ -73,14 +73,43 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
                   </Heading>
                   <OrderedList spacing={1} ml="2em">
                     <ListItem>
-                      Add an Anthropic API key in the LLM configuration section.
+                      <Highlight
+                        query={"LLM"}
+                        styles={{
+                          px: "2",
+                          py: "1",
+                          rounded: "md",
+                          bg: "orange.100",
+                        }}
+                      >
+                        Add an Anthropic API key in the LLM section.
+                      </Highlight>
                     </ListItem>
                     <ListItem>
-                      Optionally, connect your ES instance to:
-                      <UnorderedList spacing={1.6} ml="1.8em">
-                        <ListItem> Generate a schema for your index.</ListItem>
-                        <ListItem> Show ES|QL query results.</ListItem>
-                      </UnorderedList>
+                      <Highlight
+                        query={"Elasticsearch"}
+                        styles={{
+                          px: "2",
+                          py: "1",
+                          rounded: "md",
+                          bg: "teal.100",
+                        }}
+                      >
+                        Connect your Elasticsearch instance.
+                      </Highlight>
+                    </ListItem>
+                    <ListItem>
+                      <Highlight
+                        query={"schema"}
+                        styles={{
+                          px: "2",
+                          py: "1",
+                          rounded: "md",
+                          bg: "purple.100",
+                        }}
+                      >
+                        Generate from your index or use a demo schema.
+                      </Highlight>
                     </ListItem>
                     <ListItem>
                       Work on your query:
@@ -88,16 +117,15 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
                         <ListItem>
                           Prompt LLM in the natural text field.
                         </ListItem>
+                        <ListItem>Edit in the ES|QL field.</ListItem>
+                        <ListItem>Display data from Elasticsearch.</ListItem>
                         <ListItem>
-                          Add new natural text lines in the ES|QL field.
-                        </ListItem>
-                        <ListItem>
-                          Use the visual composer to add ES|QL functions.
+                          Use the visual composer to add ES|QL commands.
                         </ListItem>
                       </UnorderedList>
                     </ListItem>
                   </OrderedList>
-                  <Heading as="h4" size="sm" mt={3} mb={0}>
+                  {/* <Heading as="h4" size="sm" mt={3} mb={0}>
                     Tips:
                   </Heading>
                   <UnorderedList spacing={2} ml="2em">
@@ -125,7 +153,7 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
                         teal for Elasticsearch.
                       </Highlight>
                     </ListItem>
-                  </UnorderedList>
+                  </UnorderedList> */}
                   <Heading as="h4" size="sm" mt={3.5} mb={-2}>
                     Settings:
                   </Heading>
@@ -159,9 +187,7 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
                       </ListItem>
                       <ListItem>
                         <HStack spacing={0.5} align={"baseline"}>
-                          <Text>
-                            Store config in your browser:
-                          </Text>
+                          <Text>Store config in your browser:</Text>
                           <Button
                             variant="ghost"
                             colorScheme="green"

@@ -19,7 +19,7 @@ const getColor = (
 ): string => {
   if (typeof val === "string") return "green";
   if (typeof val === "number") return "blue";
-  if (val === ESQLValueFalse || val === ESQLValueTrue) return "purple";
+  if (val === ESQLValueFalse || val === ESQLValueTrue) return "black";
   if (val === ESQLValueNull) return "red";
   return "black";
 };
