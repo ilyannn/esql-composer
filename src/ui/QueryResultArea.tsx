@@ -162,8 +162,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
       return [];
     }
 
-    return data.values.map((row, rowIndex) =>
-    {
+    return data.values.map((row, rowIndex) => {
       const chunks = [];
       if (indexColumnIndex !== -1) {
         chunks.push(row[indexColumnIndex]);
@@ -175,8 +174,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
         chunks.push(rowIndex.toString());
       }
       return chunks.join("/");
-    }
-    );
+    });
   }, [idColumnIndex, indexColumnIndex, data?.values]);
 
   return (

@@ -90,6 +90,11 @@ export class PseudoXMLParser<TagType extends string> {
   private buffer = "";
 
   /**
+   * A Accumulated full text provided to the parser. Good for debugging.
+   */
+  private fullText = "";
+
+  /**
    * An array of strings representing the lines of content within the current tag.
    */
   private currentLines: string[] = [];
@@ -161,6 +166,8 @@ export class PseudoXMLParser<TagType extends string> {
    * @param chunk - The chunk of text to process.
    */
   push(chunk: string) {
+    this.fullText += chunk;
+
     if (chunk.includes("\n")) {
       const bufferLines = (this.buffer + chunk).split("\n");
       this.buffer = bufferLines.pop() || "";
@@ -186,6 +193,13 @@ export class PseudoXMLParser<TagType extends string> {
         this.handler.onCloseTag(this.currentTag, this.currentLines.join("\n"));
       }
     }
+  }
+
+  /**
+   * Returns the full text provided to the parser.
+   */
+  getFullText() {
+    return this.fullText;
   }
 }
 

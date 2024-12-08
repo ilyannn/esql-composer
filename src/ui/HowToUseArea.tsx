@@ -18,15 +18,25 @@ import {
   DrawerCloseButton,
   DrawerFooter,
   useDisclosure,
+  Checkbox,
+  CheckboxGroup,
 } from "@chakra-ui/react";
 import React, { useEffect, useRef } from "react";
 import { useLocalStorage } from "usehooks-ts";
+import TracingCheckbox from "../services/tracing/TracingCheckbox";
+import { TracingOption } from "../services/tracing/types";
 
 const CONFIG_KEY = "config";
 
 interface HowToUseAreaProps {
   tooltipsShown: boolean;
   setTooltipsShown: (value: boolean) => void;
+
+  llmTracingOption: TracingOption;
+  setLLMTracingOption: (option: TracingOption) => void;
+  esTracingOption: TracingOption;
+  setESTracingOption: (option: TracingOption) => void;
+
   collectConfig: () => Config;
   loadConfig: (config: Config) => void;
 }
@@ -36,7 +46,16 @@ export interface Config {
 }
 
 const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
-  ({ tooltipsShown, setTooltipsShown, collectConfig, loadConfig }) => {
+  ({
+    tooltipsShown,
+    setTooltipsShown,
+    collectConfig,
+    loadConfig,
+    llmTracingOption,
+    setLLMTracingOption,
+    esTracingOption,
+    setESTracingOption,
+  }) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
 
     const [config, storeConfig, removeConfig] = useLocalStorage<Config>(
@@ -154,68 +173,83 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
                       </Highlight>
                     </ListItem>
                   </UnorderedList> */}
+                  <Heading as="h4" size="sm" mt={3.5} mb={-1}>
+                    Observability:
+                  </Heading>
+                  <Text>Write traces to your Elasticsearch instance:</Text>
+                  <VStack align="stretch" justify="space-between" ml={"2em"}>
+                    <CheckboxGroup>
+                      <TracingCheckbox
+                        option={llmTracingOption}
+                        setOption={setLLMTracingOption}
+                      >
+                        LLM calls
+                      </TracingCheckbox>
+                      <TracingCheckbox
+                        option={esTracingOption}
+                        setOption={setESTracingOption}
+                      >
+                        ES queries
+                      </TracingCheckbox>
+                    </CheckboxGroup>
+                  </VStack>
+
                   <Heading as="h4" size="sm" mt={3.5} mb={-2}>
-                    Settings:
+                    UX Settings:
                   </Heading>
                   <VStack align="stretch" justify="space-between">
-                    <UnorderedList spacing={-2} ml="2em">
-                      <ListItem>
-                        <HStack spacing={-0.5} align={"baseline"}>
-                          <Text>
-                            Button tooltips are{" "}
-                            {tooltipsShown ? " enabled" : " disabled"}:
-                          </Text>
-                          {!tooltipsShown && (
-                            <Button
-                              variant="ghost"
-                              colorScheme="green"
-                              onClick={() => setTooltipsShown(true)}
-                            >
-                              Enable
-                            </Button>
-                          )}
-                          {tooltipsShown && (
-                            <Button
-                              variant="ghost"
-                              colorScheme="green"
-                              onClick={() => setTooltipsShown(false)}
-                            >
-                              Disable
-                            </Button>
-                          )}
-                        </HStack>
-                      </ListItem>
-                      <ListItem>
-                        <HStack spacing={0.5} align={"baseline"}>
-                          <Text>Store config in your browser:</Text>
-                          <Button
-                            variant="ghost"
-                            colorScheme="green"
-                            onClick={() => storeConfig(collectConfig())}
-                          >
-                            Save
-                          </Button>
-                          {!isConfigEmpty && (
-                            <Button
-                              variant="ghost"
-                              colorScheme="green"
-                              onClick={() => loadConfig(config)}
-                            >
-                              Load
-                            </Button>
-                          )}
-                          {!isConfigEmpty && (
-                            <Button
-                              variant="ghost"
-                              colorScheme="red"
-                              onClick={removeConfig}
-                            >
-                              Clear
-                            </Button>
-                          )}
-                        </HStack>
-                      </ListItem>
-                    </UnorderedList>
+                    <HStack spacing={-0.5} mb={-3} align={"baseline"}>
+                      <Text>
+                        Button tooltips are{" "}
+                        {tooltipsShown ? " enabled" : " disabled"}:
+                      </Text>
+                      {!tooltipsShown && (
+                        <Button
+                          variant="ghost"
+                          colorScheme="green"
+                          onClick={() => setTooltipsShown(true)}
+                        >
+                          Enable
+                        </Button>
+                      )}
+                      {tooltipsShown && (
+                        <Button
+                          variant="ghost"
+                          colorScheme="green"
+                          onClick={() => setTooltipsShown(false)}
+                        >
+                          Disable
+                        </Button>
+                      )}
+                    </HStack>
+                    <HStack spacing={0.5} align={"baseline"}>
+                      <Text>Store config in your browser:</Text>
+                      <Button
+                        variant="ghost"
+                        colorScheme="green"
+                        onClick={() => storeConfig(collectConfig())}
+                      >
+                        Save
+                      </Button>
+                      {!isConfigEmpty && (
+                        <Button
+                          variant="ghost"
+                          colorScheme="green"
+                          onClick={() => loadConfig(config)}
+                        >
+                          Load
+                        </Button>
+                      )}
+                      {!isConfigEmpty && (
+                        <Button
+                          variant="ghost"
+                          colorScheme="red"
+                          onClick={removeConfig}
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </HStack>
                   </VStack>
                 </VStack>
                 <VStack align="stretch" justify="space-between"></VStack>

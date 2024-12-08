@@ -54,6 +54,8 @@ import {
   deriveSchema,
   performESQLQuery,
   performESQLShowInfoQuery,
+  useTracing,
+  type UseTracingCallback,
 } from "../services/es";
 
 import { loadFile } from "../services/files";
@@ -76,6 +78,10 @@ import QueryResultArea from "./QueryResultArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import VisualComposer from "./visual-composer/VisualComposer";
 import { add, reduce } from "lodash";
+import {
+  defaultTracingOptions,
+  TracingOptions,
+} from "../services/tracing/options";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
 
@@ -97,6 +103,10 @@ const ESQLComposerMain = () => {
   > | null>(null);
   const [esqlGuideText, setEsqlGuideText] = useState("");
   const [esqlSchema, _setEsqlSchema] = useState<ESQLSchema | null>(null);
+
+  const [tracingOptions, setTracingOptions] = useState<TracingOptions>(
+    defaultTracingOptions
+  );
 
   const schemaGuideText = esqlSchema?.guide || "";
 
@@ -194,6 +204,7 @@ const ESQLComposerMain = () => {
       queryAPIKeyWorks,
       esqlGuideText,
       esqlSchema,
+      tracingOptions,
     };
   }, [
     openedAreas,
@@ -206,6 +217,7 @@ const ESQLComposerMain = () => {
     queryAPIKeyWorks,
     esqlGuideText,
     esqlSchema,
+    tracingOptions,
   ]);
 
   const setSchemaGuideText = useCallback(
@@ -249,9 +261,18 @@ const ESQLComposerMain = () => {
    * @returns {Promise<*>} The result of the API call if successful.
    */
   const performAnthropicAPIAction = useCallback(
-    async (label: string, action: () => Promise<void>) => {
+    async (
+      label: string,
+      action: (addToSpan: UseTracingCallback) => Promise<void>
+    ) => {
+      const { addToSpan, saveSpan } = useTracing({
+        apiURL: queryAPIURL,
+        apiKey: queryAPIKey,
+        option: tracingOptions.llm,
+      });
+
       try {
-        await action();
+        await action(addToSpan);
         setAnthropicAPIKeyWorks(true);
         return;
       } catch (error) {
@@ -299,6 +320,10 @@ const ESQLComposerMain = () => {
           status: "error",
           isClosable: true,
         });
+
+        addToSpan({ error: { message: description } });
+      } finally {
+        saveSpan();
       }
     },
     [toast]
@@ -659,6 +684,15 @@ const ESQLComposerMain = () => {
       if ("esqlSchema" in config && typeof config["esqlSchema"] === "object") {
         setEsqlSchema(config["esqlSchema"]);
       }
+      if (
+        "tracingOptions" in config &&
+        typeof config["tracingOptions"] === "object"
+      ) {
+        setTracingOptions({
+          ...defaultTracingOptions,
+          ...config["tracingOptions"],
+        });
+      }
     },
     [setQueryAPIURL, setQueryAPIKey, setEsqlSchema]
   );
@@ -815,34 +849,53 @@ const ESQLComposerMain = () => {
 
   const handleTransformFieldWithInfo = useCallback(
     async (sourceField: FieldInfo, naturalInput: string) => {
-      await performAnthropicAPIAction("ES|QL field transform", async () => {
-        const doneEvalExpression = (field: string, expr: string) => {
-          const { chain } = performChainAction(
-            visualChain,
-            {
+      await performAnthropicAPIAction(
+        "ES|QL field transform",
+        async (addToSpan) => {
+          const fullEsqlQuery = esqlChainAddToString(esqlInput, visualChain);
+          addToSpan({
+            esql: {
               action: "eval",
-              sourceField: sourceField.name,
-              expressions: [{ field, expression: expr }],
+              context: fullEsqlQuery,
+              source: sourceField,
             },
-            []
-          );
-          setVisualChain(chain);
-        };
+          });
 
-        const data = (await transformField({
-          type: "transformation",
-          apiKey: anthropicAPIKey,
-          modelSelected,
-          esqlGuideText,
-          schemaGuideText,
-          esqlInput: esqlChainAddToString(esqlInput, visualChain),
-          sourceFields: [sourceField],
-          naturalInput,
-          doneEvalExpression,
-        })) as any;
+          const doneEvalExpression = (field: string, expr: string) => {
+            addToSpan({
+              esql: {
+                target: field,
+                expression: expr,
+              },
+            });
+            const { chain } = performChainAction(
+              visualChain,
+              {
+                action: "eval",
+                sourceField: sourceField.name,
+                expressions: [{ field, expression: expr }],
+              },
+              []
+            );
+            setVisualChain(chain);
+          };
 
-        setAllStats([...allStats, data.stats]);
-      });
+          const data = (await transformField({
+            type: "transformation",
+            apiKey: anthropicAPIKey,
+            modelSelected,
+            esqlGuideText,
+            schemaGuideText,
+            esqlInput: fullEsqlQuery,
+            sourceFields: [sourceField],
+            naturalInput,
+            doneEvalExpression,
+          })) as any;
+
+          addToSpan(data);
+          setAllStats([...allStats, data.stats]);
+        }
+      );
     },
     [
       performAnthropicAPIAction,
@@ -1010,10 +1063,17 @@ const ESQLComposerMain = () => {
       <VStack spacing={4} align="stretch">
         <HStack justify={"space-between"}>
           <Heading>ES|QL Composer</Heading>
-
           <HowToUseArea
             tooltipsShown={tooltipsShown}
             setTooltipsShown={setTooltipsShown}
+            llmTracingOption={tracingOptions.llm}
+            setLLMTracingOption={(value) =>
+              setTracingOptions({ ...tracingOptions, llm: value })
+            }
+            esTracingOption={tracingOptions.es}
+            setESTracingOption={(value) =>
+              setTracingOptions({ ...tracingOptions, es: value })
+            }
             collectConfig={collectConfig}
             loadConfig={loadConfig}
           />

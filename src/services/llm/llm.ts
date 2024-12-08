@@ -268,6 +268,15 @@ export const countTokens = async (params: CountTokensInput) => {
   return response.input_tokens;
 };
 
+import { ESQLColumn } from "../../models/esql/esql_types";
+
+interface TransformFieldOutput {
+  stats: StatisticsRow,
+  esql: { query: string, field: ESQLColumn },
+  input: string,
+  output: string,
+}
+
 export const transformField = async (params: TransformFieldInput) => {
   const client = createAnthropicInstance(params.apiKey);
   const request = prepareRequest({ ...params });
@@ -350,12 +359,13 @@ export const transformField = async (params: TransformFieldInput) => {
   }
 
   return {
+    gen_ai: {
+      prompt: params.naturalInput,
+      completion: parser.getFullText(),
+    },
     stats: {
-      model: message_start_stats.model,
-      input_cached: message_start_stats.input_cached,
-      input_uncached: message_start_stats.input_uncached,
-      saved_to_cache: message_start_stats.saved_to_cache,
-      output: message_delta_stats.output,
+      ...message_start_stats,
+      ...message_delta_stats,
       first_token_time: first_token_time || Infinity,
       esql_time: esql_time || Infinity,
       total_time: Date.now() - requestTime,
