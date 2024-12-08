@@ -298,7 +298,7 @@ export const performChainAction = (
 
   switch (action.action) {
     case "limit":
-      newBlock = prevBlock ?? { command: "LIMIT", limit: 10 };
+      newBlock = prevBlock ?? { command: "LIMIT", limit: 20 };
       break;
 
     case "keep":
