@@ -1,5 +1,5 @@
 import { escape } from "lodash";
-import { ESQLColumn } from "./esql_types";
+import { ESQLColumn, ESQLValueTrue } from "./esql_types";
 import { esqlRepresentation, esqlTypeToClass } from "./esql_types";
 
 /**
@@ -51,7 +51,8 @@ export const constructWhereClause = ({
 
     case "boolean":
       for (const value of specialValues) {
-        const bool_op = value === defaultIncluded ? "NOT " : "";
+        const bool_op =
+          (value === ESQLValueTrue) === defaultIncluded ? "NOT " : "";
         clauses.push(`${bool_op}${escapedField}`);
       }
       break;
