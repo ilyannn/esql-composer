@@ -65,7 +65,7 @@ export const esqlRepresentation = (
   return needsConversion ? quoted + "::" + type : quoted;
 };
 
-export type ESQLNumberType =
+export type ESQLNumericType =
   | "double"
   | "integer"
   | "long"
@@ -74,18 +74,25 @@ export type ESQLNumberType =
   | "date_nanos"
   | "counter_integer"
   | "counter_long"
-  | "counter_double";
-export type ESQLStringType = "keyword" | "text" | "ip" | "version";
+  | "counter_double"
+  | "version";
+
+export type ESQLStringyType = "keyword" | "text" | "ip" | "semantic_text";
+
 export type ESQLBooleanType = "boolean";
+
 export type ESQLGeoType =
   | "geo_point"
   | "geo_shape"
   | "cartesian_point"
-  | "cartesian_shape";
+  | "cartesian_shape"
+  | "point"
+  | "shape";
+
 export type ESQLColumnType =
   | ESQLBooleanType
-  | ESQLNumberType
-  | ESQLStringType
+  | ESQLNumericType
+  | ESQLStringyType
   | ESQLGeoType;
 
 export type ESQLColumnTypeClass = "boolean" | "numeric" | "stringy" | "geo";
@@ -109,6 +116,7 @@ export const esqlTypeToClass = (type: ESQLColumnType): ESQLColumnTypeClass => {
 
     case "keyword":
     case "text":
+    case "semantic_text":
     case "ip":
       return "stringy";
 
@@ -116,6 +124,8 @@ export const esqlTypeToClass = (type: ESQLColumnType): ESQLColumnTypeClass => {
     case "geo_shape":
     case "cartesian_point":
     case "cartesian_shape":
+    case "point":
+    case "shape":
       return "geo";
   }
 };
