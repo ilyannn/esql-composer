@@ -71,12 +71,44 @@ const createMoneyPresenter = (currency: string): Presenter => {
 };
 
 const createMarkdownPresenter = (): Presenter => (value: ESQLAtomValue) =>
-  (
-    <Box display={"block"}>
-      <Markdown components={{ h1: "b", h2: "b", h4: "em" }}>
-        {value.toString()}
+  typeof value === "string" ? (
+    <Box display={"block"} borderLeft="2px dotted gray" paddingLeft="1em">
+      <Markdown
+        components={{
+          h1(props) {
+            const { node, ...rest } = props;
+            return (
+              <>
+                <b
+                  style={{
+                    fontSize: "1.2em",
+                  }}
+                  {...rest}
+                />
+                <br />
+              </>
+            );
+          },
+          h2: "b",
+          h3(props) {
+            const { node, ...rest } = props;
+            return (
+              <>
+                <i>
+                  <b style={{ opacity: 0.75 }} {...rest} />
+                </i>
+                <br />
+              </>
+            );
+          },
+          h4: "em",
+        }}
+      >
+        {value}
       </Markdown>
     </Box>
+  ) : (
+    defaultPresenter(value)
   );
 
 const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
