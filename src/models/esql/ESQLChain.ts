@@ -12,6 +12,7 @@ import {
   esqlBlockToESQL,
   EvalBlock,
   EvalExpression,
+  ExpandBlock,
   FilterValue,
   KeepBlock,
   OrderItem,
@@ -47,7 +48,7 @@ interface ESQLChainEvalAction {
 }
 
 interface ESQLColumnSimpleAction extends ESQLColumnBaseAction {
-  action: "drop" | "sortAsc" | "sortDesc";
+  action: "drop" | "sortAsc" | "sortDesc" | "expand";
 }
 
 interface ESQLColumnRenameAction extends ESQLColumnBaseAction {
@@ -91,6 +92,8 @@ const canActOnThisBlock = (
     case "sortAsc":
     case "sortDesc":
       return block.command === "SORT";
+    case "expand":
+      return block.command === "MV_EXPAND";
     case "filter":
       return (
         block.command === "WHERE" && block.field.name === action.column.name
@@ -115,6 +118,7 @@ const canBubbleOverBlock = (
     case "sortDesc":
     case "filter":
     case "eval":
+    case "expand":
       return block.command === "DROP" || block.command === "KEEP";
   }
   return false;
@@ -162,6 +166,17 @@ const blockUpdateForDrop = (
     return { ...prevBlock, fields: newFields };
   }
   const newFields = prevBlock.fields.filter((f) => f !== field);
+  return { ...prevBlock, fields: newFields };
+};
+
+const blockUpdateForExpand = (
+  prevBlock: ExpandBlock | null,
+  field: string
+): ExpandBlock => {
+  if (!prevBlock) {
+    return { command: "MV_EXPAND", fields: [field] };
+  }
+  const newFields = [...prevBlock.fields.filter((f) => f !== field), field];
   return { ...prevBlock, fields: newFields };
 };
 
@@ -329,6 +344,13 @@ export const performChainAction = (
       });
       break;
 
+    case "expand":
+      newBlock = blockUpdateForExpand(
+        prevBlock as ExpandBlock | null,
+        action.column.name
+      );
+      break;
+    
     case "filter":
       if (
         action.column.type === "text" ||
@@ -374,6 +396,7 @@ export const performChainAction = (
       };
       break;
   }
+
   const updatedAfterChain = bubbleDown(bubbleDownParams, afterChain);
   const newChain = [
     ...beforeChain,

@@ -34,6 +34,11 @@ export interface DropBlock extends BaseESQLBlock {
   fields: string[];
 }
 
+export interface ExpandBlock extends BaseESQLBlock {
+  command: "MV_EXPAND";
+  fields: string[];
+}
+
 export interface RenameBlock extends BaseESQLBlock {
   command: "RENAME";
   map: { [oldName: string]: string };
@@ -83,6 +88,7 @@ export type ESQLBlock =
   | LimitBlock
   | KeepBlock
   | DropBlock
+  | ExpandBlock
   | RenameBlock
   | FilterBlock
   | MatchBlock
@@ -122,29 +128,18 @@ const limitBlockToESQL = (block: LimitBlock): string | null => {
 };
 
 /**
- * Converts a `KeepBlock` object to its ES|QL representation.
+ * Converts simple block with a list fo fields to its ES|QL representation.
  *
- * @param block - The `KeepBlock` object to convert.
- * @returns The ES|QL representation of the `KeepBlock` object, or `null` if the block has no fields.
+ * @param block - The block to convert.
+ * @returns The ES|QL representation of the block, or `null` if the block has no fields.
  */
-const keepBlockToESQL = (block: KeepBlock): string | null => {
+const fieldsBlockToESQL = (
+  block: KeepBlock | DropBlock | ExpandBlock
+): string | null => {
   if (block.fields.length === 0) {
     return null;
   }
-  return `KEEP ${block.fields.map(escape).join(", ")}`;
-};
-
-/**
- * Converts a `DropBlock` object to its ES|QL representation.
- *
- * @param block - The `DropBlock` object to convert.
- * @returns The ES|QL representation of the `DropBlock` object, or `null` if the block has no fields.
- */
-const dropBlockToESQL = (block: DropBlock): string | null => {
-  if (block.fields.length === 0) {
-    return null;
-  }
-  return `DROP ${block.fields.map(escape).join(", ")}`;
+  return `${block.command} ${block.fields.map(escape).join(", ")}`;
 };
 
 /**
@@ -213,8 +208,10 @@ const matchBlockToESQL = (block: MatchBlock): string | null => {
     return null;
   }
 
-  return `WHERE ${escape(block.field.name)} : ${esqlRepresentation(block.match)}`;
-}
+  return `WHERE ${escape(block.field.name)} : ${esqlRepresentation(
+    block.match
+  )}`;
+};
 
 /**
  * Converts a SortBlock into an ES|QL SORT command.
@@ -266,13 +263,15 @@ export const esqlBlockToESQL = (block: ESQLBlock): string | null => {
     case "LIMIT":
       return limitBlockToESQL(block);
     case "KEEP":
-      return keepBlockToESQL(block);
     case "DROP":
-      return dropBlockToESQL(block);
+    case "MV_EXPAND":
+      return fieldsBlockToESQL(block);
     case "RENAME":
       return renameBlockToESQL(block);
     case "WHERE":
-      return 'match' in block ? matchBlockToESQL(block) : whereBlockToESQL(block);
+      return "match" in block
+        ? matchBlockToESQL(block)
+        : whereBlockToESQL(block);
     case "SORT":
       return sortBlockToESQL(block);
   }

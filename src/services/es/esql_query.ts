@@ -19,6 +19,14 @@ export const performESQLQuery = async ({
     throw new QueryAPIError(undefined, "Invalid format of the response data");
   }
 
+  for (const row of answer.values) {
+    for (const key in row) {
+      if (Array.isArray(row[key]) && row[key].length === 1) {
+        row[key] = row[key][0];
+      }
+    }
+  }
+
   return answer;
 };
 

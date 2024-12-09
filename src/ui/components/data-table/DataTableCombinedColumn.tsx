@@ -3,14 +3,9 @@ import React from "react";
 import {
   ESQLAtomRawValue,
   esqlRawToHashableValue,
-} from "../../models/esql/esql_types";
-import FieldTag from "./atoms/FieldTag";
-import {
-  TableColumn,
-  TableData,
-  TableRow,
-  isTableDataEqual,
-} from "./data-table/types";
+} from "../../../models/esql/esql_types";
+import FieldTag from "../atoms/FieldTag";
+import { TableColumn, TableData, TableRow, isTableDataEqual } from "./types";
 
 import { GrAddCircle } from "react-icons/gr";
 
@@ -64,7 +59,7 @@ const DataTableCombinedColumnCell = React.memo(
 
 const DataTableCombinedColumn = ({ columns, rows, row_keys }: TableData) => {
   return (
-    <VStack align="stretch" divider={<Divider/>} spacing={3}>
+    <VStack align="stretch" divider={<Divider />} spacing={3}>
       {rows.map((row, rowIndex) => (
         <DataTableCombinedColumnCell
           key={row_keys[rowIndex]}

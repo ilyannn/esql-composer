@@ -110,7 +110,8 @@ const renderBlockContents = (
       return renderLimitBlock(index, handleLimitChange, block);
 
     case "DROP":
-      return <FieldTagMesh size="md" fields={block.fields} />;
+    case "MV_EXPAND":
+      return <FieldTagMesh size="lg" fields={block.fields} />;
 
     case "KEEP":
       return (
@@ -122,11 +123,13 @@ const renderBlockContents = (
       );
 
     case "WHERE":
-      return <WhereComposerBlock
-        block={block}
-        updateBlock={(block) => updateBlock(index, block)}
-        handleWhereTopStats={(number) => handleWhereTopStats(index, number)}
-      />;
+      return (
+        <WhereComposerBlock
+          block={block}
+          updateBlock={(block) => updateBlock(index, block)}
+          handleWhereTopStats={(number) => handleWhereTopStats(index, number)}
+        />
+      );
 
     case "EVAL":
       return (

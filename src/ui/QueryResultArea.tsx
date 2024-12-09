@@ -42,13 +42,14 @@ import {
   flattenMultivalues,
 } from "../models/esql/esql_types";
 import { FieldInfo } from "../services/llm";
-import DataTableBody from "./components/DataTableBody";
-import DataTableCombinedColumn from "./components/DataTableCombinedColumn";
+import DataTableBody from "./components/data-table/DataTableBody";
+import DataTableCombinedColumn from "./components/data-table/DataTableCombinedColumn";
 import SortIcon from "./components/SortIcon";
 import SpinningButton from "./components/SpinningButton";
 import InputNaturalPrompt from "./modals/InputNaturalPrompt";
 import { TableColumn } from "./components/data-table/types";
 import { getPresenter } from "./components/data-table/presenters";
+import { makeUnique } from "../common/utils";
 
 interface QueryResultAreaProps {
   data: ESQLTableData | null;
@@ -162,7 +163,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
       return [];
     }
 
-    return data.values.map((row, rowIndex) => {
+    const candidates = data.values.map((row, rowIndex) => {
       const chunks = [];
       if (indexColumnIndex !== -1) {
         chunks.push(row[indexColumnIndex]);
@@ -175,6 +176,8 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
       }
       return chunks.join("/");
     });
+
+    return makeUnique(candidates);
   }, [idColumnIndex, indexColumnIndex, data?.values]);
 
   return (
@@ -421,9 +424,13 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                 </Tr>
               </Thead>
               <DataTableBody
-                columns={columns}
-                rows={data.values}
-                row_keys={row_keys}
+                data={{rows: data.values, columns, row_keys}}
+                onExpand={(columnIndex) =>
+                  handleChainAction({
+                    action: "expand",
+                    column: data.columns[columnIndex],
+                  })
+                }
               />
               <Tfoot>
                 <Tr opacity={0.33}>
