@@ -79,6 +79,7 @@ import QueryAPIConfigurationArea from "./QueryAPIConfigurationArea";
 import QueryResultArea from "./QueryResultArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import VisualComposer from "./visual-composer/VisualComposer";
+import { representESQLField } from "../models/esql/esql_repr";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
 
@@ -1034,8 +1035,8 @@ const ESQLComposerMain = () => {
             apiKey: queryAPIKey,
             query: `${queryESQL}\n| stats ${countCol}=count()`,
           });
-
-          const query = `${queryESQL}\n| stats ${countCol}=count() by ${fieldName}\n| sort ${countCol} desc\n | KEEP ${fieldName}, ${countCol} | LIMIT ${topN}`;
+          const escapedFieldName = representESQLField(fieldName);
+          const query = `${queryESQL}\n| stats ${countCol}=count() by ${escapedFieldName}\n| sort ${countCol} desc\n | KEEP ${escapedFieldName}, ${countCol} | LIMIT ${topN}`;
 
           const response = await performESQLQuery({
             apiURL: queryAPIURL,
