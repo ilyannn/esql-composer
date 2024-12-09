@@ -8,14 +8,14 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 
-import { StatisticsRow } from "../../common/types";
+import { LLMStatisticsRow } from "../../common/types";
 
 interface StatisticsProps {
   tooltipsShown: boolean;
-  stats: Array<StatisticsRow>;
+  stats: Array<LLMStatisticsRow>;
 }
 
-const downloadStatistics = (stats: Array<StatisticsRow>) => {
+const downloadStatistics = (stats: Array<LLMStatisticsRow>) => {
   const csvContent = [
     [
       "TTFT",
@@ -28,13 +28,13 @@ const downloadStatistics = (stats: Array<StatisticsRow>) => {
       "Model",
     ],
     ...stats.map((stat) => [
-      stat.first_token_time,
-      stat.esql_time,
-      stat.total_time,
-      stat.input_uncached,
-      stat.input_cached,
-      stat.saved_to_cache,
-      stat.output,
+      stat.first_token_time_ms,
+      stat.esql_time_ms,
+      stat.total_time_ms,
+      stat.token_counts.input_uncached,
+      stat.token_counts.input_cached,
+      stat.token_counts.saved_to_cache,
+      stat.token_counts.output,
       stat.model,
     ]),
   ]
@@ -65,7 +65,7 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         <Tooltip isDisabled={!tooltipsShown} label="Time to first output token">
           <Stat>
             <StatLabel>TTFT</StatLabel>
-            <StatNumber>{stat.first_token_time}ms</StatNumber>
+            <StatNumber>{stat.first_token_time_ms}ms</StatNumber>
           </Stat>
         </Tooltip>
         <Tooltip
@@ -74,7 +74,7 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         >
           <Stat>
             <StatLabel>ES|QL Time</StatLabel>
-            <StatNumber>{stat.esql_time}ms</StatNumber>
+            <StatNumber>{stat.esql_time_ms}ms</StatNumber>
           </Stat>
         </Tooltip>
         <Tooltip
@@ -83,7 +83,7 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         >
           <Stat>
             <StatLabel>Total Time</StatLabel>
-            <StatNumber>{stat.total_time}ms</StatNumber>
+            <StatNumber>{stat.total_time_ms}ms</StatNumber>
           </Stat>
         </Tooltip>
         <Tooltip
@@ -92,7 +92,7 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         >
           <Stat>
             <StatLabel>Uncached</StatLabel>
-            <StatNumber>{stat.input_uncached}</StatNumber>
+            <StatNumber>{stat.token_counts.input_uncached}</StatNumber>
           </Stat>
         </Tooltip>
         <Tooltip
@@ -101,7 +101,7 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         >
           <Stat>
             <StatLabel>Cache →</StatLabel>
-            <StatNumber>{stat.input_cached}</StatNumber>
+            <StatNumber>{stat.token_counts.input_cached}</StatNumber>
           </Stat>
         </Tooltip>
         <Tooltip
@@ -110,13 +110,13 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         >
           <Stat>
             <StatLabel>→ Cache</StatLabel>
-            <StatNumber>{stat.saved_to_cache}</StatNumber>
+            <StatNumber>{stat.token_counts.saved_to_cache}</StatNumber>
           </Stat>
         </Tooltip>
         <Tooltip isDisabled={!tooltipsShown} label="Output tokens">
           <Stat>
             <StatLabel>Output</StatLabel>
-            <StatNumber>{stat.output}</StatNumber>
+            <StatNumber>{stat.token_counts.output}</StatNumber>
           </Stat>
         </Tooltip>
         <Tooltip

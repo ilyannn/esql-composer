@@ -23,7 +23,7 @@ import {
 
 import Anthropic from "@anthropic-ai/sdk";
 
-import type { HistoryRow, StatisticsRow } from "../common/types";
+import type { LLMHistoryRow, LLMStatisticsRow } from "../common/types";
 import { BlockHasStableId, ESQLBlock } from "../models/esql/ESQLBlock";
 import {
   ESQLChain,
@@ -61,7 +61,7 @@ import {
 import { loadFile } from "../services/files";
 
 import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { reduce } from "lodash";
+import { add, reduce } from "lodash";
 import {
   TracingOptions,
   defaultTracingOptions,
@@ -137,8 +137,8 @@ const ESQLComposerMain = () => {
     );
   }, [queryAPIData, visualChain]);
 
-  const [allStats, setAllStats] = useState<StatisticsRow[]>([]);
-  const [history, setHistory] = useState<HistoryRow[]>([]);
+  const [allStats, setAllStats] = useState<LLMStatisticsRow[]>([]);
+  const [history, setHistory] = useState<LLMHistoryRow[]>([]);
 
   const [anthropicAPIKeyWorks, setAnthropicAPIKeyWorks] = useState<
     boolean | null
@@ -254,7 +254,7 @@ const ESQLComposerMain = () => {
    * Displays a toast if the API call fails and it's not an authentication failure.
    *
    * @param {string} label - The action being performed, used in error messages.
-   * @param {Function} action - The function that performs the API call.
+   * @param {Function} action - The function that performs the API call; takes tracing argument.
    * @returns {Promise<*>} The result of the API call if successful.
    */
   const performAnthropicAPIAction = useCallback(
@@ -323,15 +323,23 @@ const ESQLComposerMain = () => {
         saveSpan();
       }
     },
-    [toast]
+    [toast, queryAPIURL, queryAPIKey, tracingOptions.llm]
   );
 
   const performQueryAPIAction = useCallback(
-    async (label: string, action: () => Promise<void>) => {
+    async (
+      label: string,
+      action: (addToSpan: UseTracingCallback) => Promise<void>
+    ) => {
+      const { addToSpan, saveSpan } = useTracing({
+        apiURL: queryAPIURL,
+        apiKey: queryAPIKey,
+        option: tracingOptions.es,
+      });
+
       try {
-        await action();
+        await action(addToSpan);
         setQueryAPIKeyWorks(true);
-        return;
       } catch (error) {
         console.error(`Error when ${label}`, error);
 
@@ -377,9 +385,13 @@ const ESQLComposerMain = () => {
           status: "error",
           isClosable: true,
         });
+
+        addToSpan({ error: { message: description } });
+      } finally {
+        saveSpan();
       }
     },
-    [toast]
+    [toast, queryAPIURL, queryAPIKey, tracingOptions.es]
   );
 
   const testAnthropicAPIKey = async () => {
@@ -526,7 +538,7 @@ const ESQLComposerMain = () => {
   const currentQueryAPIActionQuery = useRef<string | null>(null);
 
   const fetchQueryData = useCallback(async () => {
-    await performQueryAPIAction("ES|QL query", async () => {
+    await performQueryAPIAction("ES|QL query", async (addToSpan) => {
       const fullESQL = esqlChainAddToString(esqlInput, visualChain);
 
       if (currentQueryAPIActionQuery.current === fullESQL) {
@@ -535,6 +547,7 @@ const ESQLComposerMain = () => {
       }
 
       currentQueryAPIActionQuery.current = fullESQL;
+      addToSpan({ esql: { query: fullESQL } });
 
       try {
         const response = await performESQLQuery({
@@ -544,8 +557,7 @@ const ESQLComposerMain = () => {
         });
 
         if (currentQueryAPIActionQuery.current === fullESQL) {
-          setQueryAPIData(response);
-        } else {
+          setQueryAPIData(response.data);
         }
       } finally {
         currentQueryAPIActionQuery.current = null;
@@ -853,7 +865,7 @@ const ESQLComposerMain = () => {
           addToSpan({
             esql: {
               action: "eval",
-              context: fullEsqlQuery,
+              query: fullEsqlQuery,
               source: sourceField,
             },
           });
@@ -1031,20 +1043,18 @@ const ESQLComposerMain = () => {
             query,
           });
 
-          if (response && response.values) {
-            const values_counts = response.values as [
+          if (response && response.data.values) {
+            const values_counts = response.data.values as [
               ESQLAtomRawValue,
               number
             ][];
             stats = countRawValuesWithCount(values_counts);
 
-            if (
-              totalCountResponse &&
-              totalCountResponse.values &&
-              totalCountResponse.values[0] &&
-              typeof totalCountResponse.values[0][0] === "number"
-            ) {
-              stats.totalCount = totalCountResponse.values[0][0];
+            if (totalCountResponse) {
+              const values = totalCountResponse.data.values;
+              if (values && values[0] && typeof values[0][0] === "number") {
+                stats.totalCount = values[0][0];
+              }
             }
           }
         }

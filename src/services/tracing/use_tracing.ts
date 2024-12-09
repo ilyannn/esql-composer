@@ -30,10 +30,10 @@ export const useTracing = <T extends Record<string, any>>({
 
   let traceData: Record<string, any> = {
     "@timestamp": new Date().toISOString(),
-    agent: {
-      name: "ES|QL Composer",
-      type: "application",
-    },
+    // agent: {
+    //   name: "ES|QL Composer",
+    //   type: "application",
+    // },
     host: {
       hostname: window.location.hostname,
     },
@@ -52,7 +52,6 @@ export const useTracing = <T extends Record<string, any>>({
       traceData = deeplyMergeElasticsearchJSONs(traceData, data);
     },
     saveSpan: () => {
-      console.log("Saving span", traceData);
       postJSON(`${apiURL}/${option.indexName}/_doc`, apiKey, traceData).catch(
         (error) => {
           console.error(`Failed to index trace data: ${error}`);

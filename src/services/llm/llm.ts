@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 
-import { StatisticsRow } from "../../common/types";
+import { LLMStatisticsRow } from "../../common/types";
 import {
   PrepareCompletionRequestOptions,
   prepareRequest,
@@ -30,6 +30,10 @@ export type GenerateUpdateInput = LLMOptions &
     processESQLLines?: boolean;
   };
 
+export type GenerateUpdateOutput = {
+  stats: LLMStatisticsRow;
+};
+
 export type TransformFieldInput = LLMOptions &
   ReferenceOptions &
   PromptOptions &
@@ -38,14 +42,15 @@ export type TransformFieldInput = LLMOptions &
     haveExplanationLine?: (line: string) => void;
   };
 
+interface TransformFieldOutput {
+  stats: LLMStatisticsRow;
+  gen_ai: { prompt: string; completion: string };
+}
+
 export type ReduceSizeInput = LLMOptions &
   ReferenceOptions & {
     processLine: (line: string) => void;
   };
-
-export type GenerateUpdateOutput = {
-  stats: StatisticsRow;
-};
 
 export const MODEL_LIST = [
   "claude-3-5-haiku-latest",
@@ -106,14 +111,6 @@ export const warmCache = async (params: WarmCacheInput): Promise<any> => {
  * @property {string} result.text - The completed text from the API.
  * @property {string} result.esql - The ESQL result from the API.
  * @property {Object} result.stats - Statistics about the API request.
- * @property {number} result.stats.start_time - The start time of the request.
- * @property {number} result.stats.input_cached - The number of cached input tokens.
- * @property {number} result.stats.input_uncached - The number of uncached input tokens.
- * @property {number} result.stats.output - The number of output tokens.
- * @property {number} result.stats.saved_to_cache - The number of tokens saved to cache.
- * @property {number} result.stats.total_time - The total time taken for the request.
- * @property {number} result.stats.first_token_time - The time taken to receive the first token.
- * @property {number} result.stats.text_completion_time - The time taken to complete the prompt.
  */
 export const generateESQLUpdate = async (
   input: GenerateUpdateInput
@@ -224,14 +221,15 @@ export const generateESQLUpdate = async (
   return {
     stats: {
       model: message_start_stats.model,
-      input_cached: message_start_stats.input_cached,
-      input_uncached: message_start_stats.input_uncached,
-      saved_to_cache: message_start_stats.saved_to_cache,
-      output: message_delta_stats.output,
-
-      first_token_time: first_token_time || Infinity,
-      esql_time: esql_time || Infinity,
-      total_time: Date.now() - requestTime,
+      token_counts: {
+        input_cached: message_start_stats.input_cached,
+        input_uncached: message_start_stats.input_uncached,
+        saved_to_cache: message_start_stats.saved_to_cache,
+        output: message_delta_stats.output,
+      },
+      first_token_time_ms: first_token_time || Infinity,
+      esql_time_ms: esql_time || Infinity,
+      total_time_ms: Date.now() - requestTime,
     },
   };
 };
@@ -270,14 +268,9 @@ export const countTokens = async (params: CountTokensInput) => {
 
 import { ESQLColumn } from "../../models/esql/esql_types";
 
-interface TransformFieldOutput {
-  stats: StatisticsRow,
-  esql: { query: string, field: ESQLColumn },
-  input: string,
-  output: string,
-}
-
-export const transformField = async (params: TransformFieldInput) => {
+export const transformField = async (
+  params: TransformFieldInput
+): Promise<TransformFieldOutput> => {
   const client = createAnthropicInstance(params.apiKey);
   const request = prepareRequest({ ...params });
   let field: string | undefined;
@@ -306,7 +299,7 @@ export const transformField = async (params: TransformFieldInput) => {
         esql = undefined;
       }
     },
-  }
+  };
 
   const parser = new PseudoXMLParser(ESQLEvalOutputSchema, parseEvents);
 
@@ -364,11 +357,16 @@ export const transformField = async (params: TransformFieldInput) => {
       completion: parser.getFullText(),
     },
     stats: {
-      ...message_start_stats,
-      ...message_delta_stats,
-      first_token_time: first_token_time || Infinity,
-      esql_time: esql_time || Infinity,
-      total_time: Date.now() - requestTime,
+      model: message_start_stats.model,
+      token_counts: {
+        input_cached: message_start_stats.input_cached,
+        input_uncached: message_start_stats.input_uncached,
+        saved_to_cache: message_start_stats.saved_to_cache,
+        output: message_delta_stats.output,
+      },
+      first_token_time_ms: first_token_time || Infinity,
+      esql_time_ms: esql_time || Infinity,
+      total_time_ms: Date.now() - requestTime,
     },
   };
 };

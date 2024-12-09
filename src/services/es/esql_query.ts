@@ -2,18 +2,29 @@ import { tableDataToRecords } from "./types";
 import { postJSON } from "./base";
 import {
   QueryAPIError,
-  ESQLQueryOptions,
+  ESQLQueryOptions as PerformESQLQueryInput,
   ESQLTableData,
   isESQLTableData,
   ESAPIOptions,
 } from "./types";
 
+export interface PerformESQLQueryStatistics {
+  total_time_ms: number;
+}
+
+interface PerformESQLQueryOutput {
+  data: ESQLTableData;
+  stats: PerformESQLQueryStatistics;
+}
+
 export const performESQLQuery = async ({
   apiURL,
   apiKey,
   query,
-}: ESQLQueryOptions): Promise<ESQLTableData> => {
+}: PerformESQLQueryInput): Promise<PerformESQLQueryOutput> => {
+  const start_time = new Date();
   const answer = await postJSON(`${apiURL}/_query`, apiKey, { query });
+  const total_time = new Date().getTime() - start_time.getTime();
 
   if (!isESQLTableData(answer)) {
     throw new QueryAPIError(undefined, "Invalid format of the response data");
@@ -27,7 +38,7 @@ export const performESQLQuery = async ({
     }
   }
 
-  return answer;
+  return {data: answer, stats: {total_time_ms: total_time}};
 };
 
 /**
@@ -75,7 +86,7 @@ export const performESQLShowInfoQuery = async ({
     query: "SHOW INFO",
   });
 
-  const info = tableDataToRecords(answer)[0];
+  const info = tableDataToRecords(answer.data)[0];
 
   if (!isESQLShowInfo(info)) {
     throw new QueryAPIError(undefined, "Invalid format of the response data");

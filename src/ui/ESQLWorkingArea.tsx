@@ -9,7 +9,7 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 
-import type { HistoryRow } from "../common/types";
+import type { LLMHistoryRow } from "../common/types";
 
 import SpinningButton from "./components/SpinningButton";
 
@@ -25,7 +25,7 @@ interface ESQLWorkingAreaProps {
   esqlInput: string;
   setEsqlInput: (value: string) => void;
 
-  history: HistoryRow[];
+  history: LLMHistoryRow[];
   resetESQL: () => void;
 
   naturalInputRef: React.RefObject<HTMLInputElement | null>;
