@@ -41,3 +41,19 @@ export const deeplyMergeElasticsearchJSONs = (
 
   return result;
 };
+/**
+ * Trims the provided API key and ensures it is Base64 encoded.
+ *
+ * @param apiKey - The API key to be checked and possibly encoded.
+ * @returns The Base64 encoded API key or the trimmed original if it was already encoded.
+ */
+export const ensureBase64Encoded = (apiKey: string): string => {
+  const trimmed = apiKey.trim();
+  try {
+    atob(trimmed);
+  } catch (e) {
+    return btoa(trimmed);
+  }
+
+  return trimmed;
+};

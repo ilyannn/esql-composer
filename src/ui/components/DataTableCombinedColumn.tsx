@@ -1,9 +1,7 @@
-import { Box, Wrap, VStack, Divider } from "@chakra-ui/react";
+import { Box, Wrap, VStack, Divider, WrapItem, Icon } from "@chakra-ui/react";
 import React from "react";
 import {
-  ESQLAtomRawMultivalue,
   ESQLAtomRawValue,
-  ESQLColumn,
   esqlRawToHashableValue,
 } from "../../models/esql/esql_types";
 import FieldTag from "./atoms/FieldTag";
@@ -13,6 +11,8 @@ import {
   TableRow,
   isTableDataEqual,
 } from "./data-table/types";
+
+import { GrAddCircle } from "react-icons/gr";
 
 interface DataTableCombinedColumnCellProps {
   columns: TableColumn[];
@@ -24,15 +24,36 @@ const DataTableCombinedColumnCell = React.memo(
     return (
       <Wrap justify={"flex-start"}>
         {row.map((val, colIndex) => {
+          if (val === null) {
+            return;
+          }
           const { name, presenter } = columns[colIndex];
           const values =
             typeof val === "object" && Array.isArray(val) ? val : [val];
           return (
             <>
               <FieldTag key={name} name={name} size="sm" />
-              {values.map((v: ESQLAtomRawValue, i: number) =>
-                presenter(esqlRawToHashableValue(v))
-              )}
+              {values.map((v: ESQLAtomRawValue, i: number) => {
+                return (
+                  <>
+                    {i > 0 && (
+                      <WrapItem
+                        title="Multiple values"
+                        key={name + "|" + i.toString()}
+                        color={"gray.400"}
+                        ml={-1}
+                        mr={-1}
+                      >
+                        ⊕
+                      </WrapItem>
+                    )}
+                    <WrapItem key={name + "-" + i.toString()}>
+                      {presenter(esqlRawToHashableValue(v))}
+                    </WrapItem>
+                  </>
+                );
+                return;
+              })}
             </>
           );
         })}
@@ -43,7 +64,7 @@ const DataTableCombinedColumnCell = React.memo(
 
 const DataTableCombinedColumn = ({ columns, rows, row_keys }: TableData) => {
   return (
-    <VStack align="stretch" divider={<Divider />} spacing={3}>
+    <VStack align="stretch" divider={<Divider/>} spacing={3}>
       {rows.map((row, rowIndex) => (
         <DataTableCombinedColumnCell
           key={row_keys[rowIndex]}

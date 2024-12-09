@@ -66,7 +66,10 @@ const GetSchemaModal: React.FC<GetSchemaModalProps> = ({
 
   const handleSubmit = async () => {
     const userPattern = indexPattern.trim() || "*";
-    const systemPattern = systemIndicesHidden ? "-.*" : "";
+    const patternMayContainSystemIndices = userPattern.split(",").some((p) =>
+      p.startsWith("*") || p.startsWith(".")
+    );
+    const systemPattern = systemIndicesHidden && patternMayContainSystemIndices ? "-.*" : "";
     const patterns = [userPattern, systemPattern].filter((p) => p.length > 0);
     await getSchemaFromES(patterns.join(","), randomSamplingFactor);
     onClose();

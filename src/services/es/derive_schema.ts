@@ -1,235 +1,8 @@
-import {
-  ESQLAtomRawMultivalue,
-  ESQLAtomRawValue,
-  ESQLColumn,
-} from "../../models/esql/esql_types";
-import { ESQLChainAction } from "../../models/esql/ESQLChain";
-import { TracingOption } from "../tracing/types";
+import { ESQLColumnType } from "../../models/esql/esql_types";
+import { getJSON, postJSON } from "./base";
+import { ESQLDeriveSchemaOptions } from "./types";
 
-import { deeplyMergeElasticsearchJSONs } from "./utils";
-
-interface ESAPIOptions {
-  apiURL: string;
-  apiKey: string;
-}
-
-interface ESQLQueryOptions extends ESAPIOptions {
-  query: string;
-}
-
-interface ESQLDeriveSchemaOptions extends ESAPIOptions {
-  indexPattern: string;
-  randomSamplingFactor: number;
-}
-
-export interface ESQLTableData {
-  columns: ESQLColumn[];
-  values: Array<Array<ESQLAtomRawValue | ESQLAtomRawMultivalue>>;
-}
-
-export class QueryAPIError extends Error {
-  readonly status: number | undefined;
-  readonly isAuthorizationError: boolean;
-
-  constructor(status: number | undefined, error: any) {
-    super(JSON.stringify(error, null, 2));
-
-    this.status = status;
-    this.isAuthorizationError = status === 401;
-  }
-}
-
-/**
- * Checks if the provided data conforms to the TableData interface.
- *
- * @param data - The data to check.
- * @returns A boolean indicating whether the data is of type TableData.
- *
- */
-function isESQLTableData(data: any): data is ESQLTableData {
-  return (
-    "columns" in data &&
-    "values" in data &&
-    Array.isArray(data.columns) &&
-    data.columns.every(
-      (col: any) => typeof col.name === "string" && typeof col.type === "string"
-    ) &&
-    Array.isArray(data.values) &&
-    data.values.every(
-      (row: any) =>
-        Array.isArray(row) &&
-        row.every(
-          (val) =>
-            typeof val === "string" ||
-            typeof val === "number" ||
-            typeof val === "boolean" ||
-            (typeof val === "object" && Array.isArray(val)) ||
-            val === null
-        )
-    )
-  );
-}
-
-/**
- * Trims the provided API key and ensures it is Base64 encoded.
- *
- * @param apiKey - The API key to be checked and possibly encoded.
- * @returns The Base64 encoded API key or the trimmed original if it was already encoded.
- */
-const ensureBase64Encoded = (apiKey: string): string => {
-  const trimmed = apiKey.trim();
-  try {
-    atob(trimmed);
-  } catch (e) {
-    return btoa(trimmed);
-  }
-
-  return trimmed;
-};
-
-const fetchJSON = async (
-  method: string,
-  apiKey: string,
-  url: string,
-  body: string | null
-): Promise<object> => {
-  const response = await fetch(url, {
-    method,
-    headers: [
-      ["Authorization", `ApiKey ${ensureBase64Encoded(apiKey)}`],
-      ["Content-Type", "application/vnd.elasticsearch+json"],
-      ["Accept", "application/vnd.elasticsearch+json"],
-    ],
-    body,
-  });
-
-  const answer = await response.json();
-
-  if (answer === null || typeof answer !== "object") {
-    throw new QueryAPIError(undefined, "Unexpected API JSON format");
-  }
-
-  if ("error" in answer) {
-    throw new QueryAPIError(response.status, answer.error);
-  }
-
-  if (!response.ok) {
-    throw new QueryAPIError(response.status, answer);
-  }
-
-  return answer;
-};
-
-const postJSON = async (
-  url: string,
-  apiKey: string,
-  bodyObject: object,
-  paramObject: Record<string, string> | null = null
-): Promise<object> => {
-  const newURL = paramObject
-    ? `${url}?${new URLSearchParams(paramObject)}`
-    : url;
-  return await fetchJSON("POST", apiKey, newURL, JSON.stringify(bodyObject));
-};
-
-const getJSON = async (
-  url: string,
-  apiKey: string,
-  paramObject: Record<string, string> | null = null
-): Promise<object> => {
-  const newURL = paramObject
-    ? `${url}?${new URLSearchParams(paramObject)}`
-    : url;
-  return await fetchJSON("GET", apiKey, newURL, null);
-};
-
-export const performESQLQuery = async ({
-  apiURL,
-  apiKey,
-  query,
-}: ESQLQueryOptions): Promise<ESQLTableData> => {
-  const answer = await postJSON(`${apiURL}/_query`, apiKey, { query });
-
-  if (!isESQLTableData(answer)) {
-    throw new QueryAPIError(undefined, "Invalid format of the response data");
-  }
-
-  return answer;
-};
-
-/**
- * Information about a deployment returned by SHOW INFO.
- */
-export interface ESQLShowInfo {
-  date: string;
-  hash: string;
-  version: string;
-}
-
-/**
- * Type guard function to check if the given data is of type ESQLShowInfo.
- *
- * @param data - The data to be checked.
- * @returns A boolean indicating whether the data is of type ESQLShowInfo.
- */
-const isESQLShowInfo = (data: any): data is ESQLShowInfo => {
-  return (
-    "date" in data &&
-    "hash" in data &&
-    "version" in data &&
-    typeof data.date === "string" &&
-    typeof data.hash === "string" &&
-    typeof data.version === "string"
-  );
-};
-
-/**
- * Converts table data into an array of records.
- *
- * @param data - The table data to convert, which includes columns and values.
- * @returns An array of records where each record is an object with keys corresponding to column names and values corresponding to the row values.
- */
-const tableDataToRecords = (data: ESQLTableData): Record<string, any>[] => {
-  return data.values.map((row) =>
-    row.reduce(
-      (acc, val, idx) => ({
-        ...acc,
-        [data.columns[idx].name]: val,
-      }),
-      {}
-    )
-  );
-};
-
-/**
- * Executes an ESQL query to retrieve information about the Elasticsearch instance.
- *
- * @param {ESAPIOptions} options - The options for the Elasticsearch API.
- * @param {string} options.apiURL - The URL of the Elasticsearch API.
- * @param {string} options.apiKey - The API key for authenticating with the Elasticsearch API.
- * @returns {Promise<ESQLShowInfo>} A promise that resolves to the information about the Elasticsearch instance.
- * @throws {QueryAPIError} If the response data is in an invalid format.
- */
-export const performESQLShowInfoQuery = async ({
-  apiURL,
-  apiKey,
-}: ESAPIOptions): Promise<ESQLShowInfo> => {
-  const answer = await performESQLQuery({
-    apiURL,
-    apiKey,
-    query: "SHOW INFO",
-  });
-
-  const info = tableDataToRecords(answer)[0];
-
-  if (!isESQLShowInfo(info)) {
-    throw new QueryAPIError(undefined, "Invalid format of the response data");
-  }
-
-  return info;
-};
-
-export interface Field {
+interface DeriveSchemaField {
   key: string;
   isAggregatable: boolean;
   isSearchable: boolean;
@@ -238,6 +11,14 @@ export interface Field {
   indices: string[];
   examples: string[];
 }
+
+export type ESQLSchema = {
+  indexPattern: string;
+  knownFields: DeriveSchemaField[];
+  guide: string;
+  initialESQL: string;
+  initialActions: DeriveSchemaSortAction[];
+};
 
 interface CapabilitiesResponse {
   indices: string[];
@@ -296,7 +77,7 @@ interface SamplingAggregationsResponse extends SearchResponse {
 
 const parseFieldCapabilities = (
   fieldCapabilities: Record<string, Record<string, Record<string, any>>>
-): Field[] => {
+): DeriveSchemaField[] => {
   return Object.entries(fieldCapabilities).flatMap(([field, capability]) => {
     return Object.entries(capability).flatMap(([type, typeData]) => {
       return {
@@ -325,7 +106,7 @@ const AGG_TYPE: Record<string, string> = {
 };
 
 const createTermsAggregationRequest = (
-  fields: Field[],
+  fields: DeriveSchemaField[],
   randomSamplingFactor: number
 ) => {
   const aggs: Record<string, any> = fields.reduce(
@@ -476,13 +257,11 @@ const parseSamplingAggregationResults = (
   return acc;
 };
 
-export type ESQLSchema = {
-  indexPattern: string;
-  knownFields: Field[];
-  guide: string;
-  initialESQL: string;
-  initialActions: ESQLChainAction[];
-};
+// This could be imported, but let's not create the dependency.
+interface DeriveSchemaSortAction {
+  action: "sortDesc";
+  column: { name: string; type: ESQLColumnType };
+}
 
 export const deriveSchema = async ({
   apiURL,
@@ -535,15 +314,18 @@ export const deriveSchema = async ({
     .join("\n");
 
   const metadataFields = ["_id"];
+  let initialIndexPattern = indexPattern;
 
-  if (indices.length > 1) {
+  if (indices.length === 1) {
+    initialIndexPattern = indices[0];
+  } else {
     metadataFields.push("_index");
   }
 
-  const metadataParameters = metadataFields.join(",");
-  const initialESQL = `FROM ${indexPattern} METADATA ${metadataParameters}`;
+  const metadataParameters = metadataFields.join(", ");
+  const initialESQL = `FROM ${initialIndexPattern} METADATA ${metadataParameters}`;
+  const initialActions: DeriveSchemaSortAction[] = [];
 
-  const initialActions: ESQLChainAction[] = [];
   for (const field of knownFields) {
     if (field.type === "date") {
       if (field.name === "timestamp" || field.name === "@timestamp")
@@ -563,64 +345,5 @@ export const deriveSchema = async ({
     knownFields,
     initialESQL,
     initialActions,
-  };
-};
-
-export interface UseTracingInput<T extends Record<string, any>>
-  extends ESAPIOptions {
-  option: TracingOption;
-  traceId?: string | undefined;
-}
-
-export type UseTracingCallback = (data: Record<string, any>) => void;
-export interface UseTracingOutput {
-  addToSpan: UseTracingCallback;
-  saveSpan: () => void;
-}
-
-export const useTracing = <T extends Record<string, any>>({
-  apiURL,
-  apiKey,
-  option,
-  traceId = undefined,
-}: UseTracingInput<T>): UseTracingOutput => {
-  if (apiURL.length === 0 || apiKey.length === 0 || !option.enabled) {
-    return {
-      addToSpan: () => {},
-      saveSpan: () => {},
-    };
-  }
-
-  let traceData: Record<string, any> = {
-    "@timestamp": new Date().toISOString(),
-    agent: {
-      name: "ES|QL Composer",
-      type: "application",
-    },
-    host: {
-      hostname: window.location.hostname,
-    },
-    service: {
-      address: window.location.href,
-      environment: process.env["NODE_ENV"] || "",
-    },
-  };
-
-  if (traceId) {
-    traceData = { ...traceData, trace: { id: traceId } };
-  }
-
-  return {
-    addToSpan: (data: Record<string, any>) => {
-      traceData = deeplyMergeElasticsearchJSONs(traceData, data);
-    },
-    saveSpan: () => {
-      console.log("Saving span", traceData);
-      postJSON(`${apiURL}/${option.indexName}/_doc`, apiKey, traceData).catch(
-        (error) => {
-          console.error(`Failed to index trace data: ${error}`);
-        }
-      );
-    },
   };
 };

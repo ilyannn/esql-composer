@@ -19,7 +19,7 @@ import "react-resizable/css/styles.css";
 
 import SpinningButton from "./components/SpinningButton";
 import TokenCountNotice from "./components/TokenCountNotice";
-import { ESQLSchema } from "../services/es";
+import { ESQLSchema } from "../services/es/derive_schema";
 import axios from "axios";
 import { ChevronUpIcon } from "@chakra-ui/icons";
 

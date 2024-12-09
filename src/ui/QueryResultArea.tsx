@@ -30,7 +30,7 @@ import React, { useCallback, useMemo } from "react";
 
 import { ESQLChainAction } from "../models/esql/ESQLChain";
 import { countRawValues } from "../models/esql/ValueStatistics";
-import { ESQLTableData } from "../services/es";
+import { ESQLTableData } from "../services/es/types";
 import { ESQLColumn } from "../models/esql/esql_types";
 
 import { ChevronDownIcon } from "@chakra-ui/icons";

@@ -1,4 +1,4 @@
-import { TracingOption } from "./types";
+import { TracingOption } from "../services/tracing/types";
 
 export interface TracingOptions {
   llm: TracingOption;

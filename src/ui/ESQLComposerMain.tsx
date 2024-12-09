@@ -24,6 +24,7 @@ import {
 import Anthropic from "@anthropic-ai/sdk";
 
 import type { HistoryRow, StatisticsRow } from "../common/types";
+import { BlockHasStableId, ESQLBlock } from "../models/esql/ESQLBlock";
 import {
   ESQLChain,
   ESQLChainAction,
@@ -31,10 +32,9 @@ import {
   esqlChainAddToString,
   performChainAction,
 } from "../models/esql/ESQLChain";
-import { BlockHasStableId, ESQLBlock } from "../models/esql/ESQLBlock";
 import {
-  countRawValuesWithCount,
   ValueStatistics,
+  countRawValuesWithCount,
 } from "../models/esql/ValueStatistics";
 
 import {
@@ -47,25 +47,27 @@ import {
   warmCache,
 } from "../services/llm";
 
+import { ESQLSchema, deriveSchema } from "../services/es/derive_schema";
 import {
-  ESQLSchema,
-  QueryAPIError,
-  ESQLTableData,
-  deriveSchema,
   performESQLQuery,
   performESQLShowInfoQuery,
+} from "../services/es/esql_query";
+import { ESQLTableData, QueryAPIError } from "../services/es/types";
+import {
   useTracing,
   type UseTracingCallback,
-} from "../services/es";
+} from "../services/tracing/use_tracing";
 
 import { loadFile } from "../services/files";
 
 import { ExternalLinkIcon } from "@chakra-ui/icons";
+import { reduce } from "lodash";
 import {
-  ESQLAtomRawValue,
-  ESQLAtomValue,
-  esqlRawToHashableValue,
-} from "../models/esql/esql_types";
+  TracingOptions,
+  defaultTracingOptions,
+} from "../common/tracing-options";
+
+import { ESQLAtomRawValue } from "../models/esql/esql_types";
 import CacheWarmedNotice from "./components/CacheWarmedNotice";
 import Section from "./components/Section";
 import Statistics from "./components/Statistics";
@@ -77,11 +79,6 @@ import QueryAPIConfigurationArea from "./QueryAPIConfigurationArea";
 import QueryResultArea from "./QueryResultArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import VisualComposer from "./visual-composer/VisualComposer";
-import { add, reduce } from "lodash";
-import {
-  defaultTracingOptions,
-  TracingOptions,
-} from "../services/tracing/options";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
 
