@@ -273,7 +273,16 @@ const bubbleDown = (
 
 const provideValues = (stats: ValueStatistics): FilterValue[] => {
   const entries = statisticsEntries(stats);
-  entries.sort((a, b) => b[1] - a[1]);
+  entries.sort((a, b) => {
+    if (b[1] == a[1]) {
+      if (a[0] === b[0]) {
+        return 0;
+      }
+      return a[0].toString() > b[0].toString() ? 1 : -1;
+    } else {
+      return b[1] - a[1];
+    }
+  });
 
   const entryValues: FilterValue[] = entries.map(([value, count]) => ({
     value,
@@ -350,7 +359,7 @@ export const performChainAction = (
         action.column.name
       );
       break;
-    
+
     case "filter":
       if (
         action.column.type === "text" ||
