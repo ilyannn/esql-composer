@@ -330,14 +330,26 @@ export const performChainAction = (
       break;
 
     case "filter":
-      newBlock = {
-        command: "WHERE",
-        field: action.column,
-        values: provideValues(action.stats),
-        localStats: action.stats,
-        topStatsRetrieved: 0,
-        topStats: undefined,
-      };
+      if (
+        action.column.type === "text" ||
+        action.column.type === "semantic_text"
+      ) {
+        newBlock = {
+          command: "WHERE",
+          field: action.column,
+          match: "",
+        };
+      } else {
+        newBlock = {
+          command: "WHERE",
+          field: action.column,
+          values: provideValues(action.stats),
+          localStats: action.stats,
+          topStatsRetrieved: 0,
+          topStats: undefined,
+        };
+        console.log("newBlock", newBlock);
+      }
       break;
 
     case "rename":

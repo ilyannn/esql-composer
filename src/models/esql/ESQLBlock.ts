@@ -2,6 +2,7 @@ import { escape } from "./esql_escape";
 import {
   ESQLAtomValue,
   ESQLColumnTypeClass,
+  esqlRepresentation,
   ESQLSentinelOtherValues,
   ESQLValueNull,
 } from "./esql_types";
@@ -51,6 +52,12 @@ export interface FilterBlock extends BaseESQLBlock {
   topStatsRetrieved: number;
   topStats: ValueStatistics | undefined;
 }
+
+export interface MatchBlock extends BaseESQLBlock {
+  command: "WHERE";
+  match: string;
+  field: TableColumn;
+}
 export interface EvalExpression {
   field: string;
   expression: string;
@@ -78,6 +85,7 @@ export type ESQLBlock =
   | DropBlock
   | RenameBlock
   | FilterBlock
+  | MatchBlock
   | SortBlock;
 
 /**
@@ -200,6 +208,14 @@ const whereBlockToESQL = (block: FilterBlock): string | null => {
   return `WHERE ${constructed}`;
 };
 
+const matchBlockToESQL = (block: MatchBlock): string | null => {
+  if (block.match === "") {
+    return null;
+  }
+
+  return `WHERE ${escape(block.field.name)} : ${esqlRepresentation(block.match)}`;
+}
+
 /**
  * Converts a SortBlock into an ES|QL SORT command.
  *
@@ -256,7 +272,7 @@ export const esqlBlockToESQL = (block: ESQLBlock): string | null => {
     case "RENAME":
       return renameBlockToESQL(block);
     case "WHERE":
-      return whereBlockToESQL(block);
+      return 'match' in block ? matchBlockToESQL(block) : whereBlockToESQL(block);
     case "SORT":
       return sortBlockToESQL(block);
   }

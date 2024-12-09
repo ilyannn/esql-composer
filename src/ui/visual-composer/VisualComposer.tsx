@@ -1,7 +1,11 @@
 import {
   Button,
   CheckboxGroup,
+  Heading,
   HStack,
+  IconButton,
+  Input,
+  InputRightElement,
   Slider,
   SliderFilledTrack,
   SliderMark,
@@ -22,14 +26,23 @@ import {
   FilterBlock,
   FilterValue,
 } from "../../models/esql/ESQLBlock";
-import { getValueCount, statisticsEntries, ValueStatistics } from "../../models/esql/ValueStatistics";
-import { ESQLAtomValue, ESQLSentinelOtherValues } from "../../models/esql/esql_types";
+import {
+  getValueCount,
+  statisticsEntries,
+  ValueStatistics,
+} from "../../models/esql/ValueStatistics";
+import {
+  ESQLAtomValue,
+  ESQLSentinelOtherValues,
+} from "../../models/esql/esql_types";
 import FieldTag from "../components/atoms/FieldTag";
 import { FieldTagMesh } from "../components/FieldTagMesh";
 import FilterValueCheckbox from "../components/FilterValueCheckbox";
 import SortIcon from "../components/SortIcon";
 import SpinningButton from "../components/SpinningButton";
 import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
+import { CiUndo } from "react-icons/ci";
+import WhereComposerBlock from "./WhereComposerBlock";
 
 interface ESQLComposerProps {
   chain: ESQLChain;
@@ -109,83 +122,11 @@ const renderBlockContents = (
       );
 
     case "WHERE":
-      const onCheckValueAt = (valueIndex: number, newChecked: boolean) => {
-        updateBlock(index, {
-          ...block,
-          values: block.values.map((f, i) =>
-            i === valueIndex ? { ...f, included: newChecked } : f
-          ),
-        });
-      };
-
-      const onInvert = () => {
-        updateBlock(index, {
-          ...block,
-          values: block.values.map((f) => ({ ...f, included: !f.included })),
-        });
-      };
-
-      return (
-        <CheckboxGroup colorScheme="blackAlpha">
-          <VStack spacing={3} align={"stretch"} justify={"stretch"}>
-            <HStack spacing={5} align="baseline" justify={"stretch"}>
-              <FieldTag size="lg" name={block.field.name} />
-              {block.topStatsRetrieved === 0 && (
-                <SpinningButton
-                  targets="es"
-                  type="submit"
-                  size="sm"
-                  spinningAction={async () => handleWhereTopStats(index, 10)}
-                >
-                  Top 10
-                </SpinningButton>
-              )}
-              <Spacer flex={2} />
-              <Button variant={"ghost"} colorScheme="green" onClick={onInvert}>
-                Invert
-              </Button>
-            </HStack>
-
-            <Wrap spacingX={6} align={"center"}>
-              {block.values.map((v, valueIndex) => {
-                return (
-                  <>
-                    {valueIndex > 0 &&
-                      block.topStatsRetrieved === valueIndex && (
-                        <WrapItem key={"loading"}>
-                          <SpinningButton
-                            targets="es"
-                            type="submit"
-                            size="sm"
-                            spinningAction={async () =>
-                              handleWhereTopStats(
-                                index,
-                                block.topStatsRetrieved + 10
-                              )
-                            }
-                          >
-                            Get 10 More
-                          </SpinningButton>
-                        </WrapItem>
-                      )}
-                    {v.value === ESQLSentinelOtherValues && <Spacer />}
-                    <WrapItem key={v.value.toString()}>
-                      <FilterValueCheckbox
-                        valueIndex={valueIndex}
-                        block={block}
-                        updateChecked={(newChecked) =>
-                          onCheckValueAt(valueIndex, newChecked)
-                        }
-                      />
-                    </WrapItem>
-                  </>
-                );
-              })}
-              <WrapItem key="..."></WrapItem>
-            </Wrap>
-          </VStack>
-        </CheckboxGroup>
-      );
+      return <WhereComposerBlock
+        block={block}
+        updateBlock={(block) => updateBlock(index, block)}
+        handleWhereTopStats={(number) => handleWhereTopStats(index, number)}
+      />;
 
     case "EVAL":
       return (
@@ -299,21 +240,30 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
       (v) => v.value === ESQLSentinelOtherValues && v.included
     );
     const topN = filterBlock.topStatsRetrieved + 10;
-    const topStats = await getGlobalTopStats(index, filterBlock.field.name, topN);
+    const topStats = await getGlobalTopStats(
+      index,
+      filterBlock.field.name,
+      topN
+    );
     const oldValues = new Set(filterBlock.values.map((v) => v.value));
-    const newValues = statisticsEntries(topStats).map(([v, _]) => v).filter(_ => !oldValues.has(_));
+    const newValues = statisticsEntries(topStats)
+      .map(([v, _]) => v)
+      .filter((_) => !oldValues.has(_));
 
     const newFilterBlock: FilterBlock & BlockHasStableId = {
       ...filterBlock,
       topStatsRetrieved: topN,
       topStats,
       values: [
-        ...Array.from(newValues).map((v: ESQLAtomValue) => ({
-          value: v,
-          included: otherValuesIncluded,
-        } as FilterValue)),
+        ...Array.from(newValues).map(
+          (v: ESQLAtomValue) =>
+            ({
+              value: v,
+              included: otherValuesIncluded,
+            } as FilterValue)
+        ),
         ...filterBlock.values,
-      ]
+      ],
     };
 
     newFilterBlock.values.sort((a, b) => {
@@ -327,14 +277,13 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
       if (b.value === ESQLSentinelOtherValues) {
         return -1;
       }
-      
+
       if (a.value === ESQLSentinelOtherValues) {
         return 1;
       }
-      
+
       return (
-      (getValueCount(b.value, topStats) -
-        getValueCount(a.value, topStats))
+        getValueCount(b.value, topStats) - getValueCount(a.value, topStats)
       );
     });
 

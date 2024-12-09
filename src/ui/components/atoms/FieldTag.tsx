@@ -15,6 +15,8 @@ export const FieldTag: React.FC<{
     colorScheme={disabled ? "gray" : "pink"}
     opacity={disabled ? 0.5 : 1}
     onClick={onClick}
+    flexGrow={0}
+    flexShrink={0}
   >
     <TagLabel>{name}</TagLabel>
     {children}
