@@ -1,11 +1,11 @@
-import { escape } from "./esql_escape";
+import { representESQLField } from "./esql_repr";
 import {
   ESQLAtomValue,
   ESQLColumnTypeClass,
-  esqlRepresentation,
   ESQLSentinelOtherValues,
   ESQLValueNull,
 } from "./esql_types";
+import { representESQLValue } from "./esql_repr";
 import { ValueStatistics } from "./ValueStatistics";
 import { constructWhereClause } from "./clauses";
 import { TableColumn } from "../../ui/components/data-table/types";
@@ -109,7 +109,7 @@ export const applyFunctionToField = (
   field: string,
   ...args: any[]
 ): string => {
-  return `${func}(${escape(field)}, ${args
+  return `${func}(${representESQLField(field)}, ${args
     .map((arg) => JSON.stringify(arg))
     .join(", ")})`;
 };
@@ -139,7 +139,7 @@ const fieldsBlockToESQL = (
   if (block.fields.length === 0) {
     return null;
   }
-  return `${block.command} ${block.fields.map(escape).join(", ")}`;
+  return `${block.command} ${block.fields.map(representESQLField).join(", ")}`;
 };
 
 /**
@@ -153,7 +153,10 @@ const renameBlockToESQL = (block: RenameBlock): string | null => {
     return null;
   }
   const fields = Object.entries(block.map)
-    .map(([oldName, newName]) => `${escape(oldName)} AS ${escape(newName)}`)
+    .map(
+      ([oldName, newName]) =>
+        `${representESQLField(oldName)} AS ${representESQLField(newName)}`
+    )
     .join(", ");
   return `RENAME ${fields}`;
 };
@@ -170,7 +173,7 @@ const renameBlockToESQL = (block: RenameBlock): string | null => {
  * - `WHERE field == value` or `WHERE field != value` if there is one key value.
  * - `WHERE field IN (value1, value2, ...)` or `WHERE field NOT IN (value1, value2, ...)` if there are at least three key values.
  */
-const whereBlockToESQL = (block: FilterBlock): string | null => {
+const filterBlockToESQL = (block: FilterBlock): string | null => {
   if (block.values.length === 0) {
     return null;
   }
@@ -208,7 +211,7 @@ const matchBlockToESQL = (block: MatchBlock): string | null => {
     return null;
   }
 
-  return `WHERE ${escape(block.field.name)} : ${esqlRepresentation(
+  return `WHERE ${representESQLField(block.field.name)} : ${representESQLValue(
     block.match
   )}`;
 };
@@ -224,7 +227,9 @@ const sortBlockToESQL = (block: SortBlock): string | null => {
     return null;
   }
   const fields = block.order
-    .map((field) => `${escape(field.field)}${field.asc ? "" : " DESC"}`)
+    .map(
+      (field) => `${representESQLField(field.field)}${field.asc ? "" : " DESC"}`
+    )
     .join(", ");
   return `SORT ${fields}`;
 };
@@ -245,7 +250,10 @@ const evalBlockToESQL = (block: EvalBlock): string | null => {
   return (
     "EVAL " +
     expressions
-      .map(({ field, expression }) => `${escape(field)} = ${expression}`)
+      .map(
+        ({ field, expression }) =>
+          `${representESQLField(field)} = ${expression}`
+      )
       .join(", ")
   );
 };
@@ -271,7 +279,7 @@ export const esqlBlockToESQL = (block: ESQLBlock): string | null => {
     case "WHERE":
       return "match" in block
         ? matchBlockToESQL(block)
-        : whereBlockToESQL(block);
+        : filterBlockToESQL(block);
     case "SORT":
       return sortBlockToESQL(block);
   }

@@ -1,12 +1,12 @@
 import React from "react";
 import {
   ESQLAtomValue,
-  esqlRepresentation,
   ESQLSentinelOtherValues,
   ESQLValueFalse,
   ESQLValueNull,
   ESQLValueTrue,
 } from "../../../models/esql/esql_types";
+import { representESQLValue } from "../../../models/esql/esql_repr";
 import { Text } from "@chakra-ui/react";
 
 interface FieldValueProps {
@@ -47,7 +47,7 @@ const FieldValue: React.FC<FieldValueProps> = ({
       ? "Other Values"
       : typeof value === "string"
       ? value
-      : esqlRepresentation(value);
+      : representESQLValue(value);
 
   return (
     <Text color={getColor(value)} fontStyle={getFontStyle(value)}>

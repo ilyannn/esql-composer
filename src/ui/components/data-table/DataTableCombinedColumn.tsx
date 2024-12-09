@@ -7,8 +7,6 @@ import {
 import FieldTag from "../atoms/FieldTag";
 import { TableColumn, TableData, TableRow, isTableDataEqual } from "./types";
 
-import { GrAddCircle } from "react-icons/gr";
-
 interface DataTableCombinedColumnCellProps {
   columns: TableColumn[];
   row: TableRow;
@@ -17,7 +15,7 @@ interface DataTableCombinedColumnCellProps {
 const DataTableCombinedColumnCell = React.memo(
   ({ columns, row }: DataTableCombinedColumnCellProps) => {
     return (
-      <Wrap justify={"flex-start"}>
+      <Wrap justify={"flex-start"} align={"baseline"}>
         {row.map((val, colIndex) => {
           if (val === null) {
             return;

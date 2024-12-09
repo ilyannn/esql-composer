@@ -31,40 +31,6 @@ export const esqlRawToHashableValue = (
   return value;
 };
 
-const quoteString = (value: string): string => {
-  if (!value.includes('"')) {
-    return '"' + value + '"';
-  }
-
-  if (value.includes('"') && !value.includes('"""')) {
-    return '"""' + value + '"""';
-  }
-
-  return '"' + value.replace(/"/g, '\\"') + '"';
-};
-
-// Representation of the value that can be parsed back.
-export const esqlRepresentation = (
-  value: ESQLAtomValue,
-  type: ESQLColumnType | undefined = undefined
-): string => {
-  const quoted =
-    value === ESQLValueTrue
-      ? "true"
-      : value === ESQLValueFalse
-      ? "false"
-      : value === ESQLValueNull
-      ? "null"
-      : typeof value === "number"
-      ? value.toString()
-      : typeof value === "string"
-      ? quoteString(value)
-      : JSON.stringify(value);
-
-  const needsConversion = type !== undefined && esqlTypeToClass(type) === "geo";
-  return needsConversion ? quoted + "::" + type : quoted;
-};
-
 export type ESQLNumericType =
   | "double"
   | "integer"

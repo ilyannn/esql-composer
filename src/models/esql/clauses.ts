@@ -1,6 +1,7 @@
-import { escape } from "lodash";
+import { representESQLField as representFieldName } from "./esql_repr";
 import { ESQLColumn, ESQLValueTrue } from "./esql_types";
-import { esqlRepresentation, esqlTypeToClass } from "./esql_types";
+import { esqlTypeToClass } from "./esql_types";
+import { representESQLValue } from "./esql_repr";
 
 /**
  * Creates a SQL WHERE clause based on the provided parameters.
@@ -26,9 +27,9 @@ export const constructWhereClause = ({
   // If defaultIncluded is true, the shape of the clause is '[true] and field != X and field != Y...'
   // If defaultIncluded is false, the shape of the clause is '[false] or field == X or field == Y...'
   const connector = defaultIncluded ? " AND " : " OR ";
-  const escapedField = escape(field.name);
+  const escapedField = representFieldName(field.name);
   const escapedValues = specialValues.map((v) =>
-    esqlRepresentation(v, field.type)
+    representESQLValue(v, field.type)
   );
 
   let clauses: string[] = [];

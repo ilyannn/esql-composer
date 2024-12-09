@@ -7,6 +7,8 @@ import {
 } from "../../../models/esql/esql_types";
 import FieldValue from "./FieldValue";
 import { GeoPointFormatter } from "./geoPointFormatter";
+import Markdown from "react-markdown";
+import { Box } from "@chakra-ui/react";
 
 export type Presenter = (value: ESQLAtomValue) => JSX.Element;
 
@@ -68,6 +70,15 @@ const createMoneyPresenter = (currency: string): Presenter => {
   );
 };
 
+const createMarkdownPresenter = (): Presenter => (value: ESQLAtomValue) =>
+  (
+    <Box display={"block"}>
+      <Markdown components={{ h1: "b", h2: "b", h4: "em" }}>
+        {value.toString()}
+      </Markdown>
+    </Box>
+  );
+
 const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
   let formattedValue: string | undefined = undefined;
 
@@ -85,6 +96,7 @@ const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
 const memoizedCreateDatePresenter = memoize(createDatePresenter);
 const memoizedCreateMoneyPresenter = memoize(createMoneyPresenter);
 const memoizedCreateNumberPresenter = memoize(createNumberPresenter);
+const memoizedCreateMarkdownPresenter = memoize(createMarkdownPresenter);
 
 export const getPresenter = (column: ESQLColumn): Presenter => {
   try {
@@ -109,12 +121,18 @@ export const getPresenter = (column: ESQLColumn): Presenter => {
       return geoPointPresenter;
     }
 
+    const class_ = esqlTypeToClass(column.type);
+
+    if (class_ === "stringy" && column.name.endsWith("(Markdown)")) {
+      return memoizedCreateMarkdownPresenter();
+    }
+
     const currencyMatch = column.name.match(/\(([A-Z][A-Z][A-Z])\)$/);
     if (currencyMatch) {
       return memoizedCreateMoneyPresenter(currencyMatch[1]);
     }
 
-    if (esqlTypeToClass(column.type) === "numeric") {
+    if (class_ === "numeric") {
       return memoizedCreateNumberPresenter(undefined);
     }
   } catch (e) {

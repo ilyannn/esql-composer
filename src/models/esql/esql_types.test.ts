@@ -3,7 +3,6 @@ import {
   ESQLValueTrue,
   ESQLValueFalse,
   ESQLValueNull,
-  esqlRepresentation,
   esqlTypeToClass,
   esqlIsTypeSortable,
 } from "./esql_types";
@@ -35,46 +34,6 @@ describe("esqlRawToHashableValue", () => {
 
   it("should return the same value for float", () => {
     expect(esqlRawToHashableValue(704.4637451171875)).toBe(704.4637451171875);
-  });
-});
-
-describe("esqlRepresentation", () => {
-  it('should return "true" for ESQLValueTrue', () => {
-    expect(esqlRepresentation(ESQLValueTrue)).toBe("true");
-  });
-
-  it('should return "false" for ESQLValueFalse', () => {
-    expect(esqlRepresentation(ESQLValueFalse)).toBe("false");
-  });
-
-  it('should return "null" for ESQLValueNull', () => {
-    expect(esqlRepresentation(ESQLValueNull)).toBe("null");
-  });
-
-  it("should return string representation for number", () => {
-    expect(esqlRepresentation(123)).toBe("123");
-  });
-
-  it("should return string representation for float", () => {
-    expect(esqlRepresentation(123.45)).toBe("123.45");
-  });
-
-  it("should return JSON string for string", () => {
-    expect(esqlRepresentation("test")).toBe('"test"');
-  });
-
-  it("should use triple quotes for string with double quotes", () => {
-    expect(esqlRepresentation('test "test"')).toBe('"""test "test""""');
-  });
-
-  it("should escape double quotes in string when triple quotes don't work", () => {
-    expect(esqlRepresentation('test """ test')).toBe('"test \\"\\"\\" test"');
-  });
-
-  it("should add conversion for geo types", () => {
-    expect(esqlRepresentation("POINT(1 2)", "geo_point")).toBe(
-      '"POINT(1 2)"::geo_point'
-    );
   });
 });
 
