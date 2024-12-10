@@ -387,7 +387,7 @@ const ESQLComposerMain = () => {
           isClosable: true,
         });
 
-        addToSpan({ error: { message: description } });
+        addToSpan({ error: { message_j: description } });
       } finally {
         saveSpan();
       }
@@ -559,6 +559,7 @@ const ESQLComposerMain = () => {
 
         if (currentQueryAPIActionQuery.current === fullESQL) {
           setQueryAPIData(response.data);
+          addToSpan({ stats: response.stats });
         }
       } finally {
         currentQueryAPIActionQuery.current = null;
