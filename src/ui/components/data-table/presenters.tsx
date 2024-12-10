@@ -8,7 +8,7 @@ import {
 import FieldValue from "./FieldValue";
 import { GeoPointFormatter } from "./geoPointFormatter";
 import Markdown from "react-markdown";
-import { Box, Code } from "@chakra-ui/react";
+import { Box, Code, Link } from "@chakra-ui/react";
 
 import Highlight from "react-highlight";
 import "@highlightjs/cdn-assets/styles/nnfx-light.css";
@@ -138,6 +138,18 @@ const esqlPresenter: Presenter = (value: ESQLAtomValue) => {
   return defaultPresenter(value);
 };
 
+const urlPresenter: Presenter = (value: ESQLAtomValue) => {
+  if (typeof value === "string" && value.startsWith("http")) {
+    return (
+      <Link href="value" isExternal>
+        {value}
+      </Link>
+    );
+  }
+
+  return defaultPresenter(value);
+};
+
 const memoizedCreateDatePresenter = memoize(createDatePresenter);
 const memoizedCreateMoneyPresenter = memoize(createMoneyPresenter);
 const memoizedCreateNumberPresenter = memoize(createNumberPresenter);
@@ -174,6 +186,10 @@ export const getPresenter = (column: ESQLColumn): Presenter => {
 
     if (class_ === "stringy" && column.name.endsWith("(ES|QL)")) {
       return esqlPresenter;
+    }
+
+    if (class_ === "stringy" && column.name.endsWith("(URL)")) {
+      return urlPresenter;
     }
 
     const currencyMatch = column.name.match(/\(([A-Z][A-Z][A-Z])\)$/);
