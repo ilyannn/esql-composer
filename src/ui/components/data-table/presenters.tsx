@@ -8,7 +8,12 @@ import {
 import FieldValue from "./FieldValue";
 import { GeoPointFormatter } from "./geoPointFormatter";
 import Markdown from "react-markdown";
-import { Box } from "@chakra-ui/react";
+import { Box, Code } from "@chakra-ui/react";
+
+import Highlight from "react-highlight";
+import "@highlightjs/cdn-assets/styles/nnfx-light.css";
+import "./highlight-esql.css";
+require("../../../services/highlight-esql.js");
 
 export type Presenter = (value: ESQLAtomValue) => JSX.Element;
 
@@ -125,6 +130,14 @@ const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
   return <FieldValue value={value} formattedValue={formattedValue} />;
 };
 
+const esqlPresenter: Presenter = (value: ESQLAtomValue) => {
+  if (typeof value === "string") {
+    return <Highlight className="language-esql">{value}</Highlight>;
+  }
+
+  return defaultPresenter(value);
+};
+
 const memoizedCreateDatePresenter = memoize(createDatePresenter);
 const memoizedCreateMoneyPresenter = memoize(createMoneyPresenter);
 const memoizedCreateNumberPresenter = memoize(createNumberPresenter);
@@ -157,6 +170,10 @@ export const getPresenter = (column: ESQLColumn): Presenter => {
 
     if (class_ === "stringy" && column.name.endsWith("(Markdown)")) {
       return memoizedCreateMarkdownPresenter();
+    }
+
+    if (class_ === "stringy" && column.name.endsWith("(ES|QL)")) {
+      return esqlPresenter;
     }
 
     const currencyMatch = column.name.match(/\(([A-Z][A-Z][A-Z])\)$/);
