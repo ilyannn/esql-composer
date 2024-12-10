@@ -33,9 +33,13 @@ export const esqlChainAddToString = (
 };
 
 interface ESQLChainSimpleAction {
-  action: "keep" | "limit";
+  action: "keep";
 }
 
+interface ESQLChainLimitAction {
+  action: "limit";
+  limit: number | null;
+}
 interface ESQLColumnBaseAction {
   action: string;
   column: ESQLColumn;
@@ -69,6 +73,7 @@ export type ESQLColumnAction =
 
 export type ESQLChainAction =
   | ESQLChainSimpleAction
+  | ESQLChainLimitAction
   | ESQLColumnAction
   | ESQLChainEvalAction;
 
@@ -293,7 +298,7 @@ const provideValues = (stats: ValueStatistics): FilterValue[] => {
 };
 
 export const createInitialChain = (): ESQLChain => {
-  const { chain } = performChainAction([], { action: "limit" }, []);
+  const { chain } = performChainAction([], { action: "limit", limit: 20 }, []);
   return chain;
 };
 
@@ -323,7 +328,7 @@ export const performChainAction = (
 
   switch (action.action) {
     case "limit":
-      newBlock = prevBlock ?? { command: "LIMIT", limit: 20 };
+      newBlock = prevBlock ?? { command: "LIMIT", limit: action.limit };
       break;
 
     case "keep":

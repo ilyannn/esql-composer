@@ -37,11 +37,8 @@ import {
 } from "../../models/esql/esql_types";
 import FieldTag from "../components/atoms/FieldTag";
 import { FieldTagMesh } from "../components/FieldTagMesh";
-import FilterValueCheckbox from "../components/FilterValueCheckbox";
 import SortIcon from "../components/SortIcon";
-import SpinningButton from "../components/SpinningButton";
 import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
-import { CiUndo } from "react-icons/ci";
 import WhereComposerBlock from "./WhereComposerBlock";
 
 interface ESQLComposerProps {
@@ -75,8 +72,6 @@ const renderLimitBlock = (
       value={toSliderValue(block.limit)}
       max={sliderValues.length - 1}
       onChange={(value) => handleLimitChange(index, sliderValues[value])}
-      ml="2em"
-      mr="2em"
     >
       {sliderValues.map((value, idx) => (
         <SliderMark
@@ -307,6 +302,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
             handleBlockAction(index, action);
             setHighlightedBlock(null);
           }}
+          canMinimize={index === chain.length - 1 && block.command === "LIMIT"}
         >
           {renderBlockContents(
             index,

@@ -1,13 +1,14 @@
 import React from "react";
 import { Box, Button, Heading, HStack, Spacer } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
-
+import { TbWindowMinimize } from "react-icons/tb";
 export type ComposerBlockAction = "accept" | "reject";
 
 interface ComposerBlockProps {
   command: string;
   children?: React.ReactNode;
   highlight: ComposerBlockAction | null;
+  canMinimize?: boolean;
   onHover(action: ComposerBlockAction | null): void;
   onAction(action: ComposerBlockAction): void;
 }
@@ -18,6 +19,7 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
   highlight,
   onHover,
   onAction,
+  canMinimize,
 }) => {
   return (
     <Box
@@ -54,15 +56,27 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
           >
             Accept ⇧
           </Button>
-          <Button
-            variant="ghost"
-            colorScheme="red"
-            onMouseEnter={() => onHover("reject")}
-            onMouseLeave={() => onHover(null)}
-            onClick={() => onAction("reject")}
-          >
-            <CloseIcon />
-          </Button>
+          {canMinimize ? (
+            <Button
+              title="Minimize"
+              variant="ghost"
+              colorScheme="gray"
+              onClick={() => onAction("reject")}
+            >
+              <TbWindowMinimize />
+            </Button>
+          ) : (
+            <Button
+              title="Reject"
+              variant="ghost"
+              colorScheme="red"
+              onMouseEnter={() => onHover("reject")}
+              onMouseLeave={() => onHover(null)}
+              onClick={() => onAction("reject")}
+            >
+              <CloseIcon />
+            </Button>
+          )}
         </HStack>
       </HStack>
     </Box>

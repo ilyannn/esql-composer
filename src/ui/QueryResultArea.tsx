@@ -59,9 +59,9 @@ interface QueryResultAreaProps {
   tooltipsShown: boolean;
   autoUpdate: boolean;
   setAutoUpdate: (value: boolean) => void;
-  isLimitRecommended: boolean;
-  isKeepRecommended: boolean;
+  limitValue: number | null | undefined;
   updatingESQLLineByLine: boolean;
+  handleUnminimizeLimitBlock: () => void;
   handleChainActionInContext: (
     action: ESQLChainAction,
     knownFields: string[]
@@ -80,14 +80,14 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   clearData,
   handleChainActionInContext,
   handleTransformFieldWithInfo,
+  handleUnminimizeLimitBlock,
   isFetchAvailable,
-  isLimitRecommended,
-  isKeepRecommended,
+  limitValue,
   updatingESQLLineByLine,
   fetchQueryData,
 }) => {
   const { isOpen: isLimitWarningVisible, onClose: closeLimitWarning } =
-    useDisclosure({ defaultIsOpen: true });
+    useDisclosure({ defaultIsOpen: false });
 
   const [isCombinedColumnView, setIsCombinedColumnView] = React.useState(false);
 
@@ -183,7 +183,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   return (
     <>
       <VStack spacing={4} align="stretch">
-        {isLimitRecommended && isLimitWarningVisible && (
+        {isLimitWarningVisible && (
           <Alert status="warning">
             <AlertIcon />
             <HStack
@@ -233,22 +233,22 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
             </Checkbox>
           </Tooltip>
 
-          <Spacer />
-
-          {/* {isLimitRecommended && (
+          {limitValue !== undefined && (
             <Tooltip
               isDisabled={!tooltipsShown}
-              label="Set the limit below to avoid fetching too much data"
+              label="Setting the limit avoids fetching too much data"
             >
               <Button
                 variant="ghost"
                 colorScheme="green"
-                onClick={() => handleChainAction({ action: "limit" })}
+                onClick={() => handleUnminimizeLimitBlock()}
               >
-                Add Limit
+                {limitValue === null ? "Add Limit" : `Limit: ${limitValue}`}
               </Button>
             </Tooltip>
-          )} */}
+          )}
+
+          <Spacer />
 
           {data && (
             <Menu>
@@ -261,20 +261,9 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                 Table
               </MenuButton>
               <MenuList>
-                {isLimitRecommended && (
-                  <MenuItem
-                    onClick={() => handleChainAction({ action: "limit" })}
-                  >
-                    Add Limit
-                  </MenuItem>
-                )}
-                {isKeepRecommended && (
-                  <MenuItem
-                    onClick={() => handleChainAction({ action: "keep" })}
-                  >
-                    Manage Columns
-                  </MenuItem>
-                )}
+                <MenuItem onClick={() => handleChainAction({ action: "keep" })}>
+                  Manage Columns
+                </MenuItem>
                 <MenuItem
                   onClick={() => setIsCombinedColumnView(!isCombinedColumnView)}
                 >
@@ -424,7 +413,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                 </Tr>
               </Thead>
               <DataTableBody
-                data={{rows: data.values, columns, row_keys}}
+                data={{ rows: data.values, columns, row_keys }}
                 onExpand={(columnIndex) =>
                   handleChainAction({
                     action: "expand",

@@ -24,7 +24,11 @@ import {
 import Anthropic from "@anthropic-ai/sdk";
 
 import type { LLMHistoryRow, LLMStatisticsRow } from "../common/types";
-import { BlockHasStableId, ESQLBlock } from "../models/esql/ESQLBlock";
+import {
+  BlockHasStableId,
+  ESQLBlock,
+  LimitBlock,
+} from "../models/esql/ESQLBlock";
 import {
   ESQLChain,
   ESQLChainAction,
@@ -61,7 +65,7 @@ import {
 import { loadFile } from "../services/files";
 
 import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { add, reduce } from "lodash";
+import { add, chain, get, reduce, set } from "lodash";
 import {
   TracingOptions,
   defaultTracingOptions,
@@ -80,6 +84,7 @@ import QueryResultArea from "./QueryResultArea";
 import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import VisualComposer from "./visual-composer/VisualComposer";
 import { representESQLField } from "../models/esql/esql_repr";
+import { ComposerBlockAction } from "./visual-composer/ComposerBlock";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
 
@@ -119,24 +124,13 @@ const ESQLComposerMain = () => {
   const [naturalInput, setNaturalInput] = useState("");
   const [esqlInput, setEsqlInput] = useState("");
   const [visualChain, setVisualChain] = useState<ESQLChain>(createInitialChain);
+  const [minimizedLimitBlock, setMinimizedLimitBlock] = useState<
+    LimitBlock & BlockHasStableId | undefined
+  >(undefined);
   const [updatingESQLLineByLine, setUpdatingESQLLineByLine] = useState(false);
 
   const [queryAPIData, setQueryAPIData] = useState<ESQLTableData | null>(null);
   const [queryAPIDataAutoUpdate, _setQueryAPIDataAutoUpdate] = useState(false);
-
-  const isLimitRecommended = useMemo(() => {
-    return (
-      !visualChain.some((block) => block.command === "LIMIT") &&
-      !esqlInput.toUpperCase().includes("| LIMIT")
-    );
-  }, [visualChain, esqlInput]);
-
-  const isKeepRecommended = useMemo(() => {
-    return (
-      !visualChain.some((block) => block.command === "KEEP") &&
-      queryAPIData !== null
-    );
-  }, [queryAPIData, visualChain]);
 
   const [allStats, setAllStats] = useState<LLMStatisticsRow[]>([]);
   const [history, setHistory] = useState<LLMHistoryRow[]>([]);
@@ -247,6 +241,14 @@ const ESQLComposerMain = () => {
     _setQueryAPIKey(value);
     setQueryAPIKeyWorks(null);
   }, []);
+
+  const getCompleteESQL = useCallback(() => {
+    const chain =
+      minimizedLimitBlock !== undefined
+        ? [...visualChain, minimizedLimitBlock]
+        : visualChain;
+    return esqlChainAddToString(esqlInput, chain);
+  }, [esqlInput, visualChain, minimizedLimitBlock]);
 
   /**
    * Handles API errors and updates the state of apiKeyWorks.
@@ -540,7 +542,7 @@ const ESQLComposerMain = () => {
 
   const fetchQueryData = useCallback(async () => {
     await performQueryAPIAction("ES|QL query", async (addToSpan) => {
-      const fullESQL = esqlChainAddToString(esqlInput, visualChain);
+      const fullESQL = getCompleteESQL();
 
       if (currentQueryAPIActionQuery.current === fullESQL) {
         // Already fetching this query.
@@ -565,7 +567,14 @@ const ESQLComposerMain = () => {
         currentQueryAPIActionQuery.current = null;
       }
     });
-  }, [queryAPIURL, queryAPIKey, esqlInput, visualChain, performQueryAPIAction]);
+  }, [
+    queryAPIURL,
+    queryAPIKey,
+    esqlInput,
+    visualChain,
+    performQueryAPIAction,
+    getCompleteESQL,
+  ]);
 
   const performQueryAPIDataAutoUpdate = useCallback(
     (force?: boolean) => {
@@ -603,6 +612,26 @@ const ESQLComposerMain = () => {
     [performQueryAPIDataAutoUpdate]
   );
 
+  const splitVisualChainAndLimit = useCallback(
+    (chain: ESQLChain): [ESQLChain, LimitBlock & BlockHasStableId| undefined] => {
+      // This value only needs to be changed if limit is minimized.
+      if (minimizedLimitBlock !== undefined) {
+        const lastBlock = chain.length > 0 ? chain[chain.length - 1] : null;
+        const shouldSplitLimit = lastBlock && lastBlock.command === "LIMIT";
+
+        if (shouldSplitLimit) {
+          return [
+            visualChain.slice(0, visualChain.length - 1),
+            lastBlock,
+          ];
+        }
+      }
+
+      return [chain, undefined];
+    },
+    [minimizedLimitBlock]
+  );
+
   const _resetESQL = useCallback(
     (
       initialESQL: string | undefined,
@@ -614,14 +643,17 @@ const ESQLComposerMain = () => {
 
       const esql = initialESQL || "";
       setEsqlInput(esql + "\n");
-      const newChain = reduce(
+      const initialChain = reduce(
         initialActions,
         (chain: ESQLChain, action) =>
           performChainAction(chain, action, []).chain,
         createInitialChain()
       );
 
+      const [newChain, newMinimizedLimitBlock] =
+        splitVisualChainAndLimit(initialChain);
       setVisualChain(newChain);
+      setMinimizedLimitBlock(newMinimizedLimitBlock);
     },
     []
   );
@@ -863,7 +895,7 @@ const ESQLComposerMain = () => {
       await performAnthropicAPIAction(
         "ES|QL field transform",
         async (addToSpan) => {
-          const fullEsqlQuery = esqlChainAddToString(esqlInput, visualChain);
+          const fullEsqlQuery = getCompleteESQL();
           addToSpan({
             esql: {
               action: "eval",
@@ -914,9 +946,8 @@ const ESQLComposerMain = () => {
       modelSelected,
       esqlGuideText,
       schemaGuideText,
-      esqlInput,
-      visualChain,
       allStats,
+      getCompleteESQL,
     ]
   );
 
@@ -974,7 +1005,7 @@ const ESQLComposerMain = () => {
     };
   }, []);
 
-  const handleChainAction = (
+  const handleChainAction = useCallback((
     action: ESQLChainAction,
     knownFields: string[]
   ): boolean => {
@@ -985,9 +1016,16 @@ const ESQLComposerMain = () => {
     } catch (error) {
       return false;
     }
-  };
+  }, [visualChain]);
 
-  const updateVisualBlock = (index: number, block: ESQLBlock) => {
+  const handleUnminimizeLimitBlock = useCallback(() => {
+    if (minimizedLimitBlock) {
+      setVisualChain([...visualChain, minimizedLimitBlock]);
+      setMinimizedLimitBlock(undefined);
+    }
+  }, [visualChain, minimizedLimitBlock]);
+
+  const updateVisualBlock = useCallback((index: number, block: ESQLBlock) => {
     const blocks = [...visualChain];
     const blockWIthID: ESQLBlock & BlockHasStableId = {
       ...block,
@@ -995,23 +1033,36 @@ const ESQLComposerMain = () => {
     };
     blocks[index] = blockWIthID;
     setVisualChain(blocks);
-  };
+  }, [visualChain]);
 
-  const handleVisualBlockAction = (index: number, action: string) => {
-    if (action === "accept") {
-      const newESQL = esqlChainAddToString(
-        esqlInput,
-        visualChain.slice(0, index + 1)
-      );
-      setEsqlInput(newESQL);
-      setVisualChain(visualChain.slice(index + 1));
-    } else if (action === "reject") {
-      setVisualChain([
-        ...visualChain.slice(0, index),
-        ...visualChain.slice(index + 1),
-      ]);
+  const handleVisualBlockAction = useCallback((
+    index: number,
+    action: ComposerBlockAction
+  ) => {
+    const block = visualChain[index];
+
+    // Special case of the limit block.
+    if (index == visualChain.length - 1 && block.command === "LIMIT") {
+      setMinimizedLimitBlock(block);
     }
-  };
+
+    switch (action) {
+      case "accept":
+        const newESQL = esqlChainAddToString(
+          esqlInput,
+          visualChain.slice(0, index + 1)
+        );
+        setEsqlInput(newESQL);
+        setVisualChain(visualChain.slice(index + 1));
+        break;
+      case "reject":
+        setVisualChain([
+          ...visualChain.slice(0, index),
+          ...visualChain.slice(index + 1),
+        ]);
+        break;
+    }
+  }, [esqlInput, visualChain]);
 
   const handleGlobalTopStats = useCallback(
     async (
@@ -1187,8 +1238,8 @@ const ESQLComposerMain = () => {
                   isElasticsearchAPIAvailable && esqlInput.length > 0
                 }
                 handleTransformFieldWithInfo={handleTransformFieldWithInfo}
-                isLimitRecommended={isLimitRecommended}
-                isKeepRecommended={isKeepRecommended}
+                limitValue={minimizedLimitBlock?.limit}
+                handleUnminimizeLimitBlock={handleUnminimizeLimitBlock}
                 updatingESQLLineByLine={updatingESQLLineByLine}
                 fetchQueryData={fetchQueryData}
               />
