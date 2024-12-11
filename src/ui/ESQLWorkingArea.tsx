@@ -103,7 +103,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
           <HStack>
             <FormControl flex={1}>
               <Input
-                placeholder="Natural Text"
+                placeholder="Prompt Claude in natural language"
                 value={naturalInput}
                 onChange={(e) => setNaturalInput(e.target.value)}
                 ref={naturalInputRef}

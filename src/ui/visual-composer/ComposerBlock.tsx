@@ -3,6 +3,7 @@ import { Box, Button, Heading, HStack, Spacer } from "@chakra-ui/react";
 import { CloseIcon } from "@chakra-ui/icons";
 import { TbWindowMinimize } from "react-icons/tb";
 export type ComposerBlockAction = "accept" | "reject";
+import { BsBoxArrowInUp } from "react-icons/bs";
 
 interface ComposerBlockProps {
   command: string;
@@ -54,7 +55,7 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
             onMouseLeave={() => onHover(null)}
             onClick={() => onAction("accept")}
           >
-            Accept ⇧
+            <BsBoxArrowInUp />
           </Button>
           {canMinimize ? (
             <Button

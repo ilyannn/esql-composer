@@ -44,7 +44,7 @@ const GetSchemaModal: React.FC<GetSchemaModalProps> = ({
   const [indexPattern, setIndexPattern] = useState<string>("");
   const [systemIndicesHidden, setSystemIndicesHidden] = useState<boolean>(true);
   const [randomSamplingExponent, setRandomSamplingExponent] =
-    useState<number>(2);
+    useState<number>(0);
 
   const randomSamplingFactor = 10 ** randomSamplingExponent;
   const samplingHelperText =
@@ -52,8 +52,8 @@ const GetSchemaModal: React.FC<GetSchemaModalProps> = ({
       <Text>All of the documents will be used when computing top values.</Text>
     ) : (
       <Text>
-        Only each {randomSamplingFactor}th document will be used for
-        computing top values. Requires{" "}
+        Only each {randomSamplingFactor}th document will be used for computing
+        top values. Requires{" "}
         <Link
           isExternal
           href="https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-random-sampler-aggregation.html"
@@ -66,10 +66,11 @@ const GetSchemaModal: React.FC<GetSchemaModalProps> = ({
 
   const handleSubmit = async () => {
     const userPattern = indexPattern.trim() || "*";
-    const patternMayContainSystemIndices = userPattern.split(",").some((p) =>
-      p.startsWith("*") || p.startsWith(".")
-    );
-    const systemPattern = systemIndicesHidden && patternMayContainSystemIndices ? "-.*" : "";
+    const patternMayContainSystemIndices = userPattern
+      .split(",")
+      .some((p) => p.startsWith("*") || p.startsWith("."));
+    const systemPattern =
+      systemIndicesHidden && patternMayContainSystemIndices ? "-.*" : "";
     const patterns = [userPattern, systemPattern].filter((p) => p.length > 0);
     await getSchemaFromES(patterns.join(","), randomSamplingFactor);
     onClose();
