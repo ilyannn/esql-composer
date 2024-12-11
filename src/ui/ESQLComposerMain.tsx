@@ -125,7 +125,7 @@ const ESQLComposerMain = () => {
   const [esqlInput, setEsqlInput] = useState("");
   const [visualChain, setVisualChain] = useState<ESQLChain>(createInitialChain);
   const [minimizedLimitBlock, setMinimizedLimitBlock] = useState<
-    LimitBlock & BlockHasStableId | undefined
+    (LimitBlock & BlockHasStableId) | undefined
   >(undefined);
   const [updatingESQLLineByLine, setUpdatingESQLLineByLine] = useState(false);
 
@@ -133,7 +133,6 @@ const ESQLComposerMain = () => {
   const [queryAPIDataAutoUpdate, _setQueryAPIDataAutoUpdate] = useState(false);
 
   const [allStats, setAllStats] = useState<LLMStatisticsRow[]>([]);
-  const [history, setHistory] = useState<LLMHistoryRow[]>([]);
 
   const [anthropicAPIKeyWorks, setAnthropicAPIKeyWorks] = useState<
     boolean | null
@@ -613,17 +612,16 @@ const ESQLComposerMain = () => {
   );
 
   const splitVisualChainAndLimit = useCallback(
-    (chain: ESQLChain): [ESQLChain, LimitBlock & BlockHasStableId| undefined] => {
+    (
+      chain: ESQLChain
+    ): [ESQLChain, (LimitBlock & BlockHasStableId) | undefined] => {
       // This value only needs to be changed if limit is minimized.
       if (minimizedLimitBlock !== undefined) {
         const lastBlock = chain.length > 0 ? chain[chain.length - 1] : null;
         const shouldSplitLimit = lastBlock && lastBlock.command === "LIMIT";
 
         if (shouldSplitLimit) {
-          return [
-            visualChain.slice(0, visualChain.length - 1),
-            lastBlock,
-          ];
+          return [visualChain.slice(0, visualChain.length - 1), lastBlock];
         }
       }
 
@@ -791,16 +789,6 @@ const ESQLComposerMain = () => {
 
         saveCacheWarmedInfo();
         setAllStats([...allStats, data.stats]);
-
-        setHistory([
-          ...history,
-          {
-            text,
-            esqlInput,
-            esql: interpolatedLines.join("\n"),
-            stats: data.stats,
-          },
-        ]);
 
         if (naturalInputRef.current?.value === text) {
           naturalInputRef.current?.setSelectionRange(0, naturalInput.length);
@@ -1005,18 +993,18 @@ const ESQLComposerMain = () => {
     };
   }, []);
 
-  const handleChainAction = useCallback((
-    action: ESQLChainAction,
-    knownFields: string[]
-  ): boolean => {
-    try {
-      const { chain } = performChainAction(visualChain, action, knownFields);
-      setVisualChain(chain);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }, [visualChain]);
+  const handleChainAction = useCallback(
+    (action: ESQLChainAction, knownFields: string[]): boolean => {
+      try {
+        const { chain } = performChainAction(visualChain, action, knownFields);
+        setVisualChain(chain);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    },
+    [visualChain]
+  );
 
   const handleUnminimizeLimitBlock = useCallback(() => {
     if (minimizedLimitBlock) {
@@ -1025,44 +1013,47 @@ const ESQLComposerMain = () => {
     }
   }, [visualChain, minimizedLimitBlock]);
 
-  const updateVisualBlock = useCallback((index: number, block: ESQLBlock) => {
-    const blocks = [...visualChain];
-    const blockWIthID: ESQLBlock & BlockHasStableId = {
-      ...block,
-      stableId: blocks[index].stableId,
-    };
-    blocks[index] = blockWIthID;
-    setVisualChain(blocks);
-  }, [visualChain]);
+  const updateVisualBlock = useCallback(
+    (index: number, block: ESQLBlock) => {
+      const blocks = [...visualChain];
+      const blockWIthID: ESQLBlock & BlockHasStableId = {
+        ...block,
+        stableId: blocks[index].stableId,
+      };
+      blocks[index] = blockWIthID;
+      setVisualChain(blocks);
+    },
+    [visualChain]
+  );
 
-  const handleVisualBlockAction = useCallback((
-    index: number,
-    action: ComposerBlockAction
-  ) => {
-    const block = visualChain[index];
+  const handleVisualBlockAction = useCallback(
+    (index: number, action: ComposerBlockAction) => {
+      const block = visualChain[index];
 
-    // Special case of the limit block.
-    if (index == visualChain.length - 1 && block.command === "LIMIT") {
-      setMinimizedLimitBlock(block);
-    }
+      // Special case of the limit block.
+      if (index == visualChain.length - 1 && block.command === "LIMIT") {
+        setMinimizedLimitBlock(block);
+      }
 
-    switch (action) {
-      case "accept":
-        const newESQL = esqlChainAddToString(
-          esqlInput,
-          visualChain.slice(0, index + 1)
-        );
-        setEsqlInput(newESQL);
-        setVisualChain(visualChain.slice(index + 1));
-        break;
-      case "reject":
-        setVisualChain([
-          ...visualChain.slice(0, index),
-          ...visualChain.slice(index + 1),
-        ]);
-        break;
-    }
-  }, [esqlInput, visualChain]);
+      switch (action) {
+        case "accept":
+          const newESQL = esqlChainAddToString(
+            esqlInput,
+            visualChain.slice(0, index + 1)
+          );
+          setEsqlInput(newESQL);
+          setVisualChain(visualChain.slice(index + 1));
+          break;
+        case "reject":
+          setVisualChain([
+            ...visualChain.slice(0, index),
+            ...visualChain.slice(index + 1),
+          ]);
+          break;
+      }
+    },
+    [esqlInput, visualChain]
+  );
 
   const handleGlobalTopStats = useCallback(
     async (
@@ -1206,7 +1197,6 @@ const ESQLComposerMain = () => {
                 setNaturalInput={setNaturalInput}
                 esqlInput={esqlInput}
                 setEsqlInput={setEsqlInput}
-                history={history}
                 esqlCompleteButtonRef={esqlCompleteButtonRef}
                 naturalInputRef={naturalInputRef}
                 esqlInputRef={esqlInputRef}

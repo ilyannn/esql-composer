@@ -25,7 +25,6 @@ interface ESQLWorkingAreaProps {
   esqlInput: string;
   setEsqlInput: (value: string) => void;
 
-  history: LLMHistoryRow[];
   resetESQL: () => void;
 
   naturalInputRef: React.RefObject<HTMLInputElement | null>;
@@ -70,31 +69,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
       });
     };
   
-    const revertUpdate = () => {
-      if (history.length > 0) {
-        const last = history.pop();
-        if (last) {
-          setNaturalInput(last.text);
-          setEsqlInput(last.esqlInput);
-        }
-      }
-    };
-  
-    const showHistory = () => {
-      const jsonHistory = JSON.stringify(history, null, 2);
-      const newWindow = window.open();
-      if (newWindow !== null) {
-        newWindow.document.write(`<pre>${jsonHistory}</pre>`);
-      } else {
-        toast({
-          title: "Pop-up blocked",
-          description: "Please allow pop-ups to show history",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-    };*/
+  */
 
   return (
     <HStack justify="flex-start" align="stretch" spacing={8}>
@@ -117,19 +92,6 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
             >
               {esqlInput ? "Update ES|QL" : "Generate ES|QL"}
             </SpinningButton>
-            {/* <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Restore the inputs to the state before this button was pressed"
-            >
-              <Button
-                variant="ghost"
-                isDisabled={history.length === 0}
-                colorScheme="green"
-                onClick={() => revertUpdate()}
-              >
-                Undo
-              </Button>
-            </Tooltip> */}
           </HStack>
         </form>
 
