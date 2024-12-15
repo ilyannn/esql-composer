@@ -148,7 +148,7 @@ const ESQLComposerMain = () => {
   const naturalInputRef = useRef<HTMLInputElement>(null);
 
   const isElasticsearchAPIAvailable = (queryAPIURL && queryAPIKey) !== "";
-  const isESQLRequestAvailable =
+  const isLLMESQLRequestAvailable =
     anthropicAPIKey.length !== 0 &&
     esqlGuideText.length !== 0 &&
     esqlSchema !== null &&
@@ -579,18 +579,18 @@ const ESQLComposerMain = () => {
     (force?: boolean) => {
       // console.log(
       //   "performQueryAPIDataAutoUpdate",
-      //   isESQLRequestAvailable,
+      //   isElasticsearchAPIAvailable,
       //   queryAPIKey.slice(0, 5),
       //   queryAPIDataAutoUpdate
       // );
-      if (isESQLRequestAvailable && !updatingESQLLineByLine) {
+      if (isElasticsearchAPIAvailable && !updatingESQLLineByLine) {
         if (queryAPIDataAutoUpdate || force === true) {
           fetchQueryData();
         }
       }
     },
     [
-      isESQLRequestAvailable,
+      isElasticsearchAPIAvailable,
       updatingESQLLineByLine,
       queryAPIDataAutoUpdate,
       fetchQueryData,
@@ -1171,7 +1171,7 @@ const ESQLComposerMain = () => {
             }
           >
             <ReferenceGuidesArea
-              isESQLRequestAvailable={isESQLRequestAvailable}
+              isESQLRequestAvailable={isLLMESQLRequestAvailable}
               isElasticsearchAPIAvailable={isElasticsearchAPIAvailable}
               esqlGuideText={esqlGuideText}
               setEsqlGuideText={setEsqlGuideText}
@@ -1192,7 +1192,7 @@ const ESQLComposerMain = () => {
             <VStack align={"stretch"} justify={"space-between"} spacing={4}>
               <ESQLWorkingArea
                 tooltipsShown={tooltipsShown}
-                isESQLRequestAvailable={isESQLRequestAvailable}
+                isESQLRequestAvailable={isLLMESQLRequestAvailable}
                 naturalInput={naturalInput}
                 setNaturalInput={setNaturalInput}
                 esqlInput={esqlInput}
