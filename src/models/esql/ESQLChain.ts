@@ -247,9 +247,6 @@ const bubbleDown = (
             let insertIndex = sourceField
               ? fieldsToKeep.indexOf(sourceField)
               : -1;
-            console.log("fieldsToKeep", fieldsToKeep);
-            console.log("sourceField", sourceField);
-            console.log("insertIndex", insertIndex);
             fieldsToKeep = [
               ...fieldsToKeep.slice(0, insertIndex + 1),
               newField,
@@ -384,7 +381,6 @@ export const performChainAction = (
           topStatsRetrieved: 0,
           topStats: undefined,
         };
-        console.log("newBlock", newBlock);
       }
       break;
 

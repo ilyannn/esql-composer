@@ -577,12 +577,6 @@ const ESQLComposerMain = () => {
 
   const performQueryAPIDataAutoUpdate = useCallback(
     (force?: boolean) => {
-      // console.log(
-      //   "performQueryAPIDataAutoUpdate",
-      //   isElasticsearchAPIAvailable,
-      //   queryAPIKey.slice(0, 5),
-      //   queryAPIDataAutoUpdate
-      // );
       if (isElasticsearchAPIAvailable && !updatingESQLLineByLine) {
         if (queryAPIDataAutoUpdate || force === true) {
           fetchQueryData();
