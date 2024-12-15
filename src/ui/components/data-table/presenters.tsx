@@ -1,5 +1,8 @@
+import { Box, Link } from "@chakra-ui/react";
 import { memoize } from "lodash";
 import { JSX } from "react";
+import { ColorSwatch } from "react-aria-components";
+import Markdown from "react-markdown";
 import {
   ESQLAtomValue,
   esqlTypeToClass,
@@ -7,11 +10,9 @@ import {
 } from "../../../models/esql/esql_types";
 import FieldValue from "./FieldValue";
 import { GeoPointFormatter } from "./geoPointFormatter";
-import Markdown from "react-markdown";
-import { Box, Code, Link } from "@chakra-ui/react";
 
-import Highlight from "react-highlight";
 import "@highlightjs/cdn-assets/styles/nnfx-light.css";
+import Highlight from "react-highlight";
 import "./highlight-esql.css";
 require("../../../services/highlight-esql.js");
 
@@ -150,6 +151,24 @@ const urlPresenter: Presenter = (value: ESQLAtomValue) => {
   return defaultPresenter(value);
 };
 
+const colorPresenter = (value: ESQLAtomValue) => {
+  if (typeof value === "string") {
+    return (
+      <ColorSwatch
+        style={{
+          width: "32px",
+          height: "32px",
+          borderRadius: "6px",
+          boxShadow: "inset 0 0 0 2px rgba(0, 0, 0, 0.2)",
+        }}
+        color={value}
+      />
+    );
+  }
+
+  return defaultPresenter(value);
+};
+
 const memoizedCreateDatePresenter = memoize(createDatePresenter);
 const memoizedCreateMoneyPresenter = memoize(createMoneyPresenter);
 const memoizedCreateNumberPresenter = memoize(createNumberPresenter);
@@ -190,6 +209,10 @@ export const getPresenter = (column: ESQLColumn): Presenter => {
 
     if (class_ === "stringy" && column.name.endsWith("(URL)")) {
       return urlPresenter;
+    }
+
+    if (class_ === "stringy" && column.name.endsWith("(Color)")) {
+      return colorPresenter;
     }
 
     const currencyMatch = column.name.match(/\(([A-Z][A-Z][A-Z])\)$/);
