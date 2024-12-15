@@ -10,10 +10,12 @@ import {
 } from "../../../models/esql/esql_types";
 import FieldValue from "./FieldValue";
 import { GeoPointFormatter } from "./geoPointFormatter";
+import { parseColor } from "@react-stately/color";
 
 import "@highlightjs/cdn-assets/styles/nnfx-light.css";
 import Highlight from "react-highlight";
 import "./highlight-esql.css";
+
 require("../../../services/highlight-esql.js");
 
 export type Presenter = (value: ESQLAtomValue) => JSX.Element;
@@ -153,17 +155,22 @@ const urlPresenter: Presenter = (value: ESQLAtomValue) => {
 
 const colorPresenter = (value: ESQLAtomValue) => {
   if (typeof value === "string") {
-    return (
-      <ColorSwatch
-        style={{
-          width: "32px",
-          height: "32px",
-          borderRadius: "6px",
-          boxShadow: "inset 0 0 0 2px rgba(0, 0, 0, 0.2)",
-        }}
-        color={value}
-      />
-    );
+    try {
+      const color = parseColor(value);
+      return (
+        <ColorSwatch
+          style={{
+            width: "32px",
+            height: "32px",
+            borderRadius: "6px",
+            boxShadow: "inset 0 0 0 2px rgba(0, 0, 0, 0.2)",
+          }}
+          color={color}
+        />
+      );
+    } catch (e) {
+      console.error("Failed to parse color", value, e);
+    }
   }
 
   return defaultPresenter(value);
