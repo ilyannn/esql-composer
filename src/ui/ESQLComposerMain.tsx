@@ -65,7 +65,7 @@ import {
 import { loadFile } from "../services/files";
 
 import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { add, chain, get, reduce, set } from "lodash";
+import _, { add, chain, get, reduce, set } from "lodash";
 import {
   TracingOptions,
   defaultTracingOptions,
@@ -85,8 +85,21 @@ import ReferenceGuidesArea from "./ReferenceGuidesArea";
 import VisualComposer from "./visual-composer/VisualComposer";
 import { representESQLField } from "../models/esql/esql_repr";
 import { ComposerBlockAction } from "./visual-composer/ComposerBlock";
+import {
+  defaultLLMConfig,
+  FullLLMConfig,
+  isLLMConfigSufficent,
+  OneOfLLMConfigs,
+} from "../services/llm/config";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
+
+interface CacheWarmedInfo {
+  date: number;
+  esqlGuideText: string;
+  schemaGuideText: string;
+  selectedLLMConfig: OneOfLLMConfigs;
+}
 
 const ESQLComposerMain = () => {
   const toast = useToast();
@@ -96,8 +109,7 @@ const ESQLComposerMain = () => {
   ]);
   const [tooltipsShown, setTooltipsShown] = useState(false);
 
-  const [modelSelected, setModelSelected] = useState(0);
-  const [anthropicAPIKey, setAnthropicAPIKey] = useState("");
+  const [llmConfig, setLLMConfig] = useState<FullLLMConfig>(defaultLLMConfig);
   const [queryAPIURL, _setQueryAPIURL] = useState("");
   const [queryAPIKey, _setQueryAPIKey] = useState("");
   const [queryAPIInfo, setQueryAPIInfo] = useState<Record<
@@ -140,7 +152,8 @@ const ESQLComposerMain = () => {
   const [queryAPIKeyWorks, setQueryAPIKeyWorks] = useState<boolean | null>(
     null
   );
-  const [cacheWarmedInfo, setCacheWarmedInfo] = useState<any | null>(null);
+  const [cacheWarmedInfo, setCacheWarmedInfo] =
+    useState<CacheWarmedInfo | null>(null);
   const [cacheWarmedText, setCacheWarmedText] = useState<string | null>(null);
 
   const esqlInputRef = useRef<HTMLTextAreaElement>(null);
@@ -148,30 +161,27 @@ const ESQLComposerMain = () => {
   const naturalInputRef = useRef<HTMLInputElement>(null);
 
   const isElasticsearchAPIAvailable = (queryAPIURL && queryAPIKey) !== "";
+
+  const selectedLLMConfig: OneOfLLMConfigs = useMemo(() => {
+    return llmConfig[llmConfig.selected];
+  }, [llmConfig]);
+
+  const isLLMRequestAvailable = isLLMConfigSufficent(llmConfig);
   const isLLMESQLRequestAvailable =
-    anthropicAPIKey.length !== 0 &&
+    isLLMRequestAvailable &&
     esqlGuideText.length !== 0 &&
     esqlSchema !== null &&
     esqlSchema.guide !== "";
 
   const getSchemaProps = useDisclosure();
-
-  useEffect(() => {
-    if (!cacheWarmedInfo) {
-      return;
-    }
-    if (
-      cacheWarmedInfo.esqlGuideText === esqlGuideText &&
-      cacheWarmedInfo.schemaGuideText === esqlSchema?.guide &&
-      cacheWarmedInfo.modelSelected === modelSelected
-    ) {
-      return;
-    }
-    setCacheWarmedInfo(null);
-  }, [modelSelected, esqlGuideText, esqlSchema, cacheWarmedInfo]);
+  const isCacheWarmed =
+    cacheWarmedInfo !== null &&
+    cacheWarmedInfo.esqlGuideText === esqlGuideText &&
+    cacheWarmedInfo.schemaGuideText === esqlSchema?.guide &&
+    _.isEqual(cacheWarmedInfo.selectedLLMConfig, selectedLLMConfig);
 
   const updateCacheWarmedText = () => {
-    if (!cacheWarmedInfo) {
+    if (!isCacheWarmed) {
       setCacheWarmedText(null);
       return;
     }
@@ -180,16 +190,14 @@ const ESQLComposerMain = () => {
     setCacheWarmedText(`cached ${fromNow}`);
   };
 
-  useEffect(updateCacheWarmedText, [cacheWarmedInfo]);
+  useEffect(updateCacheWarmedText, [cacheWarmedInfo, isCacheWarmed]);
   useInterval(updateCacheWarmedText, 5 * 1000);
 
   const collectConfig = useCallback(() => {
     return {
+      llmConfig,
       openedAreas,
       tooltipsShown,
-      modelSelected,
-      anthropicAPIKey,
-      anthropicAPIKeyWorks,
       queryAPIURL,
       queryAPIKey,
       queryAPIKeyWorks,
@@ -198,11 +206,9 @@ const ESQLComposerMain = () => {
       tracingOptions,
     };
   }, [
+    llmConfig,
     openedAreas,
     tooltipsShown,
-    modelSelected,
-    anthropicAPIKey,
-    anthropicAPIKeyWorks,
     queryAPIURL,
     queryAPIKey,
     queryAPIKeyWorks,
@@ -259,7 +265,7 @@ const ESQLComposerMain = () => {
    * @param {Function} action - The function that performs the API call; takes tracing argument.
    * @returns {Promise<*>} The result of the API call if successful.
    */
-  const performAnthropicAPIAction = useCallback(
+  const performLLMAction = useCallback(
     async (
       label: string,
       action: (addToSpan: UseTracingCallback) => Promise<void>
@@ -396,22 +402,22 @@ const ESQLComposerMain = () => {
     [toast, queryAPIURL, queryAPIKey, tracingOptions.es]
   );
 
-  const testAnthropicAPIKey = async () => {
-    await performAnthropicAPIAction("Anthropic API test", async () => {
-      const utterance = "Hi, Claude";
-      const claudeAnswer = await testWithSimpleUtterance({
-        apiKey: anthropicAPIKey,
-        modelSelected,
+  const handlePerformLLMTest = async () => {
+    await performLLMAction("LLM API test", async () => {
+      const utterance = "Hi there";
+      const llmAnswer = await testWithSimpleUtterance({
+        apiKey: llmConfig.anthropic.apiKey,
+        modelName: llmConfig.anthropic.modelName,
         utterance,
       });
 
       toast({
-        title: "Anthropic API test successful",
+        title: "LLM API test successful",
 
         description: (
           <VStack align="stretch" spacing={0} justify={"flex-end"}>
             <Text> You say: {utterance}</Text>
-            <Text> Claude says: {claudeAnswer}</Text>
+            <Text> LLM says: {llmAnswer}</Text>
           </VStack>
         ),
         status: "success",
@@ -421,10 +427,10 @@ const ESQLComposerMain = () => {
   };
 
   const handleWarmCache = async () => {
-    await performAnthropicAPIAction("Cache warming", async () => {
+    await performLLMAction("Cache warming", async () => {
       const data = await warmCache({
-        apiKey: anthropicAPIKey,
-        modelSelected,
+        apiKey: llmConfig.anthropic.apiKey,
+        modelName: llmConfig.anthropic.modelName,
         esqlGuideText,
         schemaGuideText: schemaGuideText,
       });
@@ -451,15 +457,15 @@ const ESQLComposerMain = () => {
   const handleReduceSize = async () => {
     let oldSize: number | undefined = undefined;
 
-    await performAnthropicAPIAction("Token Counting", async () => {
+    await performLLMAction("Token Counting", async () => {
       oldSize = await countTokens({
-        apiKey: anthropicAPIKey,
-        modelSelected,
+        apiKey: llmConfig.anthropic.apiKey,
+        modelName: llmConfig.anthropic.modelName,
         text: esqlGuideText,
       });
     });
 
-    await performAnthropicAPIAction("Size reduction", async () => {
+    await performLLMAction("Size reduction", async () => {
       let newESQGuideText = "";
 
       const processLine = (line: string) => {
@@ -468,8 +474,8 @@ const ESQLComposerMain = () => {
       };
 
       const data = (await reduceSize({
-        apiKey: anthropicAPIKey,
-        modelSelected,
+        apiKey: llmConfig.anthropic.apiKey,
+        modelName: llmConfig.anthropic.modelName,
         esqlGuideText: esqlGuideText,
         schemaGuideText: schemaGuideText,
         processLine,
@@ -479,8 +485,8 @@ const ESQLComposerMain = () => {
       saveCacheWarmedInfo();
 
       const newSize = await countTokens({
-        apiKey: anthropicAPIKey,
-        modelSelected,
+        apiKey: llmConfig.anthropic.apiKey,
+        modelName: llmConfig.anthropic.modelName,
         text: newESQGuideText,
       });
       setEsqlGuideTokenCount([newESQGuideText, newSize]);
@@ -502,40 +508,34 @@ const ESQLComposerMain = () => {
     if (!esqlGuideText || !schemaGuideText) {
       return;
     }
-    await performAnthropicAPIAction("Token Counting", async () => {
+    await performLLMAction("Token Counting", async () => {
       setEsqlGuideTokenCount([
         esqlGuideText,
         await countTokens({
-          apiKey: anthropicAPIKey,
-          modelSelected,
+          apiKey: llmConfig.anthropic.apiKey,
+          modelName: llmConfig.anthropic.modelName,
           text: esqlGuideText,
         }),
       ]);
       setSchemaGuideTokenCount([
         schemaGuideText,
         await countTokens({
-          apiKey: anthropicAPIKey,
-          modelSelected,
+          apiKey: llmConfig.anthropic.apiKey,
+          modelName: llmConfig.anthropic.modelName,
           text: schemaGuideText,
         }),
       ]);
     });
-  }, [
-    performAnthropicAPIAction,
-    anthropicAPIKey,
-    modelSelected,
-    esqlGuideText,
-    schemaGuideText,
-  ]);
+  }, [performLLMAction, llmConfig, esqlGuideText, schemaGuideText]);
 
   const saveCacheWarmedInfo = useCallback(() => {
     setCacheWarmedInfo({
       date: Date.now(),
       esqlGuideText,
       schemaGuideText,
-      modelSelected,
+      selectedLLMConfig,
     });
-  }, [esqlGuideText, schemaGuideText, modelSelected]);
+  }, [esqlGuideText, schemaGuideText, selectedLLMConfig]);
 
   const currentQueryAPIActionQuery = useRef<string | null>(null);
 
@@ -660,6 +660,12 @@ const ESQLComposerMain = () => {
 
   const loadConfig = useCallback(
     (config: Config) => {
+      if ("llmConfig" in config && typeof config["llmConfig"] === "object") {
+        setLLMConfig({
+          ...defaultLLMConfig,
+          ...config["llmConfig"],
+        });
+      }
       if (
         "openedAreas" in config &&
         typeof config["openedAreas"] === "object" &&
@@ -672,25 +678,6 @@ const ESQLComposerMain = () => {
         typeof config["tooltipsShown"] === "boolean"
       ) {
         setTooltipsShown(config["tooltipsShown"]);
-      }
-      if (
-        "modelSelected" in config &&
-        typeof config["modelSelected"] === "number"
-      ) {
-        setModelSelected(config["modelSelected"]);
-      }
-      if (
-        "anthropicAPIKey" in config &&
-        typeof config["anthropicAPIKey"] === "string"
-      ) {
-        setAnthropicAPIKey(config["anthropicAPIKey"]);
-        setAnthropicAPIKeyWorks(null);
-      }
-      if (
-        "anthropicAPIKeyWorks" in config &&
-        typeof config["anthropicAPIKeyWorks"] === "boolean"
-      ) {
-        setAnthropicAPIKeyWorks(config["anthropicAPIKeyWorks"]);
       }
       if (
         "queryAPIURL" in config &&
@@ -741,7 +728,7 @@ const ESQLComposerMain = () => {
       if (!esqlGuideText || !schemaGuideText) {
         return;
       }
-      await performAnthropicAPIAction("ES|QL generation", async () => {
+      await performLLMAction("ES|QL generation", async () => {
         let interpolatedLines = esqlInput.split("\n");
         let lineIndex = -1;
 
@@ -771,8 +758,8 @@ const ESQLComposerMain = () => {
 
         const data = await generateESQLUpdate({
           type: "update",
-          apiKey: anthropicAPIKey,
-          modelSelected,
+          apiKey: llmConfig.anthropic.apiKey,
+          modelName: llmConfig.anthropic.modelName,
           esqlGuideText,
           schemaGuideText,
           esqlInput,
@@ -790,10 +777,9 @@ const ESQLComposerMain = () => {
       });
     },
     [
-      performAnthropicAPIAction,
+      performLLMAction,
       esqlInput,
-      anthropicAPIKey,
-      modelSelected,
+      llmConfig,
       esqlGuideText,
       schemaGuideText,
       saveCacheWarmedInfo,
@@ -804,7 +790,7 @@ const ESQLComposerMain = () => {
   );
 
   const handleCompleteESQL = async () => {
-    await performAnthropicAPIAction("ES|QL completion", async () => {
+    await performLLMAction("ES|QL completion", async () => {
       if (
         esqlInputRef.current === null ||
         esqlGuideText === null ||
@@ -859,8 +845,8 @@ const ESQLComposerMain = () => {
 
       const data = (await generateESQLUpdate({
         type: "completion",
-        apiKey: anthropicAPIKey,
-        modelSelected,
+        apiKey: llmConfig.anthropic.apiKey,
+        modelName: llmConfig.anthropic.modelName,
         esqlGuideText,
         schemaGuideText,
         esqlInput: esqlBeforeCursor,
@@ -874,58 +860,55 @@ const ESQLComposerMain = () => {
 
   const handleTransformFieldWithInfo = useCallback(
     async (sourceField: FieldInfo, naturalInput: string) => {
-      await performAnthropicAPIAction(
-        "ES|QL field transform",
-        async (addToSpan) => {
-          const fullEsqlQuery = getCompleteESQL();
+      await performLLMAction("ES|QL field transform", async (addToSpan) => {
+        const fullEsqlQuery = getCompleteESQL();
+        addToSpan({
+          esql: {
+            action: "eval",
+            query: fullEsqlQuery,
+            source: sourceField,
+          },
+        });
+
+        const doneEvalExpression = (field: string, expr: string) => {
           addToSpan({
             esql: {
-              action: "eval",
-              query: fullEsqlQuery,
-              source: sourceField,
+              target: field,
+              expression: expr,
             },
           });
+          const { chain } = performChainAction(
+            visualChain,
+            {
+              action: "eval",
+              sourceField: sourceField.name,
+              expressions: [{ field, expression: expr }],
+            },
+            []
+          );
+          setVisualChain(chain);
+        };
 
-          const doneEvalExpression = (field: string, expr: string) => {
-            addToSpan({
-              esql: {
-                target: field,
-                expression: expr,
-              },
-            });
-            const { chain } = performChainAction(
-              visualChain,
-              {
-                action: "eval",
-                sourceField: sourceField.name,
-                expressions: [{ field, expression: expr }],
-              },
-              []
-            );
-            setVisualChain(chain);
-          };
+        const data = (await transformField({
+          type: "transformation",
+          apiKey: llmConfig.anthropic.apiKey,
+          modelName: llmConfig.anthropic.modelName,
+          esqlGuideText,
+          schemaGuideText,
+          esqlInput: fullEsqlQuery,
+          sourceFields: [sourceField],
+          naturalInput,
+          doneEvalExpression,
+        })) as any;
 
-          const data = (await transformField({
-            type: "transformation",
-            apiKey: anthropicAPIKey,
-            modelSelected,
-            esqlGuideText,
-            schemaGuideText,
-            esqlInput: fullEsqlQuery,
-            sourceFields: [sourceField],
-            naturalInput,
-            doneEvalExpression,
-          })) as any;
-
-          addToSpan(data);
-          setAllStats([...allStats, data.stats]);
-        }
-      );
+        addToSpan(data);
+        setAllStats([...allStats, data.stats]);
+      });
     },
     [
-      performAnthropicAPIAction,
-      anthropicAPIKey,
-      modelSelected,
+      performLLMAction,
+      llmConfig,
+
       esqlGuideText,
       schemaGuideText,
       allStats,
@@ -1127,14 +1110,11 @@ const ESQLComposerMain = () => {
           <Section label="LLM Configuration" color="orange.50">
             <VStack align={"stretch"} justify={"space-between"} spacing={6}>
               <LLMConfigurationArea
-                modelSelected={modelSelected}
-                setModelSelected={setModelSelected}
-                apiKey={anthropicAPIKey}
-                setApiKey={setAnthropicAPIKey}
-                apiKeyWorks={anthropicAPIKeyWorks}
-                setApiKeyWorks={setAnthropicAPIKeyWorks}
+                llmConfig={llmConfig}
+                setLLMConfig={setLLMConfig}
                 tooltipsShown={tooltipsShown}
-                testAPIKey={testAnthropicAPIKey}
+                isAbleToTest={isLLMRequestAvailable}
+                performTest={handlePerformLLMTest}
               />
               <Statistics tooltipsShown={tooltipsShown} stats={allStats} />
             </VStack>

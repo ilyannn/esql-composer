@@ -14,7 +14,7 @@ import { ESQLEvalOutputSchema, ESQLEvalOutputTag } from "./schema";
 
 export type LLMOptions = {
   apiKey: string;
-  modelSelected: number;
+  modelName: AnthropicModelName;
   maxTokens?: number;
 };
 
@@ -52,11 +52,6 @@ export type ReduceSizeInput = LLMOptions &
     processLine: (line: string) => void;
   };
 
-export const MODEL_LIST = [
-  "claude-3-5-haiku-latest",
-  "claude-3-5-sonnet-latest",
-];
-
 const createAnthropicInstance = (apiKey: string) => {
   return new Anthropic({
     apiKey,
@@ -79,7 +74,7 @@ export const testWithSimpleUtterance = async (
         content: [{ type: "text", text: input.utterance }],
       },
     ],
-    model: MODEL_LIST[input.modelSelected],
+    model: input.modelName,
     max_tokens: 256,
   });
   const block = response.content[0];
@@ -118,7 +113,7 @@ export const generateESQLUpdate = async (
   const anthropic = createAnthropicInstance(input.apiKey);
   const {
     type,
-    modelSelected,
+    modelName,
     haveESQLLine,
     doneESQL,
     haveExplanationLine,
@@ -171,7 +166,7 @@ export const generateESQLUpdate = async (
   const stream = anthropic.beta.promptCaching.messages
     .stream({
       stream: true,
-      model: MODEL_LIST[modelSelected],
+      model: modelName,
       max_tokens: maxTokens ?? 256,
       ...request,
     })
@@ -235,13 +230,13 @@ export const generateESQLUpdate = async (
 };
 
 export const reduceSize = async (input: ReduceSizeInput) => {
-  const { apiKey, modelSelected, esqlGuideText, schemaGuideText, processLine } =
+  const { apiKey, modelName, esqlGuideText, schemaGuideText, processLine } =
     input;
 
   return await generateESQLUpdate({
     type: "update",
     apiKey,
-    modelSelected,
+    modelName,
     esqlGuideText,
     schemaGuideText,
     naturalInput: `Please remove unnecessary information from the provided Elasticsearch Query Language guide which will be used for the ES|QL generation task. Keep relevant information such as list of function names intact but reduce the number of redundant descriptions. Keep enough examples to be able to answer all questions. You will be the consumer of the reduced guide, so feel free to use any tricks that can be helpful. Output the new guide between <esql> and </esql> tags and put any other information outside. Aim at 40% reduction. Here is the old guide again:\n\n<esql>\n${esqlGuideText}\n</esql>`,
@@ -259,7 +254,7 @@ export const countTokens = async (params: CountTokensInput) => {
 
   const response = await client.beta.messages.countTokens({
     betas: ["token-counting-2024-11-01"],
-    model: MODEL_LIST[params.modelSelected],
+    model: params.modelName,
     messages: [{ role: "user", content: params.text }],
   });
 
@@ -267,6 +262,7 @@ export const countTokens = async (params: CountTokensInput) => {
 };
 
 import { ESQLColumn } from "../../models/esql/esql_types";
+import { AnthropicModelName } from "./config";
 
 export const transformField = async (
   params: TransformFieldInput
@@ -318,7 +314,7 @@ export const transformField = async (
   const stream = client.beta.promptCaching.messages
     .stream({
       stream: true,
-      model: MODEL_LIST[params.modelSelected],
+      model: params.modelName,
       max_tokens: params.maxTokens ?? 128,
       ...request,
     })
