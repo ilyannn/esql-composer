@@ -46,7 +46,6 @@ import {
   countTokens,
   generateESQLUpdate,
   reduceSize,
-  testWithSimpleUtterance,
   transformField,
   warmCache,
 } from "../services/llm";
@@ -91,6 +90,7 @@ import {
   isLLMConfigSufficent,
   OneOfLLMConfigs,
 } from "../services/llm/config";
+import { createLLMAdapter } from "../services/llm/adapters";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
 
@@ -403,13 +403,10 @@ const ESQLComposerMain = () => {
   );
 
   const handlePerformLLMTest = async () => {
+    const llmAdapter = createLLMAdapter(llmConfig);
     await performLLMAction("LLM API test", async () => {
-      const utterance = "Hi there";
-      const llmAnswer = await testWithSimpleUtterance({
-        apiKey: llmConfig.anthropic.apiKey,
-        modelName: llmConfig.anthropic.modelName,
-        utterance,
-      });
+      const utterance = "Hi, are you an LLM?";
+      const llmAnswer = await llmAdapter.answer(utterance);
 
       toast({
         title: "LLM API test successful",
@@ -661,10 +658,11 @@ const ESQLComposerMain = () => {
   const loadConfig = useCallback(
     (config: Config) => {
       if ("llmConfig" in config && typeof config["llmConfig"] === "object") {
-        setLLMConfig({
-          ...defaultLLMConfig,
-          ...config["llmConfig"],
-        });
+        const newConfig = _.merge(
+          _.cloneDeep(defaultLLMConfig),
+          config["llmConfig"]
+        );
+        setLLMConfig(newConfig);
       }
       if (
         "openedAreas" in config &&

@@ -38,7 +38,7 @@ export const performESQLQuery = async ({
     }
   }
 
-  return {data: answer, stats: {total_time_ms: total_time}};
+  return { data: answer, stats: { total_time_ms: total_time } };
 };
 
 /**

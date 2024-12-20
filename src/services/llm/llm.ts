@@ -11,6 +11,7 @@ import {
 } from "./prompts";
 import { PseudoXMLHandler, PseudoXMLParser } from "./pseudo-xml";
 import { ESQLEvalOutputSchema, ESQLEvalOutputTag } from "./schema";
+import { AnthropicModelName } from "./config";
 
 export type LLMOptions = {
   apiKey: string;
@@ -58,30 +59,6 @@ const createAnthropicInstance = (apiKey: string) => {
     defaultHeaders: { "anthropic-beta": "prompt-caching-2024-07-31" },
     dangerouslyAllowBrowser: true,
   });
-};
-
-export const testWithSimpleUtterance = async (
-  input: LLMOptions & {
-    utterance: string;
-  }
-): Promise<string> => {
-  const anthropic = createAnthropicInstance(input.apiKey);
-
-  const response = await anthropic.messages.create({
-    messages: [
-      {
-        role: "user",
-        content: [{ type: "text", text: input.utterance }],
-      },
-    ],
-    model: input.modelName,
-    max_tokens: 256,
-  });
-  const block = response.content[0];
-  if (block.type !== "text") {
-    return "";
-  }
-  return block.text;
 };
 
 export const warmCache = async (params: WarmCacheInput): Promise<any> => {
@@ -260,9 +237,6 @@ export const countTokens = async (params: CountTokensInput) => {
 
   return response.input_tokens;
 };
-
-import { ESQLColumn } from "../../models/esql/esql_types";
-import { AnthropicModelName } from "./config";
 
 export const transformField = async (
   params: TransformFieldInput

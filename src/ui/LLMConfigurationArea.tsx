@@ -113,7 +113,7 @@ const LlamaServerInput: React.FC<LlamaServerInputProps> = React.memo(
   ({ llamaURL, setLlamaURL }) => {
     return (
       <FormControl flex={1}>
-        <FormLabel>Server endpoint</FormLabel>
+        <FormLabel>Server Endpoint</FormLabel>
         <InputGroup>
           <Input
             autoFocus={true}
@@ -168,7 +168,7 @@ const APIKeyInput: React.FC<APIKeyInputProps> = React.memo(
         isInvalid={apiKey.length !== 0 && apiKeyWorks === false}
         flex={1}
       >
-        <FormLabel>Authentication</FormLabel>
+        <FormLabel>API Key</FormLabel>
         <InputGroup>
           <Input
             autoFocus={autoFocus}
@@ -205,7 +205,12 @@ const DividedStack: React.FC<{ children: ReactNode }> = ({ children }) => (
   </HStack>
 );
 
-const TAB_ORDER: LLMChoice[] = ["anthropic", "llamaServer"] as const;
+const TAB_ORDER: LLMChoice[] = [
+  "anthropic",
+  "bedrock",
+  "llamaServer",
+  "openAI",
+] as const;
 
 const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
   ({ llmConfig, setLLMConfig, tooltipsShown, isAbleToTest, performTest }) => {
@@ -244,7 +249,9 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
             >
               <TabList>
                 <Tab>Anthropic</Tab>
+                <Tab>Bedrock</Tab>
                 <Tab>Llama-server</Tab>
+                <Tab>OpenAI</Tab>
               </TabList>
               <TabPanels
                 borderColor={"gray.200"}
@@ -266,29 +273,35 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
                       apiKey={llmConfig.anthropic.apiKey}
                       apiKeyWorks={llmConfig.anthropic.isKnownToWork}
                       setApiKey={(apiKey: string) => {
-                        updateAnthropic({ apiKey, isKnownToWork: undefined });
+                        updateAnthropic({
+                          apiKey,
+                          isKnownToWork: undefined,
+                        });
                       }}
                     >
                       <FormHelperText>
-                        Since we use{" "}
+                        Direct Anthropic access allows us to use{" "}
                         <Link
                           isExternal
                           href="https://www.anthropic.com/news/prompt-caching"
                         >
                           <ExternalLinkIcon /> beta features
                         </Link>
-                        , only direct access is supported.
+                        .
                       </FormHelperText>
                     </APIKeyInput>
                   </DividedStack>
                 </TabPanel>
                 <TabPanel>
+                  <Text>Bedrock is not supported yet.</Text>
+                </TabPanel>
+                <TabPanel>
                   <DividedStack>
                     <LlamaServerInput
-                      llamaURL={llmConfig.llamaServer.serverURL}
-                      setLlamaURL={(serverURL: string) =>
+                      llamaURL={llmConfig.llamaServer.apiURL}
+                      setLlamaURL={(apiURL: string) =>
                         updateLlamaServer({
-                          serverURL,
+                          apiURL,
                           isKnownToWork: undefined,
                         })
                       }
@@ -296,19 +309,25 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
                     <APIKeyInput
                       autoFocus={false}
                       autocompleteName="llama-api-key"
-                      placeholder="Enter API key here, if any"
+                      placeholder="Not set up by default"
                       apiKey={llmConfig.llamaServer.apiKey}
                       apiKeyWorks={llmConfig.llamaServer.isKnownToWork}
                       setApiKey={(apiKey: string) => {
-                        updateLlamaServer({ apiKey, isKnownToWork: undefined });
+                        updateLlamaServer({
+                          apiKey,
+                          isKnownToWork: undefined,
+                        });
                       }}
                     >
                       <FormHelperText>
-                        You can set up an API key with the{" "}
+                        Only required if the server was started with the{" "}
                         <Code>--api-key</Code> flag.
                       </FormHelperText>
                     </APIKeyInput>
                   </DividedStack>
+                </TabPanel>
+                <TabPanel>
+                  <Text>OpenAI is not supported yet.</Text>
                 </TabPanel>
               </TabPanels>
             </Tabs>
