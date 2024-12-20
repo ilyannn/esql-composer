@@ -15,6 +15,8 @@ import {
   SliderMark,
   SliderThumb,
   SliderTrack,
+  Stack,
+  StackDirection,
   StackDivider,
   Tab,
   TabList,
@@ -31,11 +33,16 @@ import {
   AnthropicLLMConfig,
   AnthropicModelName,
   LlamaServerLLMConfig,
+  BedrockLLMConfig,
   FullLLMConfig,
   LLMChoice,
+  ClaudeModelIndex,
+  getAnthropicModelIndex,
+  getBedrockModelIndex,
+  OpenAILLMConfig,
 } from "../services/llm/config";
 import _, { set } from "lodash";
-import { ANTHROPIC_MODEL_LIST } from "../services/llm/config";
+import { CLAUDE_MODEL_LIST } from "../services/llm/config";
 
 interface LLMConfigurationAreaProps {
   llmConfig: FullLLMConfig;
@@ -51,58 +58,48 @@ const modelSliderlabelStyles = {
   fontSize: "sm",
 };
 
-interface AnthropicModelSelectionProps {
-  modelName: AnthropicModelName;
-  setModelName: (value: AnthropicModelName) => void;
+interface ClaudeModelSelectionProps {
+  selectedIndex: ClaudeModelIndex;
+  setSelectedIndex: (value: ClaudeModelIndex) => void;
+  children?: ReactNode;
 }
 
-const AnthropicModelSelection: React.FC<AnthropicModelSelectionProps> =
-  React.memo(({ modelName, setModelName }) => {
-    const indexModelName = ANTHROPIC_MODEL_LIST.findIndex(
-      ([_, name]) => name === modelName
-    );
-    const modelSelected = indexModelName === -1 ? 0 : indexModelName;
-    const setModelSelected = useCallback((val: number) => {
-      setModelName(ANTHROPIC_MODEL_LIST[val][1]);
-    }, []);
-
+const ClaudeModelSelection: React.FC<ClaudeModelSelectionProps> = React.memo(
+  ({ selectedIndex, setSelectedIndex, children = null }) => {
     return (
       <FormControl as="fieldset" width="200px">
         <FormLabel as="legend">Claude 3.5 Model</FormLabel>
         <Box p={5} pt={0}>
           <Slider
             aria-label="Model Selection"
-            onChange={(val) => setModelSelected(val)}
-            value={modelSelected}
+            onChange={(val) => setSelectedIndex(val as ClaudeModelIndex)}
+            value={selectedIndex}
             min={0}
-            max={ANTHROPIC_MODEL_LIST.length - 1}
+            max={CLAUDE_MODEL_LIST.length - 1}
             step={1}
           >
-            {ANTHROPIC_MODEL_LIST.map(([humanTitle, name], i) => (
-              <SliderMark key={name} value={i} {...modelSliderlabelStyles}>
-                {humanTitle}
+            {CLAUDE_MODEL_LIST.map((model, i) => (
+              <SliderMark
+                key={model.name}
+                value={i}
+                {...modelSliderlabelStyles}
+              >
+                {model.name}
               </SliderMark>
             ))}
             <SliderTrack bg="gray.200">
               <SliderFilledTrack bg="orange" />
             </SliderTrack>
-            <SliderThumb boxSize={5 + 2 * modelSelected} bg="red.50">
-              <Text fontSize="sm">{"$".repeat(modelSelected + 1)}</Text>
+            <SliderThumb boxSize={5 + 2 * selectedIndex} bg="red.50">
+              <Text fontSize="sm">{"$".repeat(selectedIndex + 1)}</Text>
             </SliderThumb>
           </Slider>
         </Box>
-        <FormHelperText>
-          <Link
-            isExternal
-            href="https://www.anthropic.com/pricing#anthropic-api"
-          >
-            <ExternalLinkIcon mx="3px" />
-            Compare model pricing.
-          </Link>
-        </FormHelperText>
+        {children}
       </FormControl>
     );
-  });
+  }
+);
 
 interface LlamaServerInputProps {
   llamaURL: string;
@@ -143,46 +140,53 @@ const LlamaServerInput: React.FC<LlamaServerInputProps> = React.memo(
   }
 );
 
-interface APIKeyInputProps {
-  autoFocus: boolean;
+interface ConfigInputProps {
+  label: string;
+  type: "password" | "text" | "url";
+
   autocompleteName: string;
   placeholder: string;
-  apiKey: string;
-  apiKeyWorks: boolean | undefined;
-  setApiKey: (value: string) => void;
-  children: ReactNode;
+
+  value: string;
+  setValue: (value: string) => void;
+
+  isKnownToWork?: boolean | undefined;
+  autoFocus?: boolean;
+  children?: ReactNode;
 }
 
-const APIKeyInput: React.FC<APIKeyInputProps> = React.memo(
+const ConfigInput: React.FC<ConfigInputProps> = React.memo(
   ({
-    autoFocus,
+    autoFocus = false,
     autocompleteName,
     placeholder,
-    apiKey,
-    apiKeyWorks,
-    setApiKey,
-    children,
+    label,
+    value,
+    setValue,
+    isKnownToWork = undefined,
+    type,
+    children = null,
   }) => {
     return (
       <FormControl
-        isInvalid={apiKey.length !== 0 && apiKeyWorks === false}
+        isInvalid={value.length !== 0 && isKnownToWork === false}
         flex={1}
       >
-        <FormLabel>API Key</FormLabel>
+        <FormLabel>{label}</FormLabel>
         <InputGroup>
           <Input
             autoFocus={autoFocus}
-            type="password"
+            type={type}
             placeholder={placeholder}
-            value={apiKey}
+            value={value}
             autoComplete={autocompleteName}
             onChange={(e) => {
-              setApiKey(e.target.value);
+              setValue(e.target.value);
             }}
             errorBorderColor="red.300"
             flex={1}
           />
-          {apiKeyWorks === true ? (
+          {isKnownToWork === true ? (
             <InputRightElement>
               <CheckIcon color="green.300" />
             </InputRightElement>
@@ -194,15 +198,19 @@ const APIKeyInput: React.FC<APIKeyInputProps> = React.memo(
   }
 );
 
-const DividedStack: React.FC<{ children: ReactNode }> = ({ children }) => (
-  <HStack
+const DividedStack: React.FC<{
+  direction?: StackDirection;
+  children: ReactNode;
+}> = ({ direction = "row", children }) => (
+  <Stack
+    direction={direction}
     align="stretch"
-    justify="space-between"
+    justify="stretch"
     spacing={6}
     divider={<StackDivider borderColor="gray.200" />}
   >
     {children}
-  </HStack>
+  </Stack>
 );
 
 const TAB_ORDER: LLMChoice[] = [
@@ -223,11 +231,29 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
       [llmConfig]
     );
 
+    const updateBedrock = useCallback(
+      (newConfig: Partial<BedrockLLMConfig>) =>
+        setLLMConfig({
+          ...llmConfig,
+          bedrock: { ...llmConfig.bedrock, ...newConfig },
+        }),
+      [llmConfig]
+    );
+
     const updateLlamaServer = useCallback(
       (newConfig: Partial<LlamaServerLLMConfig>) =>
         setLLMConfig({
           ...llmConfig,
           llamaServer: { ...llmConfig.llamaServer, ...newConfig },
+        }),
+      [llmConfig]
+    );
+
+    const updateOpenAI = useCallback(
+      (newConfig: Partial<OpenAILLMConfig>) =>
+        setLLMConfig({
+          ...llmConfig,
+          openAI: { ...llmConfig.openAI, ...newConfig },
         }),
       [llmConfig]
     );
@@ -260,19 +286,35 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
               >
                 <TabPanel>
                   <DividedStack>
-                    <AnthropicModelSelection
-                      modelName={llmConfig.anthropic.modelName}
-                      setModelName={(modelName: AnthropicModelName) =>
-                        updateAnthropic({ modelName })
+                    <ClaudeModelSelection
+                      selectedIndex={getAnthropicModelIndex(
+                        llmConfig.anthropic.modelName
+                      )}
+                      setSelectedIndex={(index) =>
+                        updateAnthropic({
+                          modelName: CLAUDE_MODEL_LIST[index].anthropic,
+                        })
                       }
-                    />
-                    <APIKeyInput
+                    >
+                      <FormHelperText>
+                        <Link
+                          isExternal
+                          href="https://www.anthropic.com/pricing#anthropic-api"
+                        >
+                          <ExternalLinkIcon mx="3px" />
+                          Compare model pricing.
+                        </Link>
+                      </FormHelperText>
+                    </ClaudeModelSelection>
+                    <ConfigInput
+                      label="Anthropic API Key"
+                      type="password"
                       autoFocus={true}
                       autocompleteName="anthropic-api-key"
-                      placeholder="Enter Anthropic API key here"
-                      apiKey={llmConfig.anthropic.apiKey}
-                      apiKeyWorks={llmConfig.anthropic.isKnownToWork}
-                      setApiKey={(apiKey: string) => {
+                      placeholder="Enter API key here"
+                      value={llmConfig.anthropic.apiKey}
+                      isKnownToWork={llmConfig.anthropic.isKnownToWork}
+                      setValue={(apiKey: string) => {
                         updateAnthropic({
                           apiKey,
                           isKnownToWork: undefined,
@@ -289,11 +331,66 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
                         </Link>
                         .
                       </FormHelperText>
-                    </APIKeyInput>
+                    </ConfigInput>
                   </DividedStack>
                 </TabPanel>
                 <TabPanel>
-                  <Text>Bedrock is not supported yet.</Text>
+                  <DividedStack>
+                    <DividedStack direction={"column"}>
+                      <ConfigInput
+                        label="AWS Region"
+                        type="text"
+                        autocompleteName="awsRegion"
+                        placeholder="Enter AWS_REGION value here"
+                        value={llmConfig.bedrock.region}
+                        setValue={(region: string) => {
+                          updateBedrock({
+                            region,
+                            isKnownToWork: undefined,
+                          });
+                        }}
+                      />
+                      <ClaudeModelSelection
+                        selectedIndex={getBedrockModelIndex(
+                          llmConfig.bedrock.modelName
+                        )}
+                        setSelectedIndex={(index) =>
+                          updateBedrock({
+                            modelName: CLAUDE_MODEL_LIST[index].bedrock,
+                          })
+                        }
+                      />
+                    </DividedStack>
+                    <DividedStack direction={"column"}>
+                      <ConfigInput
+                        label="AWS Access Key"
+                        type="text"
+                        autocompleteName="awsAccessKey"
+                        placeholder="Enter AWS_ACCESS_KEY_ID value here"
+                        value={llmConfig.bedrock.keyID}
+                        setValue={(keyID: string) => {
+                          updateBedrock({
+                            keyID,
+                            isKnownToWork: undefined,
+                          });
+                        }}
+                      />
+                      <ConfigInput
+                        label="AWS Access Secret"
+                        type="password"
+                        autocompleteName="awsSecretKey"
+                        placeholder="Enter AWS_SECRET_ACCESS_KEY value here"
+                        value={llmConfig.bedrock.keySecret}
+                        setValue={(keySecret: string) => {
+                          updateBedrock({
+                            keySecret,
+                            isKnownToWork: undefined,
+                          });
+                        }}
+                        isKnownToWork={llmConfig.bedrock.isKnownToWork}
+                      ></ConfigInput>
+                    </DividedStack>
+                  </DividedStack>
                 </TabPanel>
                 <TabPanel>
                   <DividedStack>
@@ -306,13 +403,14 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
                         })
                       }
                     />
-                    <APIKeyInput
-                      autoFocus={false}
+                    <ConfigInput
+                      label="API Key"
+                      type="password"
                       autocompleteName="llama-api-key"
                       placeholder="Not set up by default"
-                      apiKey={llmConfig.llamaServer.apiKey}
-                      apiKeyWorks={llmConfig.llamaServer.isKnownToWork}
-                      setApiKey={(apiKey: string) => {
+                      value={llmConfig.llamaServer.apiKey}
+                      isKnownToWork={llmConfig.llamaServer.isKnownToWork}
+                      setValue={(apiKey: string) => {
                         updateLlamaServer({
                           apiKey,
                           isKnownToWork: undefined,
@@ -323,7 +421,7 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
                         Only required if the server was started with the{" "}
                         <Code>--api-key</Code> flag.
                       </FormHelperText>
-                    </APIKeyInput>
+                    </ConfigInput>
                   </DividedStack>
                 </TabPanel>
                 <TabPanel>

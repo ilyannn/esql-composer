@@ -1,16 +1,53 @@
-import { c } from "react-compiler-runtime";
+export const CLAUDE_MODEL_LIST = [
+  {
+    name: "Haiku",
+    anthropic: "claude-3-5-haiku-latest",
+    bedrock: "anthropic.claude-3-5-haiku-20241022-v1:0",
+  },
+  {
+    name: "Sonnet",
+    anthropic: "claude-3-5-sonnet-latest",
+    bedrock: "anthropic.claude-3-5-sonnet-20241022-v2:0",
+  },
+  //  { name: "Opus", anthropic: "claude-3-5-opus-latest" } -- not available yet
+] as const;
 
+export type ClaudeModelIndex = 0 | 1;
 export type AnthropicModelName =
-  | "claude-3-5-haiku-latest"
-  | "claude-3-5-sonnet-latest";
-
-export const ANTHROPIC_MODEL_LIST: [string, AnthropicModelName][] = [
-  ["Haiku", "claude-3-5-haiku-latest"],
-  ["Sonnet", "claude-3-5-sonnet-latest"],
-  //  ["Opus", "claude-3-5-opus-latest"], -- not avilable yet
-];
+  (typeof CLAUDE_MODEL_LIST)[ClaudeModelIndex]["anthropic"];
+export type BedrockModelName =
+  (typeof CLAUDE_MODEL_LIST)[ClaudeModelIndex]["bedrock"];
 
 export type LLMChoice = "anthropic" | "bedrock" | "llamaServer" | "openAI";
+
+/**
+ * Retrieves the index of the specified Anthropic model name from the CLAUDE_MODEL_LIST.
+ * If the model name is not found, it returns 0.
+ *
+ * @param modelName - The name of the Anthropic model to find.
+ * @returns The index of the specified model name in the CLAUDE_MODEL_LIST, or 0 if not found.
+ */
+export const getAnthropicModelIndex = (
+  modelName: AnthropicModelName
+): ClaudeModelIndex =>
+  Math.max(
+    0,
+    CLAUDE_MODEL_LIST.findIndex((model) => model.anthropic === modelName)
+  ) as ClaudeModelIndex;
+
+/**
+ * Retrieves the index of the specified Bedrock model name from the CLAUDE_MODEL_LIST.
+ * If the model name is not found, it returns 0.
+ * @param modelName - The name of the Bedrock model to find.
+ * @returns The index of the specified model name in the CLAUDE_MODEL_LIST, or 0 if not found.
+ */
+export const getBedrockModelIndex = (
+  modelName: BedrockModelName
+): ClaudeModelIndex =>
+  Math.max(
+    0,
+    CLAUDE_MODEL_LIST.findIndex((model) => model.bedrock === modelName)
+  ) as ClaudeModelIndex;
 
 interface BaseLLMConfig {
   type: LLMChoice;
@@ -25,10 +62,10 @@ export interface AnthropicLLMConfig extends BaseLLMConfig {
 
 export interface BedrockLLMConfig extends BaseLLMConfig {
   type: "bedrock";
-  apiURL: string;
-  keyName: string;
+  region: string;
+  keyID: string;
   keySecret: string;
-  modelName: AnthropicModelName;
+  modelName: BedrockModelName;
 }
 
 export interface LlamaServerLLMConfig extends BaseLLMConfig {
@@ -62,14 +99,14 @@ export const defaultLLMConfig: FullLLMConfig = {
   anthropic: {
     type: "anthropic",
     apiKey: "",
-    modelName: ANTHROPIC_MODEL_LIST[0][1],
+    modelName: CLAUDE_MODEL_LIST[0].anthropic,
   },
   bedrock: {
     type: "bedrock",
-    apiURL: "http://localhost:8080",
-    keyName: "",
+    region: "us-east-1",
+    keyID: "",
     keySecret: "",
-    modelName: ANTHROPIC_MODEL_LIST[0][1],
+    modelName: CLAUDE_MODEL_LIST[0].bedrock,
   },
   llamaServer: {
     type: "llamaServer",
@@ -90,8 +127,7 @@ export const isLLMConfigSufficent = (config: FullLLMConfig): boolean => {
 
     case "bedrock":
       return (
-        config.bedrock.apiURL.length > 0 &&
-        config.bedrock.keyName.length > 0 &&
+        config.bedrock.keyID.length > 0 &&
         config.bedrock.keySecret.length > 0
       );
 
