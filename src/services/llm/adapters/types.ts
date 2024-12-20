@@ -1,6 +1,6 @@
 export interface LLMAdapter {
-    countTokens(text: string): Promise<number>;
-    answer(utterance: string): Promise<string>;
-    //    streamMessages(messages: string[]): AsyncIterable<string>;
+  answer(utterance: string): Promise<string>;
+  countTokens?(text: string): Promise<number>;
+  //    streamMessages(messages: string[]): AsyncIterable<string>;
 }
 

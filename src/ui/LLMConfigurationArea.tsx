@@ -31,7 +31,6 @@ import React, { ReactNode, useCallback, useMemo } from "react";
 import SpinningButton from "./components/SpinningButton";
 import {
   AnthropicLLMConfig,
-  AnthropicModelName,
   LlamaServerLLMConfig,
   BedrockLLMConfig,
   FullLLMConfig,
@@ -200,12 +199,14 @@ const ConfigInput: React.FC<ConfigInputProps> = React.memo(
 
 const DividedStack: React.FC<{
   direction?: StackDirection;
+  flex?: number;
   children: ReactNode;
-}> = ({ direction = "row", children }) => (
+}> = ({ direction = "row", flex = 1, children }) => (
   <Stack
     direction={direction}
     align="stretch"
-    justify="stretch"
+    justify="flex-start"
+    flex={flex}
     spacing={6}
     divider={<StackDivider borderColor="gray.200" />}
   >
@@ -336,7 +337,7 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
                 </TabPanel>
                 <TabPanel>
                   <DividedStack>
-                    <DividedStack direction={"column"}>
+                    <DividedStack direction={"column"} flex={0}>
                       <ConfigInput
                         label="AWS Region"
                         type="text"
@@ -363,27 +364,27 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
                     </DividedStack>
                     <DividedStack direction={"column"}>
                       <ConfigInput
-                        label="AWS Access Key"
+                        label="AWS Access Key ID"
                         type="text"
                         autocompleteName="awsAccessKey"
                         placeholder="Enter AWS_ACCESS_KEY_ID value here"
-                        value={llmConfig.bedrock.keyID}
+                        value={llmConfig.bedrock.accessKeyId}
                         setValue={(keyID: string) => {
                           updateBedrock({
-                            keyID,
+                            accessKeyId: keyID,
                             isKnownToWork: undefined,
                           });
                         }}
                       />
                       <ConfigInput
-                        label="AWS Access Secret"
+                        label="AWS Secret Access Key"
                         type="password"
                         autocompleteName="awsSecretKey"
                         placeholder="Enter AWS_SECRET_ACCESS_KEY value here"
-                        value={llmConfig.bedrock.keySecret}
+                        value={llmConfig.bedrock.secretAccessKey}
                         setValue={(keySecret: string) => {
                           updateBedrock({
-                            keySecret,
+                            secretAccessKey: keySecret,
                             isKnownToWork: undefined,
                           });
                         }}

@@ -63,9 +63,9 @@ export interface AnthropicLLMConfig extends BaseLLMConfig {
 export interface BedrockLLMConfig extends BaseLLMConfig {
   type: "bedrock";
   region: string;
-  keyID: string;
-  keySecret: string;
   modelName: BedrockModelName;
+  accessKeyId: string;
+  secretAccessKey: string;
 }
 
 export interface LlamaServerLLMConfig extends BaseLLMConfig {
@@ -104,8 +104,8 @@ export const defaultLLMConfig: FullLLMConfig = {
   bedrock: {
     type: "bedrock",
     region: "us-east-1",
-    keyID: "",
-    keySecret: "",
+    accessKeyId: "",
+    secretAccessKey: "",
     modelName: CLAUDE_MODEL_LIST[0].bedrock,
   },
   llamaServer: {
@@ -127,8 +127,9 @@ export const isLLMConfigSufficent = (config: FullLLMConfig): boolean => {
 
     case "bedrock":
       return (
-        config.bedrock.keyID.length > 0 &&
-        config.bedrock.keySecret.length > 0
+        config.bedrock.region.length > 0 &&
+        config.bedrock.accessKeyId.length > 0 &&
+        config.bedrock.secretAccessKey.length > 0
       );
 
     case "llamaServer":
