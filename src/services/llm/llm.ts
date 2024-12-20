@@ -12,6 +12,7 @@ import {
 import { PseudoXMLHandler, PseudoXMLParser } from "./pseudo-xml";
 import { ESQLEvalOutputSchema, ESQLEvalOutputTag } from "./schema";
 import { AnthropicModelName } from "./config";
+import { LLMAdapter } from "./adapters/types";
 
 export type LLMOptions = {
   apiKey: string;
@@ -35,8 +36,7 @@ export type GenerateUpdateOutput = {
   stats: LLMStatisticsRow;
 };
 
-export type TransformFieldInput = LLMOptions &
-  ReferenceOptions &
+export type TransformFieldInput = { maxTokens?: number } & ReferenceOptions &
   PromptOptions &
   PrepareTransformationRequestOptions & {
     doneEvalExpression: (field: string, expr: string) => void;
@@ -238,16 +238,15 @@ export const countTokens = async (params: CountTokensInput) => {
   return response.input_tokens;
 };
 
+import { AnthropicLLMAdapter } from "./adapters/anthropic";
+
 export const transformField = async (
+  adapter: LLMAdapter,
   params: TransformFieldInput
 ): Promise<TransformFieldOutput> => {
-  const client = createAnthropicInstance(params.apiKey);
   const request = prepareRequest({ ...params });
   let field: string | undefined;
   let esql: string | undefined;
-
-  const requestTime = Date.now();
-  let first_token_time: number | null = null;
   let esql_time: number | null = null;
 
   const parseEvents: PseudoXMLHandler<ESQLEvalOutputTag> = {
@@ -272,54 +271,17 @@ export const transformField = async (
   };
 
   const parser = new PseudoXMLParser(ESQLEvalOutputSchema, parseEvents);
+  const requestTime = Date.now();
 
-  let message_start_stats = null as {
-    model: string;
-    start_time: number;
-    input_cached: number;
-    input_uncached: number;
-    saved_to_cache: number;
-  } | null;
-
-  let message_delta_stats: {
-    output: number;
-  } = { output: 0 };
-
-  const stream = client.beta.promptCaching.messages
-    .stream({
-      stream: true,
-      model: params.modelName,
-      max_tokens: params.maxTokens ?? 128,
-      ...request,
-    })
-    .on("text", (textDelta, _) => {
-      if (!first_token_time) {
-        first_token_time = Date.now() - requestTime;
-      }
-      parser.push(textDelta);
-    })
-    .on("streamEvent", (event) => {
-      if (event.type === "message_start") {
-        const usage = event.message.usage;
-        message_start_stats = {
-          model: event.message.model,
-          start_time: Date.now() - requestTime,
-          input_cached: usage.cache_read_input_tokens || 0,
-          input_uncached: usage.input_tokens,
-          saved_to_cache: usage.cache_creation_input_tokens || 0,
-        };
-      } else if (event.type === "message_delta") {
-        message_delta_stats = { output: event.usage.output_tokens };
-      } else if (event.type === "message_stop") {
-        parser.done();
-      }
-    });
-
-  await stream.finalMessage();
-
-  if (message_start_stats === null) {
-    throw new Error("No message_start event received");
+  if (adapter.stream === undefined) {
+    throw new Error("Adapter does not support streaming");
   }
+
+  const stats = await adapter.stream(
+    request,
+    { maxTokens: params.maxTokens ?? 256 },
+    parser
+  );
 
   return {
     gen_ai: {
@@ -327,16 +289,8 @@ export const transformField = async (
       completion: parser.getFullText(),
     },
     stats: {
-      model: message_start_stats.model,
-      token_counts: {
-        input_cached: message_start_stats.input_cached,
-        input_uncached: message_start_stats.input_uncached,
-        saved_to_cache: message_start_stats.saved_to_cache,
-        output: message_delta_stats.output,
-      },
-      first_token_time_ms: first_token_time || Infinity,
+      ...stats,
       esql_time_ms: esql_time || Infinity,
-      total_time_ms: Date.now() - requestTime,
     },
   };
 };

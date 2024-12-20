@@ -13,6 +13,11 @@ type TextMessage = {
   content: PromptCachingBetaTextBlockParam[];
 } & PromptCachingBetaMessageParam;
 
+export type PreparedRequest = {
+  system: SystemMessage[];
+  messages: TextMessage[];
+}
+
 export type ReferenceOptions = {
   esqlGuideText: string;
   schemaGuideText: string;
@@ -263,7 +268,7 @@ const newUppercaseFieldName = (fieldName: string) => {
 
 export const prepareRequest = (
   input: ReferenceOptions & PromptOptions & PrepareRequestOptions
-): { system: SystemMessage[]; messages: TextMessage[] } => {
+): PreparedRequest => {
   const { esqlGuideText, schemaGuideText } = input;
 
   let systemTexts = [

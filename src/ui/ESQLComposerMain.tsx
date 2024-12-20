@@ -858,6 +858,8 @@ const ESQLComposerMain = () => {
 
   const handleTransformFieldWithInfo = useCallback(
     async (sourceField: FieldInfo, naturalInput: string) => {
+      const llmAdapter = createLLMAdapter(llmConfig);
+
       await performLLMAction("ES|QL field transform", async (addToSpan) => {
         const fullEsqlQuery = getCompleteESQL();
         addToSpan({
@@ -887,10 +889,8 @@ const ESQLComposerMain = () => {
           setVisualChain(chain);
         };
 
-        const data = (await transformField({
+        const data = (await transformField(llmAdapter,{
           type: "transformation",
-          apiKey: llmConfig.anthropic.apiKey,
-          modelName: llmConfig.anthropic.modelName,
           esqlGuideText,
           schemaGuideText,
           esqlInput: fullEsqlQuery,
