@@ -1,22 +1,23 @@
-import {
-  PromptCachingBetaMessageParam,
-  PromptCachingBetaTextBlockParam,
-} from "@anthropic-ai/sdk/resources/beta/prompt-caching";
 import { applyFunctionToField } from "../../models/esql/ESQLBlock";
 
 import { evalAdapter, ESQLEvalOutput } from "./schema";
 import { FieldInfo } from "./types";
 
-type SystemMessage = PromptCachingBetaTextBlockParam;
+type SystemMessage = {
+  type: "text";
+  text: string;
+  cache_control?: { type: "ephemeral" } | null;
+};
+
 type TextMessage = {
   role: "user" | "assistant";
-  content: PromptCachingBetaTextBlockParam[];
-} & PromptCachingBetaMessageParam;
+  content: SystemMessage[];
+};
 
 export type PreparedRequest = {
   system: SystemMessage[];
   messages: TextMessage[];
-}
+};
 
 export type ReferenceOptions = {
   esqlGuideText: string;

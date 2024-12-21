@@ -1,4 +1,17 @@
-export const CLAUDE_MODEL_LIST = [
+/**
+ * A model that is available through the Anthropic API or Bedrock.
+ */
+interface ClaudeModel {
+  name: string;
+  anthropic: string;
+  bedrock: string;
+}
+
+/**
+ * List of Anthropic models available through the Anthropic API or Bedrock.
+ * Sorted from least powerful (and costly) to most powerful.
+ */
+export const CLAUDE_MODEL_LIST: ClaudeModel[] = [
   {
     name: "Haiku",
     anthropic: "claude-3-5-haiku-latest",
@@ -18,6 +31,9 @@ export type AnthropicModelName =
 export type BedrockModelName =
   (typeof CLAUDE_MODEL_LIST)[ClaudeModelIndex]["bedrock"];
 
+/**
+ * List of LLM providers.
+ */
 export type LLMChoice = "anthropic" | "bedrock" | "llamaServer" | "openAI";
 
 /**
@@ -94,6 +110,9 @@ export interface FullLLMConfig extends Record<LLMChoice, OneOfLLMConfigs> {
   openAI: OpenAILLMConfig;
 }
 
+/**
+ * Default LLM config for all LLMs.
+ */
 export const defaultLLMConfig: FullLLMConfig = {
   selected: "anthropic",
   anthropic: {
@@ -120,6 +139,11 @@ export const defaultLLMConfig: FullLLMConfig = {
   },
 };
 
+/**
+ * Checks if the LLM config is sufficient for the selected LLM.
+ * @param config - The LLM config to check.
+ * @returns True if the config is sufficient, false otherwise.
+ */
 export const isLLMConfigSufficent = (config: FullLLMConfig): boolean => {
   switch (config.selected) {
     case "anthropic":
