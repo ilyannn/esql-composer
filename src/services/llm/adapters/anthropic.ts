@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 import { LLMAdapter } from "./types";
 import { AnthropicLLMConfig, AnthropicModelName } from "../config";
-import { PreparedRequest } from "../prompts";
+import { PreparedRequest } from "./types";
 import { StreamingOptions, StreamingStats, StreamingProcessor } from "./types";
 
 const createAnthropicInstance = (apiKey: string) => {
@@ -56,7 +56,7 @@ export class AnthropicLLMAdapter implements LLMAdapter {
     processor: StreamingProcessor
   ): Promise<StreamingStats> {
     const requestTime = Date.now();
-    let first_token_time: number | null = null;
+    let first_token_time_ms: number | undefined;
 
     let message_start_stats = null as {
       model: string;
@@ -78,8 +78,8 @@ export class AnthropicLLMAdapter implements LLMAdapter {
         ...request,
       })
       .on("text", (textDelta, _) => {
-        if (!first_token_time) {
-          first_token_time = Date.now() - requestTime;
+        if (!first_token_time_ms) {
+          first_token_time_ms = Date.now() - requestTime;
         }
         processor.push(textDelta);
       })
@@ -114,7 +114,7 @@ export class AnthropicLLMAdapter implements LLMAdapter {
         saved_to_cache: message_start_stats.saved_to_cache,
         output: message_delta_stats.output,
       },
-      first_token_time_ms: first_token_time || Infinity,
+      first_token_time_ms,
       total_time_ms: Date.now() - requestTime,
     };
   }

@@ -1,4 +1,4 @@
-import { LLMAdapter } from "./types";
+import { LLMAdapter, PreparedRequest, StreamingOptions, StreamingProcessor, StreamingStats } from "./types";
 import { LlamaServerLLMConfig } from "../config";
 
 export class LlamaServerLLMAdapter implements LLMAdapter {
@@ -44,5 +44,13 @@ export class LlamaServerLLMAdapter implements LLMAdapter {
     }
 
     return data.content;
+  }
+
+  async stream(
+    request: PreparedRequest,
+    params: StreamingOptions,
+    processor: StreamingProcessor
+  ): Promise<StreamingStats> {
+    throw new Error("Method not implemented.");
   }
 }

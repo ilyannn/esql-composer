@@ -23,7 +23,7 @@ import {
 
 import Anthropic from "@anthropic-ai/sdk";
 
-import type { LLMHistoryRow, LLMStatisticsRow } from "../common/types";
+import type { LLMStatisticsRow } from "../common/types";
 import {
   BlockHasStableId,
   ESQLBlock,
@@ -43,7 +43,6 @@ import {
 
 import {
   FieldInfo,
-  countTokens,
   generateESQLUpdate,
   reduceSize,
   transformField,
@@ -64,7 +63,7 @@ import {
 import { loadFile } from "../services/files";
 
 import { ExternalLinkIcon } from "@chakra-ui/icons";
-import _, { add, chain, get, reduce, set } from "lodash";
+import _, { reduce } from "lodash";
 import {
   TracingOptions,
   defaultTracingOptions,
@@ -91,6 +90,7 @@ import {
   OneOfLLMConfigs,
 } from "../services/llm/config";
 import { createLLMAdapter } from "../services/llm/adapters";
+import { LLMAdapter } from "../services/llm/adapters/types";
 
 const defaultESQLGuidePromise = loadFile("esql-short.txt");
 
@@ -268,8 +268,13 @@ const ESQLComposerMain = () => {
   const performLLMAction = useCallback(
     async (
       label: string,
-      action: (addToSpan: UseTracingCallback) => Promise<void>
+      action: (
+        adapter: LLMAdapter,
+        addToSpan: UseTracingCallback
+      ) => Promise<void>
     ) => {
+      const adapter = createLLMAdapter(llmConfig);
+
       const { addToSpan, saveSpan } = useTracing({
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
@@ -277,7 +282,7 @@ const ESQLComposerMain = () => {
       });
 
       try {
-        await action(addToSpan);
+        await action(adapter, addToSpan);
         setAnthropicAPIKeyWorks(true);
         return;
       } catch (error) {
@@ -403,8 +408,7 @@ const ESQLComposerMain = () => {
   );
 
   const handlePerformLLMTest = async () => {
-    const llmAdapter = createLLMAdapter(llmConfig);
-    await performLLMAction("LLM API test", async () => {
+    await performLLMAction("LLM API test", async (llmAdapter, _) => {
       const utterance = "Hi, are you an LLM?";
       const llmAnswer = await llmAdapter.answer(utterance);
 
@@ -452,17 +456,17 @@ const ESQLComposerMain = () => {
   };
 
   const handleReduceSize = async () => {
-    let oldSize: number | undefined = undefined;
+    await performLLMAction("Size reduction", async (llmAdapter) => {
+      const countTokens = llmAdapter.countTokens;
 
-    await performLLMAction("Token Counting", async () => {
-      oldSize = await countTokens({
-        apiKey: llmConfig.anthropic.apiKey,
-        modelName: llmConfig.anthropic.modelName,
-        text: esqlGuideText,
-      });
-    });
+      if (!countTokens) {
+        throw new Error(
+          `Counting tokens is not supported by the '${llmConfig.selected}' LLM adapter.`
+        );
+      }
 
-    await performLLMAction("Size reduction", async () => {
+      const oldSize = await countTokens(esqlGuideText);
+
       let newESQGuideText = "";
 
       const processLine = (line: string) => {
@@ -481,11 +485,7 @@ const ESQLComposerMain = () => {
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
 
-      const newSize = await countTokens({
-        apiKey: llmConfig.anthropic.apiKey,
-        modelName: llmConfig.anthropic.modelName,
-        text: newESQGuideText,
-      });
+      const newSize = await countTokens(newESQGuideText);
       setEsqlGuideTokenCount([newESQGuideText, newSize]);
 
       const percentage = oldSize
@@ -502,26 +502,28 @@ const ESQLComposerMain = () => {
   };
 
   const handleGetTokenCount = useCallback(async () => {
-    if (!esqlGuideText || !schemaGuideText) {
-      return;
-    }
-    await performLLMAction("Token Counting", async () => {
-      setEsqlGuideTokenCount([
-        esqlGuideText,
-        await countTokens({
-          apiKey: llmConfig.anthropic.apiKey,
-          modelName: llmConfig.anthropic.modelName,
-          text: esqlGuideText,
-        }),
-      ]);
-      setSchemaGuideTokenCount([
-        schemaGuideText,
-        await countTokens({
-          apiKey: llmConfig.anthropic.apiKey,
-          modelName: llmConfig.anthropic.modelName,
-          text: schemaGuideText,
-        }),
-      ]);
+    await performLLMAction("Token Counting", async (llmAdapter) => {
+      const countTokens = llmAdapter.countTokens;
+
+      if (!countTokens) {
+        throw new Error(
+          `Counting tokens is not supported by the '${llmConfig.selected}' LLM adapter.`
+        );
+      }
+
+      if (esqlGuideText) {
+        setEsqlGuideTokenCount([
+          esqlGuideText,
+          await countTokens(esqlGuideText),
+        ]);
+      }
+
+      if (schemaGuideText) {
+        setSchemaGuideTokenCount([
+          schemaGuideText,
+          await countTokens(schemaGuideText),
+        ]);
+      }
     });
   }, [performLLMAction, llmConfig, esqlGuideText, schemaGuideText]);
 
@@ -858,50 +860,51 @@ const ESQLComposerMain = () => {
 
   const handleTransformFieldWithInfo = useCallback(
     async (sourceField: FieldInfo, naturalInput: string) => {
-      const llmAdapter = createLLMAdapter(llmConfig);
-
-      await performLLMAction("ES|QL field transform", async (addToSpan) => {
-        const fullEsqlQuery = getCompleteESQL();
-        addToSpan({
-          esql: {
-            action: "eval",
-            query: fullEsqlQuery,
-            source: sourceField,
-          },
-        });
-
-        const doneEvalExpression = (field: string, expr: string) => {
+      await performLLMAction(
+        "ES|QL field transform",
+        async (adapter, addToSpan) => {
+          const fullEsqlQuery = getCompleteESQL();
           addToSpan({
             esql: {
-              target: field,
-              expression: expr,
+              action: "eval",
+              query: fullEsqlQuery,
+              source: sourceField,
             },
           });
-          const { chain } = performChainAction(
-            visualChain,
-            {
-              action: "eval",
-              sourceField: sourceField.name,
-              expressions: [{ field, expression: expr }],
-            },
-            []
-          );
-          setVisualChain(chain);
-        };
 
-        const data = (await transformField(llmAdapter,{
-          type: "transformation",
-          esqlGuideText,
-          schemaGuideText,
-          esqlInput: fullEsqlQuery,
-          sourceFields: [sourceField],
-          naturalInput,
-          doneEvalExpression,
-        })) as any;
+          const doneEvalExpression = (field: string, expr: string) => {
+            addToSpan({
+              esql: {
+                target: field,
+                expression: expr,
+              },
+            });
+            const { chain } = performChainAction(
+              visualChain,
+              {
+                action: "eval",
+                sourceField: sourceField.name,
+                expressions: [{ field, expression: expr }],
+              },
+              []
+            );
+            setVisualChain(chain);
+          };
 
-        addToSpan(data);
-        setAllStats([...allStats, data.stats]);
-      });
+          const data = (await transformField(adapter, {
+            type: "transformation",
+            esqlGuideText,
+            schemaGuideText,
+            esqlInput: fullEsqlQuery,
+            sourceFields: [sourceField],
+            naturalInput,
+            doneEvalExpression,
+          })) as any;
+
+          addToSpan(data);
+          setAllStats([...allStats, data.stats]);
+        }
+      );
     },
     [
       performLLMAction,

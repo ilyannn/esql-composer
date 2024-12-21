@@ -1,23 +1,8 @@
 import { applyFunctionToField } from "../../models/esql/ESQLBlock";
+import { TextMessage, PreparedRequest, SystemMessage } from "./adapters/types";
 
 import { evalAdapter, ESQLEvalOutput } from "./schema";
 import { FieldInfo } from "./types";
-
-type SystemMessage = {
-  type: "text";
-  text: string;
-  cache_control?: { type: "ephemeral" } | null;
-};
-
-type TextMessage = {
-  role: "user" | "assistant";
-  content: SystemMessage[];
-};
-
-export type PreparedRequest = {
-  system: SystemMessage[];
-  messages: TextMessage[];
-};
 
 export type ReferenceOptions = {
   esqlGuideText: string;

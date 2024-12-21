@@ -247,7 +247,7 @@ export const transformField = async (
   const request = prepareRequest({ ...params });
   let field: string | undefined;
   let esql: string | undefined;
-  let esql_time: number | null = null;
+  let esql_time_ms: number | undefined;
 
   const parseEvents: PseudoXMLHandler<ESQLEvalOutputTag> = {
     onReadLine(tag: ESQLEvalOutputTag | null, line) {
@@ -263,7 +263,7 @@ export const transformField = async (
       }
       if (field && esql) {
         params.doneEvalExpression(field, esql);
-        esql_time = Date.now() - requestTime;
+        esql_time_ms = Date.now() - requestTime;
         field = undefined;
         esql = undefined;
       }
@@ -290,7 +290,7 @@ export const transformField = async (
     },
     stats: {
       ...stats,
-      esql_time_ms: esql_time || Infinity,
+      esql_time_ms,
     },
   };
 };

@@ -65,7 +65,9 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         <Tooltip isDisabled={!tooltipsShown} label="Time to first output token">
           <Stat>
             <StatLabel>TTFT</StatLabel>
-            <StatNumber>{stat.first_token_time_ms}ms</StatNumber>
+            {stat.first_token_time_ms !== undefined && (
+              <StatNumber>{stat.first_token_time_ms}ms</StatNumber>
+            )}
           </Stat>
         </Tooltip>
         <Tooltip
@@ -74,7 +76,9 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         >
           <Stat>
             <StatLabel>ES|QL Time</StatLabel>
-            <StatNumber>{stat.esql_time_ms}ms</StatNumber>
+            {stat.esql_time_ms !== undefined && (
+              <StatNumber>{stat.esql_time_ms}ms</StatNumber>
+            )}
           </Stat>
         </Tooltip>
         <Tooltip
@@ -83,7 +87,9 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         >
           <Stat>
             <StatLabel>Total Time</StatLabel>
-            <StatNumber>{stat.total_time_ms}ms</StatNumber>
+            {stat.total_time_ms !== undefined && (
+              <StatNumber>{stat.total_time_ms}ms</StatNumber>
+            )}
           </Stat>
         </Tooltip>
         <Tooltip
@@ -92,7 +98,9 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         >
           <Stat>
             <StatLabel>Uncached</StatLabel>
-            <StatNumber>{stat.token_counts.input_uncached}</StatNumber>
+            {stat.token_counts.input_uncached !== undefined && (
+              <StatNumber>{stat.token_counts.input_uncached}</StatNumber>
+            )}
           </Stat>
         </Tooltip>
         <Tooltip
@@ -101,7 +109,9 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         >
           <Stat>
             <StatLabel>Cache →</StatLabel>
-            <StatNumber>{stat.token_counts.input_cached}</StatNumber>
+            {stat.token_counts.input_cached !== undefined && (
+              <StatNumber>{stat.token_counts.input_cached}</StatNumber>
+            )}
           </Stat>
         </Tooltip>
         <Tooltip
@@ -110,13 +120,17 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         >
           <Stat>
             <StatLabel>→ Cache</StatLabel>
-            <StatNumber>{stat.token_counts.saved_to_cache}</StatNumber>
+            {stat.token_counts.saved_to_cache !== undefined && (
+              <StatNumber>{stat.token_counts.saved_to_cache}</StatNumber>
+            )}
           </Stat>
         </Tooltip>
         <Tooltip isDisabled={!tooltipsShown} label="Output tokens">
           <Stat>
             <StatLabel>Output</StatLabel>
-            <StatNumber>{stat.token_counts.output}</StatNumber>
+            {stat.token_counts.output !== undefined && (
+              <StatNumber>{stat.token_counts.output}</StatNumber>
+            )}
           </Stat>
         </Tooltip>
         <Tooltip
