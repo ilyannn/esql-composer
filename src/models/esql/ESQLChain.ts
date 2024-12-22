@@ -118,6 +118,9 @@ const canBubbleOverBlock = (
   if (block.command === "LIMIT" && action.action !== "limit") {
     return true;
   }
+  if (block.command === "WHERE" && (action.action === "sortAsc" || action.action === "sortDesc")) {
+    return true;
+  }
   switch (action.action) {
     case "sortAsc":
     case "sortDesc":
