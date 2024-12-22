@@ -11,6 +11,7 @@ import {
 import FieldValue from "./FieldValue";
 import { GeoPointFormatter } from "./geoPointFormatter";
 import { parseColor } from "@react-stately/color";
+import { WktRenderer } from "./WktRenderer";
 
 import "@highlightjs/cdn-assets/styles/nnfx-light.css";
 import Highlight from "react-highlight";
@@ -133,6 +134,15 @@ const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
   return <FieldValue value={value} formattedValue={formattedValue} />;
 };
 
+const geoShapePresenter: Presenter = (value: ESQLAtomValue) => {
+  let formattedValue: string | undefined = undefined;
+
+  if (typeof value === "string") {
+    return <WktRenderer wkt={value} />;
+  }
+
+  return <FieldValue value={value} formattedValue={formattedValue} />;
+};
 const esqlPresenter: Presenter = (value: ESQLAtomValue) => {
   if (typeof value === "string") {
     return <Highlight className="language-esql">{value}</Highlight>;
@@ -198,6 +208,10 @@ export const getPresenter = (column: ESQLColumn): Presenter => {
       column.name.endsWith("(Date)")
     ) {
       return memoizedCreateDatePresenter(undefined);
+    }
+
+    if (column.type === "geo_shape" || column.name.endsWith("(Shape)")) {
+      return geoShapePresenter;
     }
 
     if (column.type === "geo_point") {
