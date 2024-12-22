@@ -1,5 +1,12 @@
-import { LLMAdapter, PreparedRequest, StreamingOptions, StreamingProcessor, StreamingStats } from "./types";
+import {
+  LLMAdapter,
+  PreparedRequest,
+  StreamingOptions,
+  StreamingProcessor,
+  StreamingStats,
+} from "./types";
 import { LlamaServerLLMConfig } from "../config";
+import { DEFAULT_MAX_TOKENS } from "./constants";
 
 export class LlamaServerLLMAdapter implements LLMAdapter {
   private readonly apiURL: string;
@@ -33,7 +40,10 @@ export class LlamaServerLLMAdapter implements LLMAdapter {
         "Content-Type": "application/json",
         //        Authorization: `Bearer ${this.apiKey}`,
       },
-      body: JSON.stringify({ prompt: utterance, n_predict: 256 }),
+      body: JSON.stringify({
+        prompt: utterance,
+        n_predict: DEFAULT_MAX_TOKENS,
+      }),
     });
 
     const data = await response.json();

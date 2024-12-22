@@ -229,16 +229,13 @@ const userMessageForInput = (input: PrepareRequestOptions): TextMessage => {
   };
 };
 
-const cachedAssistantMessageForEvalOutput = (
-  output: ESQLEvalOutput
-): TextMessage => {
+const assistantMessageForEvalOutput = (output: ESQLEvalOutput): TextMessage => {
   return {
     role: "assistant",
     content: [
       {
         type: "text",
         text: evalAdapter.formatOutput(output),
-        cache_control: { type: "ephemeral" },
       },
     ],
   };
@@ -270,18 +267,10 @@ export const prepareRequest = (
 
   systemTexts = [...systemTexts, ...systemTextForOptions(input)];
 
-  // Should be no more than 3 cached messages since there are only 4 cache points
-  // and we will use one for the last assistant message.
-  const system: SystemMessage[] = systemTexts.map((content, index) => {
-    const message: SystemMessage = {
-      type: "text",
-      text: content,
-    };
-    if (index >= systemTexts.length - 3) {
-      message.cache_control = { type: "ephemeral" };
-    }
-    return message;
-  });
+  const system = systemTexts.map((content, index) => ({
+    type: "text",
+    text: content,
+  })) satisfies SystemMessage[];
 
   let messages: TextMessage[] = [];
 
@@ -296,7 +285,7 @@ export const prepareRequest = (
             ...input,
             naturalInput: "uppercase",
           }),
-          cachedAssistantMessageForEvalOutput({
+          assistantMessageForEvalOutput({
             field: newUppercaseFieldName(sourceField.name),
             expr: applyFunctionToField("TO_UPPER", sourceField.name),
           }),
@@ -310,7 +299,7 @@ export const prepareRequest = (
             ...input,
             naturalInput: "round to tens",
           }),
-          cachedAssistantMessageForEvalOutput({
+          assistantMessageForEvalOutput({
             field: sourceField.name + "_00",
             expr:
               applyFunctionToField("ROUND", sourceField.name, -1) + "::long",

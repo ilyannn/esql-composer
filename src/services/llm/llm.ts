@@ -13,6 +13,7 @@ import { PseudoXMLHandler, PseudoXMLParser } from "./pseudo-xml";
 import { ESQLEvalOutputSchema, ESQLEvalOutputTag } from "./schema";
 import { AnthropicModelName } from "./config";
 import { LLMAdapter } from "./adapters/types";
+import { DEFAULT_MAX_TOKENS } from "./adapters/constants";
 
 export type LLMOptions = {
   apiKey: string;
@@ -144,7 +145,7 @@ export const generateESQLUpdate = async (
     .stream({
       stream: true,
       model: modelName,
-      max_tokens: maxTokens ?? 256,
+      max_tokens: maxTokens ?? DEFAULT_MAX_TOKENS,
       ...request,
     })
     .on("text", (textDelta, _) => {
@@ -279,7 +280,7 @@ export const transformField = async (
 
   const stats = await adapter.stream(
     request,
-    { maxTokens: params.maxTokens ?? 256 },
+    { maxTokens: params.maxTokens ?? DEFAULT_MAX_TOKENS },
     parser
   );
 

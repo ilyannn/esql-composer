@@ -13,6 +13,7 @@ import {
 } from "./types";
 import { BedrockLLMConfig } from "../config";
 import { PreparedRequest } from "./types";
+import { DEFAULT_MAX_TOKENS } from "./constants";
 
 const createBedrockInstance = (
   region: string,
@@ -55,7 +56,7 @@ export class BedrockLLMAdapter implements LLMAdapter {
     const command = new ConverseCommand({
       modelId: this.modelId,
       messages: [userMessage],
-      //      inferenceConfig: { maxTokens: 256, temperature: 0.5, topP: 0.9 },
+      //      inferenceConfig: { maxTokens: DEFAULT_MAX_TOKENS, temperature: 0.5, topP: 0.9 },
     });
 
     try {
@@ -93,7 +94,7 @@ export class BedrockLLMAdapter implements LLMAdapter {
       ...request,
       modelId: this.modelId,
       inferenceConfig: {
-        maxTokens: params.maxTokens ?? 256,
+        maxTokens: params.maxTokens ?? DEFAULT_MAX_TOKENS,
         // temperature: params.temperature ?? 0.5,
         // topP: params.topP ?? 0.9,
       },

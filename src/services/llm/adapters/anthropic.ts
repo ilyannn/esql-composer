@@ -1,9 +1,13 @@
 import Anthropic from "@anthropic-ai/sdk";
-
+import {
+  PromptCachingBetaMessageParam,
+  PromptCachingBetaTextBlockParam,
+} from "@anthropic-ai/sdk/resources/beta/prompt-caching/messages";
 import { LLMAdapter } from "./types";
 import { AnthropicLLMConfig, AnthropicModelName } from "../config";
 import { PreparedRequest } from "./types";
 import { StreamingOptions, StreamingStats, StreamingProcessor } from "./types";
+import { DEFAULT_MAX_TOKENS } from "./constants";
 
 const createAnthropicInstance = (apiKey: string) => {
   return new Anthropic({
@@ -11,6 +15,67 @@ const createAnthropicInstance = (apiKey: string) => {
     defaultHeaders: { "anthropic-beta": "prompt-caching-2024-07-31" },
     dangerouslyAllowBrowser: true,
   });
+};
+
+// There are only 4 cache points in the current implementation by Anthropic
+const MAX_CACHE_POINTS = 4;
+
+interface AnthropicPreparedRequest {
+  system: PromptCachingBetaTextBlockParam[];
+  messages: PromptCachingBetaMessageParam[];
+}
+
+const addCachePoints = ({
+  system,
+  messages,
+}: PreparedRequest): AnthropicPreparedRequest => {
+  const cacheAnnotation = { cache_control: { type: "ephemeral" } } as const;
+
+  const maxAssistantCachePoints = 1;
+  let usedAssistantCachePoints = 0;
+
+  const cachedMessages = messages
+    .reverse()
+    .map((message) => {
+      if (usedAssistantCachePoints < maxAssistantCachePoints) {
+        if (message.role === "assistant") {
+          usedAssistantCachePoints++;
+          const cachedContent = message.content.map((content, index) =>
+            index === message.content.length - 1
+              ? ({
+                  ...content,
+                  ...cacheAnnotation,
+                } satisfies PromptCachingBetaTextBlockParam)
+              : content
+          );
+          return {
+            ...message,
+            content: cachedContent,
+          } satisfies PromptCachingBetaMessageParam;
+        }
+      }
+      return message;
+    })
+    .reverse();
+
+  const maxSystemCachePoints = MAX_CACHE_POINTS - usedAssistantCachePoints;
+  let usedSystemCachePoints = 0;
+
+  const cachedSystem = system
+    .reverse()
+    .map((message) => {
+      if (usedSystemCachePoints < maxSystemCachePoints) {
+        usedSystemCachePoints++;
+        return {
+          ...message,
+          ...cacheAnnotation,
+        } satisfies PromptCachingBetaTextBlockParam;
+      }
+      return message;
+    })
+    .reverse();
+
+  return { system: cachedSystem, messages: cachedMessages };
 };
 
 export class AnthropicLLMAdapter implements LLMAdapter {
@@ -31,7 +96,7 @@ export class AnthropicLLMAdapter implements LLMAdapter {
         },
       ],
       model: this.modelName,
-      max_tokens: 256,
+      max_tokens: DEFAULT_MAX_TOKENS,
     });
     const block = response.content[0];
     if (block.type !== "text") {
@@ -74,8 +139,8 @@ export class AnthropicLLMAdapter implements LLMAdapter {
       .stream({
         stream: true,
         model: this.modelName,
-        max_tokens: params.maxTokens ?? 256,
-        ...request,
+        max_tokens: params.maxTokens ?? DEFAULT_MAX_TOKENS,
+        ...addCachePoints(request),
       })
       .on("text", (textDelta, _) => {
         if (!first_token_time_ms) {

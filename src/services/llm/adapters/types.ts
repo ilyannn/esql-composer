@@ -76,22 +76,17 @@ export interface StreamingProcessor {
  * Represents a system context message for the LLM.
  *
  * @remarks
- * This type carries text content and optional cache-control metadata
- * to manage ephemeral or persistent content in a conversation.
+ * This type carries text content in a conversation.
  *
  * @property type
  * The system message type indicator.
  *
  * @property text
  * The textual content of the system message.
- *
- * @property cache_control
- * (Optional) Mechanism to specify if the message is meant to be ephemeral.
  */
 export type SystemMessage = {
   type: "text";
   text: string;
-  cache_control?: { type: "ephemeral" } | null;
 };
 
 /**
