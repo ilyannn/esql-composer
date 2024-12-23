@@ -32,11 +32,6 @@ export type BedrockModelName =
   (typeof CLAUDE_MODEL_LIST)[ClaudeModelIndex]["bedrock"];
 
 /**
- * List of LLM providers.
- */
-export type LLMChoice = "anthropic" | "bedrock" | "llamaServer" | "openAI";
-
-/**
  * Retrieves the index of the specified Anthropic model name from the CLAUDE_MODEL_LIST.
  * If the model name is not found, it returns 0.
  *
@@ -66,18 +61,18 @@ export const getBedrockModelIndex = (
   ) as ClaudeModelIndex;
 
 interface BaseLLMConfig {
-  type: LLMChoice;
+  readonly type: string;
   isKnownToWork?: boolean | undefined;
 }
 
 export interface AnthropicLLMConfig extends BaseLLMConfig {
-  type: "anthropic";
+  readonly type: "anthropic";
   apiKey: string;
   modelName: AnthropicModelName;
 }
 
 export interface BedrockLLMConfig extends BaseLLMConfig {
-  type: "bedrock";
+  readonly type: "bedrock";
   region: string;
   modelName: BedrockModelName;
   accessKeyId: string;
@@ -85,35 +80,37 @@ export interface BedrockLLMConfig extends BaseLLMConfig {
 }
 
 export interface LlamaServerLLMConfig extends BaseLLMConfig {
-  type: "llamaServer";
+  readonly type: "llamaServer";
   apiURL: string;
   apiKey: string;
 }
 
 export interface OpenAILLMConfig extends BaseLLMConfig {
-  type: "openAI";
+  readonly type: "openAI";
   apiURL: string;
   apiKey: string;
 }
 
-export type OneOfLLMConfigs =
+export type AvailableLLMConfigs =
   | AnthropicLLMConfig
   | BedrockLLMConfig
   | LlamaServerLLMConfig
   | OpenAILLMConfig;
 
-export interface FullLLMConfig extends Record<LLMChoice, OneOfLLMConfigs> {
-  selected: LLMChoice;
-  anthropic: AnthropicLLMConfig;
-  bedrock: BedrockLLMConfig;
-  llamaServer: LlamaServerLLMConfig;
-  openAI: OpenAILLMConfig;
-}
+/**
+ * List of LLM providers.
+ */
+export type LLMProvider = AvailableLLMConfigs["type"];
+export type FullLLMConfig = Record<LLMProvider, AvailableLLMConfigs> & {
+  [provider in LLMProvider]: { type: provider };
+} & {
+  selected: LLMProvider;
+};
 
 /**
  * Default LLM config for all LLMs.
  */
-export const defaultLLMConfig: FullLLMConfig = {
+export const defaultLLMConfig = {
   selected: "anthropic",
   anthropic: {
     type: "anthropic",
@@ -137,7 +134,7 @@ export const defaultLLMConfig: FullLLMConfig = {
     apiURL: "https://api.openai.com/v1",
     apiKey: "",
   },
-};
+} as const satisfies FullLLMConfig;
 
 /**
  * Checks if the LLM config is sufficient for the selected LLM.

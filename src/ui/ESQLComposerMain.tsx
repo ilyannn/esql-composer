@@ -87,7 +87,7 @@ import {
   defaultLLMConfig,
   FullLLMConfig,
   isLLMConfigSufficent,
-  OneOfLLMConfigs,
+  AvailableLLMConfigs,
 } from "../services/llm/config";
 import { createLLMAdapter } from "../services/llm/adapters";
 import { LLMAdapter } from "../services/llm/adapters/types";
@@ -98,7 +98,7 @@ interface CacheWarmedInfo {
   date: number;
   esqlGuideText: string;
   schemaGuideText: string;
-  selectedLLMConfig: OneOfLLMConfigs;
+  selectedLLMConfig: AvailableLLMConfigs;
 }
 
 const ESQLComposerMain = () => {
@@ -162,7 +162,7 @@ const ESQLComposerMain = () => {
 
   const isElasticsearchAPIAvailable = (queryAPIURL && queryAPIKey) !== "";
 
-  const selectedLLMConfig: OneOfLLMConfigs = useMemo(() => {
+  const selectedLLMConfig: AvailableLLMConfigs = useMemo(() => {
     return llmConfig[llmConfig.selected];
   }, [llmConfig]);
 
