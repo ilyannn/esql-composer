@@ -3,6 +3,7 @@ import {
   ESQLAtomRawValue,
   ESQLAtomRawMultivalue,
 } from "../../models/esql/esql_types";
+import { CreateIndexParams } from "./indices";
 
 export interface ESAPIOptions {
   apiURL: string;
@@ -15,7 +16,7 @@ export interface ESQLQueryOptions extends ESAPIOptions {
 
 export interface ESQLDeriveSchemaOptions extends ESAPIOptions {
   indexPattern: string;
-  randomSamplingFactor: number;
+  randomSamplingFactor?: number;
 }
 
 export class QueryAPIError extends Error {

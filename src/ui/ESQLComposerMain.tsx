@@ -60,8 +60,6 @@ import {
   type UseTracingCallback,
 } from "../services/tracing/use_tracing";
 
-import { loadFile } from "../services/files";
-
 import { ExternalLinkIcon } from "@chakra-ui/icons";
 import _, { reduce } from "lodash";
 import {
@@ -91,8 +89,11 @@ import {
 } from "../services/llm/config";
 import { createLLMAdapter } from "../services/llm/adapters";
 import { LLMAdapter } from "../services/llm/adapters/types";
+import { DemoItem, MissingDemoContext } from "../services/es/demo";
+import { checkIndexExists, createIndex } from "../services/es/indices";
+import axios from "axios";
 
-const defaultESQLGuidePromise = loadFile("esql-short.txt");
+const defaultESQLGuidePromise = axios.get("esql-short.txt");
 
 interface CacheWarmedInfo {
   date: number;
@@ -630,10 +631,13 @@ const ESQLComposerMain = () => {
     ) => {
       setNaturalInput("");
       setQueryAPIData(null);
-      setQueryAPIDataAutoUpdate(false);
 
       const esql = initialESQL || "";
+      if (esql.length === 0) {
+        setQueryAPIDataAutoUpdate(false);
+      }
       setEsqlInput(esql + "\n");
+
       const initialChain = reduce(
         initialActions,
         (chain: ESQLChain, action) =>
@@ -953,6 +957,9 @@ const ESQLComposerMain = () => {
         indexPattern,
         randomSamplingFactor,
       });
+      if (!schema) {
+        throw new Error(`No indices matching "${indexPattern}" found`);
+      }
       setEsqlSchema(schema);
     });
   };
@@ -960,9 +967,9 @@ const ESQLComposerMain = () => {
   useEffect(() => {
     let ignore = false;
 
-    defaultESQLGuidePromise.then((data) => {
+    defaultESQLGuidePromise.then((response) => {
       if (!ignore) {
-        setEsqlGuideText(data);
+        setEsqlGuideText(response.data);
       }
     });
 
@@ -970,6 +977,85 @@ const ESQLComposerMain = () => {
       ignore = true;
     };
   }, []);
+
+  const handleProvideDemo = useCallback(
+    async (item: DemoItem) => {
+      const title = item.title + " demo";
+
+      await performQueryAPIAction(item.title, async (addToSpan) => {
+        const missing = !(await checkIndexExists({
+          apiURL: queryAPIURL,
+          apiKey: queryAPIKey,
+          index: item.index,
+        }));
+
+        if (missing) {
+          let shouldRetry = false;
+
+          const context: MissingDemoContext = {
+            info: (explanation: string) =>
+              toast({
+                title,
+                description: explanation,
+                status: "info",
+                duration: 3500,
+                isClosable: true,
+              }),
+            prompt: (question: string) =>
+              new Promise((resolve) => {
+                const answer = window.confirm(question);
+                resolve(answer);
+              }),
+            createIndex: async (params) => {
+              await createIndex({
+                apiURL: queryAPIURL,
+                apiKey: queryAPIKey,
+                index: item.index,
+                params,
+              });
+              shouldRetry = true;
+            },
+          };
+
+          await item.missingProvider(item, context);
+
+          if (!shouldRetry) {
+            return;
+          }
+        }
+
+        let schema: ESQLSchema | null = null;
+        try {
+          schema = await deriveSchema({
+            apiURL: queryAPIURL,
+            apiKey: queryAPIKey,
+            indexPattern: item.index,
+          });
+        } catch (error) {}
+
+        if (!schema) {
+          throw new Error("Failed to load the demo");
+        }
+
+        if (item.initialActions) {
+          schema = {
+            ...schema,
+            initialActions: [...schema.initialActions, ...item.initialActions],
+          };
+        }
+
+        setEsqlSchema(schema);
+        toast({
+          title,
+          description: `Generated schema for the index ${item.index}`,
+          status: "success",
+          duration: 2500,
+          isClosable: true,
+        });
+      });
+    },
+    [queryAPIURL, queryAPIKey]
+  );
 
   const handleChainAction = useCallback(
     (action: ESQLChainAction, knownFields: string[]): boolean => {
@@ -1160,6 +1246,7 @@ const ESQLComposerMain = () => {
               handleReduceSize={handleReduceSize}
               handleGetTokenCount={handleGetTokenCount}
               handleRetrieveSchemaFromES={getSchemaProps.onOpen}
+              handleProvideDemo={handleProvideDemo}
             />
           </Section>
 

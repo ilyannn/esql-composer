@@ -1,4 +1,5 @@
 import { ESQLColumnType } from "../../models/esql/esql_types";
+import { ESQLChainAction } from "../../models/esql/ESQLChain";
 import { getJSON, postJSON } from "./base";
 import { ESQLDeriveSchemaOptions } from "./types";
 
@@ -17,7 +18,7 @@ export type ESQLSchema = {
   knownFields: DeriveSchemaField[];
   guide: string;
   initialESQL: string;
-  initialActions: DeriveSchemaSortAction[];
+  initialActions: ESQLChainAction[];
 };
 
 interface CapabilitiesResponse {
@@ -263,12 +264,37 @@ interface DeriveSchemaSortAction {
   column: { name: string; type: ESQLColumnType };
 }
 
+/**
+ * Derives schema information from Elasticsearch indices matching the provided index pattern.
+ *
+ * This function performs the following operations:
+ * 1. Fetches field capabilities from Elasticsearch
+ * 2. Analyzes field types and their aggregation capabilities
+ * 3. Samples data to determine common values and patterns
+ * 4. Generates a human-readable guide describing the schema
+ *
+ * @param options - Configuration options for schema derivation
+ * @param options.apiURL - Base URL of the Elasticsearch API
+ * @param options.apiKey - Authentication key for Elasticsearch API
+ * @param options.indexPattern - Pattern to match target indices (e.g., "logs-*")
+ * @param options.randomSamplingFactor - Factor to reduce sampling size (1 for full sampling)
+ *
+ * @returns Promise resolving to an ESQLSchema object containing:
+ *  - guide: Markdown-formatted description of the schema
+ *  - indexPattern: Original index pattern used
+ *  - knownFields: Array of field definitions with types and capabilities
+ *  - initialESQL: Starting ESQL query for the schema
+ *  - initialActions: Default sorting actions (e.g., by timestamp)
+ * @returns null if no matching indices are found (only works for templates; for simple indices it throws an error)
+ *
+ * @throws Will throw an error if the Elasticsearch API request fails
+ */
 export const deriveSchema = async ({
   apiURL,
   apiKey,
   indexPattern,
-  randomSamplingFactor,
-}: ESQLDeriveSchemaOptions): Promise<ESQLSchema> => {
+  randomSamplingFactor = 1,
+}: ESQLDeriveSchemaOptions): Promise<ESQLSchema | null> => {
   const capabilities = await getJSON(
     `${apiURL}/${indexPattern}/_field_caps`,
     apiKey,
@@ -280,6 +306,10 @@ export const deriveSchema = async ({
   );
 
   const { indices, fields } = capabilities as CapabilitiesResponse;
+
+  if (indices.length === 0) {
+    return null;
+  }
 
   const knownFields = parseFieldCapabilities(fields);
   knownFields.sort((a, b) => a.name.localeCompare(b.name));

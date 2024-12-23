@@ -22,6 +22,7 @@ import TokenCountNotice from "./components/TokenCountNotice";
 import { ESQLSchema } from "../services/es/derive_schema";
 import axios from "axios";
 import { ChevronUpIcon } from "@chakra-ui/icons";
+import { DEMO_ITEMS, DemoItem } from "../services/es/demo";
 
 interface ReferenceGuidesAreaProps {
   esqlGuideText: string;
@@ -38,6 +39,7 @@ interface ReferenceGuidesAreaProps {
   isESQLRequestAvailable: boolean;
   isElasticsearchAPIAvailable: boolean;
   handleRetrieveSchemaFromES: () => void;
+  handleProvideDemo: (item: DemoItem) => void;
 }
 
 const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
@@ -55,6 +57,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   isESQLRequestAvailable,
   isElasticsearchAPIAvailable,
   handleRetrieveSchemaFromES,
+  handleProvideDemo,
 }) => {
   const loadESQLFile = useCallback(
     async (filename: string) => {
@@ -66,18 +69,6 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
       }
     },
     [setEsqlGuideText]
-  );
-
-  const loadSchemaFile = useCallback(
-    async (filename: string) => {
-      try {
-        const request = await axios.get(filename, { responseType: "json" });
-        setSchemaGuideJSON(request.data);
-      } catch (error) {
-        console.error(`Error loading ${filename} as JSON:`, error);
-      }
-    },
-    [setSchemaGuideJSON]
   );
 
   return (
@@ -191,7 +182,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
                 disabled={!isElasticsearchAPIAvailable}
                 onClick={async () => handleRetrieveSchemaFromES()}
               >
-                From ES...
+                Load...
               </Button>
             </Tooltip>
 
@@ -204,19 +195,20 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
                   as={Button}
                   variant="ghost"
                   colorScheme="green"
+                  disabled={!isElasticsearchAPIAvailable}
                   rightIcon={<ChevronUpIcon />}
                 >
                   Demo
                 </MenuButton>
                 <MenuList>
-                  <MenuItem onClick={() => loadSchemaFile("demo-flights.json")}>
-                    Flights
-                  </MenuItem>
-                  <MenuItem
-                    onClick={() => loadSchemaFile("demo-ecommerce.json")}
-                  >
-                    E-Commerce
-                  </MenuItem>
+                  {DEMO_ITEMS.map((item) => (
+                    <MenuItem
+                      key={item.title}
+                      onClick={() => handleProvideDemo(item)}
+                    >
+                      {item.title}
+                    </MenuItem>
+                  ))}
                 </MenuList>
               </Menu>
             </Tooltip>

@@ -34,6 +34,14 @@ const fetchJSON = async (
   return answer;
 };
 
+export const headRequest = (url: string, apiKey: string): Promise<Response> =>
+  fetch(url, {
+    method: "HEAD",
+    headers: {
+      Authorization: `ApiKey ${ensureBase64Encoded(apiKey)}`,
+    },
+  });
+
 export const postJSON = async (
   url: string,
   apiKey: string,
@@ -44,6 +52,27 @@ export const postJSON = async (
     ? `${url}?${new URLSearchParams(paramObject)}`
     : url;
   return await fetchJSON("POST", apiKey, newURL, JSON.stringify(bodyObject));
+};
+
+export const postNDJSON = async (
+  url: string,
+  apiKey: string,
+  bodyObjects: object[],
+  paramObject: Record<string, string> | null = null
+): Promise<object> => {
+  const body = bodyObjects.map((obj) => JSON.stringify(obj) + "\n").join("");
+  const newURL = paramObject
+    ? `${url}?${new URLSearchParams(paramObject)}`
+    : url;
+  return await fetchJSON("POST", apiKey, newURL, body);
+};
+
+export const putJSON = async (
+  url: string,
+  apiKey: string,
+  bodyObject: object
+): Promise<object> => {
+  return await fetchJSON("PUT", apiKey, url, JSON.stringify(bodyObject));
 };
 
 export const getJSON = async (
