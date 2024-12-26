@@ -468,12 +468,13 @@ const AdaptedConfigurationTab: React.FC<AdaptedConfigurationTabProps> =
           );
       }
     },
-    (prevProps, nextProps) => {
-      return _.isEqual(
+    (prevProps, nextProps) =>
+      (prevProps.llmConfig.selected === prevProps.type) ===
+        (nextProps.llmConfig.selected === nextProps.type) &&
+      _.isEqual(
         prevProps.llmConfig[prevProps.type],
         nextProps.llmConfig[nextProps.type]
-      );
-    }
+      )
   );
 
 const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
