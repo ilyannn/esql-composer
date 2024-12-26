@@ -11,7 +11,7 @@ interface FieldTagMeshProps {
 export function FieldTagMesh({ size, fields, setFields }: FieldTagMeshProps) {
   const [draggedField, setDraggedField] = useState<string | null>(null);
   const [draggedFieldWidth, setDraggedFieldWidth] = useState<number | null>(
-    null
+    null,
   );
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
@@ -23,7 +23,7 @@ export function FieldTagMesh({ size, fields, setFields }: FieldTagMeshProps) {
         setFields(updatedFields);
       }
     },
-    [fields, setFields]
+    [fields, setFields],
   );
 
   return (

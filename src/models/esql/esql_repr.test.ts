@@ -7,7 +7,7 @@ describe("representESQLField", () => {
     expect(representESQLField("name-with-dash")).toBe("`name-with-dash`");
     expect(representESQLField("name.with.dot")).toBe("name.with.dot");
     expect(representESQLField("name`with`backtick")).toBe(
-      "`name``with``backtick`"
+      "`name``with``backtick`",
     );
   });
 
@@ -60,7 +60,7 @@ describe("representESQLValue", () => {
 
   it("should add conversion for geo types", () => {
     expect(representESQLValue("POINT(1 2)", "geo_point")).toBe(
-      '"POINT(1 2)"::geo_point'
+      '"POINT(1 2)"::geo_point',
     );
   });
 });

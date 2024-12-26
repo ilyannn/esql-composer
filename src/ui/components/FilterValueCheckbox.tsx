@@ -20,7 +20,7 @@ interface FilterValueCheckboxProps {
 const getStatsText = (
   value: ESQLAtomValue,
   localStats: ValueStatistics,
-  globalStats: ValueStatistics | undefined
+  globalStats: ValueStatistics | undefined,
 ): string => {
   const globalCount = getValueCount(value, globalStats);
 
@@ -31,7 +31,7 @@ const getStatsText = (
   }
 
   const fractionPercentage = Math.round(
-    (globalCount / globalStats.totalCount) * 100
+    (globalCount / globalStats.totalCount) * 100,
   );
 
   if (fractionPercentage === 0) {

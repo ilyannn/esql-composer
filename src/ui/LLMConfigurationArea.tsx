@@ -100,7 +100,7 @@ const ClaudeModelSelection: React.FC<ClaudeModelSelectionProps> = React.memo(
         {children}
       </FormControl>
     );
-  }
+  },
 );
 
 interface LlamaServerInputProps {
@@ -139,7 +139,7 @@ const LlamaServerInput: React.FC<LlamaServerInputProps> = React.memo(
         </FormHelperText>
       </FormControl>
     );
-  }
+  },
 );
 
 interface ConfigInputProps {
@@ -197,7 +197,7 @@ const ConfigInput: React.FC<ConfigInputProps> = React.memo(
         {children}
       </FormControl>
     );
-  }
+  },
 );
 
 const DividedStack: React.FC<{
@@ -473,8 +473,8 @@ const AdaptedConfigurationTab: React.FC<AdaptedConfigurationTabProps> =
         (nextProps.llmConfig.selected === nextProps.type) &&
       _.isEqual(
         prevProps.llmConfig[prevProps.type],
-        nextProps.llmConfig[nextProps.type]
-      )
+        nextProps.llmConfig[nextProps.type],
+      ),
   );
 
 const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
@@ -487,7 +487,7 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
               variant="enclosed-colored"
               flex={1}
               index={TAB_CONFIG.findIndex(
-                (tab) => tab.id === llmConfig.selected
+                (tab) => tab.id === llmConfig.selected,
               )}
               onChange={(index) =>
                 setLLMConfig({
@@ -533,7 +533,7 @@ const LLMConfigurationArea: React.FC<LLMConfigurationAreaProps> = React.memo(
         </form>
       </VStack>
     );
-  }
+  },
 );
 
 export default LLMConfigurationArea;

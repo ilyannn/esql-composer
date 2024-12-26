@@ -6,7 +6,7 @@ export const ESQLValueTrue = Symbol("ES|QL true value");
 export const ESQLValueFalse = Symbol("ES|QL false value");
 export const ESQLValueNull = Symbol("ES|QL null value");
 export const ESQLSentinelOtherValues = Symbol(
-  "Represents values not listed otherwise"
+  "Represents values not listed otherwise",
 );
 
 export type ESQLAtomValue =
@@ -17,7 +17,7 @@ export type ESQLAtomValue =
   | typeof ESQLValueNull;
 
 export const esqlRawToHashableValue = (
-  value: ESQLAtomRawValue
+  value: ESQLAtomRawValue,
 ): ESQLAtomValue => {
   if (value === true) {
     return ESQLValueTrue;
@@ -101,7 +101,7 @@ export const esqlIsTypeSortable = (type: ESQLColumnType): boolean => {
 };
 
 export const flattenMultivalues = (
-  data: (ESQLAtomRawValue | ESQLAtomRawMultivalue)[]
+  data: (ESQLAtomRawValue | ESQLAtomRawMultivalue)[],
 ) => {
   return data.flatMap((d) => (Array.isArray(d) ? d : [d]));
 };

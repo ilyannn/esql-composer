@@ -47,7 +47,7 @@ interface ESQLComposerProps {
   getGlobalTopStats: (
     index: number,
     fieldName: string,
-    topN: number
+    topN: number,
   ) => Promise<ValueStatistics | undefined>;
   handleBlockAction(index: number, action: ComposerBlockAction): void;
 }
@@ -65,7 +65,7 @@ const toSliderValue = (limit: number | null) => {
 const renderLimitBlock = (
   index: number,
   handleLimitChange: (index: number, limit: number | null) => void,
-  block: ESQLBlock & BlockHasStableId & { command: "LIMIT" }
+  block: ESQLBlock & BlockHasStableId & { command: "LIMIT" },
 ) => {
   return (
     <Slider
@@ -98,7 +98,7 @@ const renderBlockContents = (
   block: ESQLBlock & BlockHasStableId,
   updateBlock: (index: number, block: ESQLBlock) => void,
   handleLimitChange: (index: number, limit: number | null) => void,
-  handleWhereTopStats: (index: number, requestedFor: number) => Promise<void>
+  handleWhereTopStats: (index: number, requestedFor: number) => Promise<void>,
 ) => {
   switch (block.command) {
     case "LIMIT":
@@ -159,7 +159,7 @@ const renderBlockContents = (
                     updateBlock(index, {
                       ...block,
                       order: block.order.map((a) =>
-                        a.field === atom.field ? { ...a, asc: !a.asc } : a
+                        a.field === atom.field ? { ...a, asc: !a.asc } : a,
                       ),
                     });
                   }}
@@ -193,7 +193,7 @@ const renderBlockContents = (
                 <Text>→</Text>
                 <FieldTag name={newName} />
               </HStack>
-            )
+            ),
           )}
         </VStack>
       );
@@ -212,7 +212,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
 
   const handleBlockHover = (
     index: number,
-    action: ComposerBlockAction | null
+    action: ComposerBlockAction | null,
   ) => {
     setHighlightedBlock(action && [index, action]);
   };
@@ -235,13 +235,13 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
   const handleWhereTopStats = async (index: number): Promise<void> => {
     const filterBlock = chain[index] as FilterBlock & BlockHasStableId;
     const otherValuesIncluded = filterBlock.values.some(
-      (v) => v.value === ESQLSentinelOtherValues && v.included
+      (v) => v.value === ESQLSentinelOtherValues && v.included,
     );
     const topN = filterBlock.topStatsRetrieved + 10;
     const topStats = await getGlobalTopStats(
       index,
       filterBlock.field.name,
-      topN
+      topN,
     );
     const oldValues = new Set(filterBlock.values.map((v) => v.value));
     const newValues = statisticsEntries(topStats)
@@ -258,7 +258,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
             ({
               value: v,
               included: otherValuesIncluded,
-            } as FilterValue)
+            }) as FilterValue,
         ),
         ...filterBlock.values,
       ],
@@ -309,7 +309,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
             block,
             updateBlock,
             handleLimitChange,
-            handleWhereTopStats
+            handleWhereTopStats,
           )}
         </ComposerBlock>
       ))}

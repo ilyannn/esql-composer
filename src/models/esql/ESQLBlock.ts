@@ -134,7 +134,7 @@ const limitBlockToESQL = (block: LimitBlock): string | null => {
  * @returns The ES|QL representation of the block, or `null` if the block has no fields.
  */
 const fieldsBlockToESQL = (
-  block: KeepBlock | DropBlock | ExpandBlock
+  block: KeepBlock | DropBlock | ExpandBlock,
 ): string | null => {
   if (block.fields.length === 0) {
     return null;
@@ -155,7 +155,7 @@ const renameBlockToESQL = (block: RenameBlock): string | null => {
   const fields = Object.entries(block.map)
     .map(
       ([oldName, newName]) =>
-        `${representESQLField(oldName)} AS ${representESQLField(newName)}`
+        `${representESQLField(oldName)} AS ${representESQLField(newName)}`,
     )
     .join(", ");
   return `RENAME ${fields}`;
@@ -179,11 +179,11 @@ const filterBlockToESQL = (block: FilterBlock): string | null => {
   }
 
   const defaultIncluded = block.values.some(
-    (v) => v.value === ESQLSentinelOtherValues && v.included
+    (v) => v.value === ESQLSentinelOtherValues && v.included,
   );
 
   const nullIsSpecial = block.values.some(
-    (v) => v.value === ESQLValueNull && v.included !== defaultIncluded
+    (v) => v.value === ESQLValueNull && v.included !== defaultIncluded,
   );
 
   const specialValues: ESQLAtomValue[] = block.values
@@ -212,7 +212,7 @@ const matchBlockToESQL = (block: MatchBlock): string | null => {
   }
 
   return `WHERE ${representESQLField(block.field.name)} : ${representESQLValue(
-    block.match
+    block.match,
   )}`;
 };
 
@@ -228,7 +228,8 @@ const sortBlockToESQL = (block: SortBlock): string | null => {
   }
   const fields = block.order
     .map(
-      (field) => `${representESQLField(field.field)}${field.asc ? "" : " DESC"}`
+      (field) =>
+        `${representESQLField(field.field)}${field.asc ? "" : " DESC"}`,
     )
     .join(", ");
   return `SORT ${fields}`;
@@ -247,15 +248,11 @@ const evalBlockToESQL = (block: EvalBlock): string | null => {
     return null;
   }
 
-  return (
-    `EVAL ${ 
-    expressions
-      .map(
-        ({ field, expression }) =>
-          `${representESQLField(field)} = ${expression}`
-      )
-      .join(", ")}`
-  );
+  return `EVAL ${expressions
+    .map(
+      ({ field, expression }) => `${representESQLField(field)} = ${expression}`,
+    )
+    .join(", ")}`;
 };
 
 /**

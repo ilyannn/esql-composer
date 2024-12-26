@@ -39,11 +39,11 @@ export type BedrockModelName =
  * @returns The index of the specified model name in the CLAUDE_MODEL_LIST, or 0 if not found.
  */
 export const getAnthropicModelIndex = (
-  modelName: AnthropicModelName
+  modelName: AnthropicModelName,
 ): ClaudeModelIndex =>
   Math.max(
     0,
-    CLAUDE_MODEL_LIST.findIndex((model) => model.anthropic === modelName)
+    CLAUDE_MODEL_LIST.findIndex((model) => model.anthropic === modelName),
   ) as ClaudeModelIndex;
 
 /**
@@ -53,11 +53,11 @@ export const getAnthropicModelIndex = (
  * @returns The index of the specified model name in the CLAUDE_MODEL_LIST, or 0 if not found.
  */
 export const getBedrockModelIndex = (
-  modelName: BedrockModelName
+  modelName: BedrockModelName,
 ): ClaudeModelIndex =>
   Math.max(
     0,
-    CLAUDE_MODEL_LIST.findIndex((model) => model.bedrock === modelName)
+    CLAUDE_MODEL_LIST.findIndex((model) => model.bedrock === modelName),
   ) as ClaudeModelIndex;
 
 interface BaseLLMConfig {

@@ -108,7 +108,7 @@ describe("createWhereClause", () => {
     });
 
     expect(result).toBe(
-      'field == "value with space" OR field == """value with " inside"""'
+      'field == "value with space" OR field == """value with " inside"""',
     );
   });
 

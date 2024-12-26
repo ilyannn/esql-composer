@@ -55,12 +55,12 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
     setLLMTracingOption,
     esTracingOption,
     setESTracingOption,
-  }) => {
+  }: HowToUseAreaProps) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
 
     const [config, storeConfig, removeConfig] = useLocalStorage<Config>(
       CONFIG_KEY,
-      {}
+      {},
     );
     const isConfigEmpty = Object.keys(config).length === 0;
     const loadOnMountPerformed = useRef(false);
@@ -265,7 +265,7 @@ const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(
         </Drawer>
       </>
     );
-  }
+  },
 );
 
 export default HowToUseArea;

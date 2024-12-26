@@ -46,7 +46,7 @@ const addCachePoints = ({
                   ...content,
                   ...cacheAnnotation,
                 } satisfies PromptCachingBetaTextBlockParam)
-              : content
+              : content,
           );
           return {
             ...message,
@@ -118,7 +118,7 @@ export class AnthropicLLMAdapter implements LLMAdapter {
   async stream(
     request: PreparedRequest,
     params: StreamingOptions,
-    processor: StreamingProcessor
+    processor: StreamingProcessor,
   ): Promise<StreamingStats> {
     const requestTime = Date.now();
     let first_token_time_ms: number | undefined;

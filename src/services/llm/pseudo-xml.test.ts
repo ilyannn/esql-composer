@@ -159,7 +159,7 @@ describe("PseudoXMLParser", () => {
       const tags = ["field", "eval"];
       const result = recordToPseudoXML(record, tags);
       expect(result).toEqual(
-        "<field>value1</field>\n<eval>value2</eval>\n<eval>value3</eval>"
+        "<field>value1</field>\n<eval>value2</eval>\n<eval>value3</eval>",
       );
     });
   });

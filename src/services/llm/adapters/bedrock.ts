@@ -18,7 +18,7 @@ import { DEFAULT_MAX_TOKENS } from "./constants";
 const createBedrockInstance = (
   region: string,
   keyID: string,
-  keySecret: string
+  keySecret: string,
 ) => {
   return new BedrockRuntimeClient({
     region,
@@ -37,7 +37,7 @@ export class BedrockLLMAdapter implements LLMAdapter {
     this.client = createBedrockInstance(
       config.region,
       config.accessKeyId,
-      config.secretAccessKey
+      config.secretAccessKey,
     );
     this.modelId = config.modelName;
   }
@@ -76,7 +76,7 @@ export class BedrockLLMAdapter implements LLMAdapter {
   async stream(
     request: PreparedRequest,
     params: StreamingOptions,
-    processor: StreamingProcessor
+    processor: StreamingProcessor,
   ): Promise<StreamingStats> {
     const requestTime = Date.now();
     let first_token_time_ms: number | undefined;

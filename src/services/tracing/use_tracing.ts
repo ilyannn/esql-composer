@@ -55,7 +55,7 @@ export const useTracing = <T extends Record<string, any>>({
       postJSON(`${apiURL}/${option.indexName}/_doc`, apiKey, traceData).catch(
         (error) => {
           console.error(`Failed to index trace data: ${error}`);
-        }
+        },
       );
     },
   };

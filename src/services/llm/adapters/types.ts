@@ -150,6 +150,6 @@ export interface LLMAdapter {
   stream(
     request: PreparedRequest,
     params: StreamingOptions,
-    processor: StreamingProcessor
+    processor: StreamingProcessor,
   ): Promise<StreamingStats>;
 }

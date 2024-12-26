@@ -77,7 +77,7 @@ interface SamplingAggregationsResponse extends SearchResponse {
 }
 
 const parseFieldCapabilities = (
-  fieldCapabilities: Record<string, Record<string, Record<string, any>>>
+  fieldCapabilities: Record<string, Record<string, Record<string, any>>>,
 ): DeriveSchemaField[] => {
   return Object.entries(fieldCapabilities).flatMap(([field, capability]) => {
     return Object.entries(capability).flatMap(([type, typeData]) => {
@@ -108,7 +108,7 @@ const AGG_TYPE: Record<string, string> = {
 
 const createTermsAggregationRequest = (
   fields: DeriveSchemaField[],
-  randomSamplingFactor: number
+  randomSamplingFactor: number,
 ) => {
   const aggs: Record<string, any> = fields.reduce(
     (acc: Record<string, any>, field) => {
@@ -132,7 +132,7 @@ const createTermsAggregationRequest = (
       }
       return acc;
     },
-    {}
+    {},
   );
 
   if (Object.keys(aggs).length === 0) {
@@ -165,7 +165,7 @@ const humanizeValue = (value: number, field_key: string): string => {
 };
 
 const parseSamplingAggregationResults = (
-  results: SamplingAggregationsResponse
+  results: SamplingAggregationsResponse,
 ): Record<string, string> => {
   const samplingObject =
     "sampling" in results.aggregations
@@ -191,7 +191,7 @@ const parseSamplingAggregationResults = (
         for (const bucket of buckets) {
           const example =
             typeof bucket.key !== "string"
-              ? bucket.key_as_string ?? bucket.key.toString()
+              ? (bucket.key_as_string ?? bucket.key.toString())
               : bucket.key;
           if (
             example.length === 0 ||
@@ -220,8 +220,8 @@ const parseSamplingAggregationResults = (
           otherDocCount === 0
             ? "only" // This value list is exhaustive
             : 2 * otherDocCount < usefulExamplesDocCount
-            ? "mostly" // These values represent the majority
-            : "e.g."; // All other cases
+              ? "mostly" // These values represent the majority
+              : "e.g."; // All other cases
 
         acc[field_key] = `${introductoryWord} ${usefulExamples.join(", ")}`;
       } else {
@@ -251,7 +251,7 @@ const parseSamplingAggregationResults = (
         "Error parsing sampling aggregation results",
         e,
         field_key,
-        term_or_percentile
+        term_or_percentile,
       );
     }
   });
@@ -302,7 +302,7 @@ export const deriveSchema = async ({
       fields: "*",
       filters: "-metadata",
       include_empty_fields: "false",
-    }
+    },
   );
 
   const { indices, fields } = capabilities as CapabilitiesResponse;
@@ -315,7 +315,7 @@ export const deriveSchema = async ({
   knownFields.sort((a, b) => a.name.localeCompare(b.name));
   const aggregationRequest = createTermsAggregationRequest(
     knownFields,
-    randomSamplingFactor
+    randomSamplingFactor,
   );
 
   let examples: Record<string, string> = {};
@@ -323,15 +323,14 @@ export const deriveSchema = async ({
     const termResults = (await postJSON(
       `${apiURL}/${indexPattern}/_search`,
       apiKey,
-      aggregationRequest
+      aggregationRequest,
     )) as SamplingAggregationsResponse;
     examples = parseSamplingAggregationResults(termResults);
   }
 
   let guide = `# Schema for the index pattern "${indexPattern}"\n\n`;
 
-  guide +=
-    `## Indices\n\n${  indices.map((index) => `* ${index}`).join("\n")  }\n\n`;
+  guide += `## Indices\n\n${indices.map((index) => `* ${index}`).join("\n")}\n\n`;
   guide += `## Fields\n\nHere is the combined list of fields in these indices, their type and most common values:\n\n`;
 
   guide += knownFields
@@ -339,7 +338,7 @@ export const deriveSchema = async ({
       (field) =>
         `* ${field.name}: ${field.type}${
           examples[field.key] ? `, ${examples[field.key]}` : ""
-        }`
+        }`,
     )
     .join("\n");
 
@@ -358,14 +357,15 @@ export const deriveSchema = async ({
 
   for (const field of knownFields) {
     if (field.type === "date") {
-      if (field.name === "timestamp" || field.name === "@timestamp")
-        {initialActions.push({
+      if (field.name === "timestamp" || field.name === "@timestamp") {
+        initialActions.push({
           action: "sortDesc",
           column: {
             name: field.name,
             type: field.type,
           },
-        });}
+        });
+      }
     }
   }
 

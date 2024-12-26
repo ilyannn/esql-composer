@@ -30,7 +30,7 @@ interface GetSchemaModalProps {
   onClose: () => void;
   getSchemaFromES: (
     indexPattern: string,
-    randomSamplingFactor: number
+    randomSamplingFactor: number,
   ) => Promise<void>;
 }
 
@@ -128,12 +128,8 @@ const GetSchemaModal: React.FC<GetSchemaModalProps> = ({
                       borderColor="green.200"
                       fontSize="xs"
                       boxSize="38px"
-                      children={
-                        <Text>
-                          {HUMAN_READABLE_FACTOR[randomSamplingExponent]}
-                        </Text>
-                      }
                     />
+                    <Text>{HUMAN_READABLE_FACTOR[randomSamplingExponent]}</Text>
                   </Slider>
                 </Box>
                 <FormHelperText height="2em">

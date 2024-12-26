@@ -121,7 +121,7 @@ const ESQLComposerMain = () => {
   const [esqlSchema, _setEsqlSchema] = useState<ESQLSchema | null>(null);
 
   const [tracingOptions, setTracingOptions] = useState<TracingOptions>(
-    defaultTracingOptions
+    defaultTracingOptions,
   );
 
   const schemaGuideText = esqlSchema?.guide || "";
@@ -151,7 +151,7 @@ const ESQLComposerMain = () => {
     boolean | null
   >(null);
   const [queryAPIKeyWorks, setQueryAPIKeyWorks] = useState<boolean | null>(
-    null
+    null,
   );
   const [cacheWarmedInfo, setCacheWarmedInfo] =
     useState<CacheWarmedInfo | null>(null);
@@ -231,7 +231,7 @@ const ESQLComposerMain = () => {
         guide: value,
       });
     },
-    [esqlSchema]
+    [esqlSchema],
   );
 
   const setQueryAPIURL = useCallback(
@@ -240,7 +240,7 @@ const ESQLComposerMain = () => {
       setQueryAPIKeyWorks(null);
       setQueryAPIInfo(null);
     },
-    [_setQueryAPIURL]
+    [_setQueryAPIURL],
   );
 
   const setQueryAPIKey = useCallback((value: string) => {
@@ -271,8 +271,8 @@ const ESQLComposerMain = () => {
       label: string,
       action: (
         adapter: LLMAdapter,
-        addToSpan: UseTracingCallback
-      ) => Promise<void>
+        addToSpan: UseTracingCallback,
+      ) => Promise<void>,
     ) => {
       const adapter = createLLMAdapter(llmConfig);
 
@@ -337,13 +337,13 @@ const ESQLComposerMain = () => {
         saveSpan();
       }
     },
-    [toast, queryAPIURL, queryAPIKey, tracingOptions.llm]
+    [toast, queryAPIURL, queryAPIKey, tracingOptions.llm],
   );
 
   const performQueryAPIAction = useCallback(
     async (
       label: string,
-      action: (addToSpan: UseTracingCallback) => Promise<void>
+      action: (addToSpan: UseTracingCallback) => Promise<void>,
     ) => {
       const { addToSpan, saveSpan } = useTracing({
         apiURL: queryAPIURL,
@@ -405,7 +405,7 @@ const ESQLComposerMain = () => {
         saveSpan();
       }
     },
-    [toast, queryAPIURL, queryAPIKey, tracingOptions.es]
+    [toast, queryAPIURL, queryAPIKey, tracingOptions.es],
   );
 
   const handlePerformLLMTest = async () => {
@@ -460,7 +460,7 @@ const ESQLComposerMain = () => {
     await performLLMAction("Size reduction", async (llmAdapter) => {
       if (!llmAdapter.countTokens) {
         throw new Error(
-          `Counting tokens is not supported by the '${llmConfig.selected}' LLM adapter.`
+          `Counting tokens is not supported by the '${llmConfig.selected}' LLM adapter.`,
         );
       }
 
@@ -469,7 +469,7 @@ const ESQLComposerMain = () => {
       let newESQGuideText = "";
 
       const processLine = (line: string) => {
-        newESQGuideText += `${line  }\n`;
+        newESQGuideText += `${line}\n`;
         setEsqlGuideText(newESQGuideText);
       };
 
@@ -504,7 +504,7 @@ const ESQLComposerMain = () => {
     await performLLMAction("Token Counting", async (llmAdapter) => {
       if (!llmAdapter.countTokens) {
         throw new Error(
-          `Counting tokens is not supported by the '${llmConfig.selected}' LLM adapter.`
+          `Counting tokens is not supported by the '${llmConfig.selected}' LLM adapter.`,
         );
       }
 
@@ -584,7 +584,7 @@ const ESQLComposerMain = () => {
       updatingESQLLineByLine,
       queryAPIDataAutoUpdate,
       fetchQueryData,
-    ]
+    ],
   );
 
   useEffect(() => {
@@ -598,12 +598,12 @@ const ESQLComposerMain = () => {
         performQueryAPIDataAutoUpdate(value);
       }
     },
-    [performQueryAPIDataAutoUpdate]
+    [performQueryAPIDataAutoUpdate],
   );
 
   const splitVisualChainAndLimit = useCallback(
     (
-      chain: ESQLChain
+      chain: ESQLChain,
     ): [ESQLChain, (LimitBlock & BlockHasStableId) | undefined] => {
       // This value only needs to be changed if limit is minimized.
       if (minimizedLimitBlock !== undefined) {
@@ -617,13 +617,13 @@ const ESQLComposerMain = () => {
 
       return [chain, undefined];
     },
-    [minimizedLimitBlock]
+    [minimizedLimitBlock],
   );
 
   const _resetESQL = useCallback(
     (
       initialESQL: string | undefined,
-      initialActions: ESQLChainAction[] | undefined
+      initialActions: ESQLChainAction[] | undefined,
     ) => {
       setNaturalInput("");
       setQueryAPIData(null);
@@ -632,13 +632,13 @@ const ESQLComposerMain = () => {
       if (esql.length === 0) {
         setQueryAPIDataAutoUpdate(false);
       }
-      setEsqlInput(`${esql  }\n`);
+      setEsqlInput(`${esql}\n`);
 
       const initialChain = reduce(
         initialActions,
         (chain: ESQLChain, action) =>
           performChainAction(chain, action, []).chain,
-        createInitialChain()
+        createInitialChain(),
       );
 
       const [newChain, newMinimizedLimitBlock] =
@@ -646,7 +646,7 @@ const ESQLComposerMain = () => {
       setVisualChain(newChain);
       setMinimizedLimitBlock(newMinimizedLimitBlock);
     },
-    []
+    [],
   );
 
   const setEsqlSchema = useCallback(
@@ -654,7 +654,7 @@ const ESQLComposerMain = () => {
       _setEsqlSchema(schema);
       _resetESQL(schema?.initialESQL, schema?.initialActions);
     },
-    [_resetESQL]
+    [_resetESQL],
   );
 
   const loadConfig = useCallback(
@@ -662,7 +662,7 @@ const ESQLComposerMain = () => {
       if ("llmConfig" in config && typeof config["llmConfig"] === "object") {
         const newConfig = _.merge(
           _.cloneDeep(defaultLLMConfig),
-          config["llmConfig"]
+          config["llmConfig"],
         );
         setLLMConfig(newConfig);
       }
@@ -716,7 +716,7 @@ const ESQLComposerMain = () => {
         });
       }
     },
-    [setQueryAPIURL, setQueryAPIKey, setEsqlSchema]
+    [setQueryAPIURL, setQueryAPIKey, setEsqlSchema],
   );
 
   const resetESQL = useCallback(() => {
@@ -786,7 +786,7 @@ const ESQLComposerMain = () => {
       allStats,
       history,
       naturalInput.length,
-    ]
+    ],
   );
 
   const handleCompleteESQL = async () => {
@@ -808,12 +808,12 @@ const ESQLComposerMain = () => {
       }
       if (lineEnd > cursorPosition) {
         setEsqlInput(
-          esqlInput.substring(0, cursorPosition) + esqlInput.substring(lineEnd)
+          esqlInput.substring(0, cursorPosition) + esqlInput.substring(lineEnd),
         );
         if (esqlInputRef.current) {
           esqlInputRef.current.setSelectionRange(
             cursorPosition,
-            cursorPosition
+            cursorPosition,
           );
         }
       }
@@ -822,12 +822,12 @@ const ESQLComposerMain = () => {
         setEsqlInput(
           esqlInput.substring(0, cursorPosition) +
             line +
-            esqlInput.substring(lineEnd)
+            esqlInput.substring(lineEnd),
         );
         if (esqlInputRef.current) {
           esqlInputRef.current.setSelectionRange(
             cursorPosition + line.length,
-            cursorPosition + line.length
+            cursorPosition + line.length,
           );
         }
         /*      const updatedCursorPosition = esqlInputRef.current.selectionStart;
@@ -886,7 +886,7 @@ const ESQLComposerMain = () => {
                 sourceField: sourceField.name,
                 expressions: [{ field, expression: expr }],
               },
-              []
+              [],
             );
             setVisualChain(chain);
           };
@@ -903,7 +903,7 @@ const ESQLComposerMain = () => {
 
           addToSpan(data);
           setAllStats([...allStats, data.stats]);
-        }
+        },
       );
     },
     [
@@ -914,7 +914,7 @@ const ESQLComposerMain = () => {
       schemaGuideText,
       allStats,
       getCompleteESQL,
-    ]
+    ],
   );
 
   const handleShowInfo = async () => {
@@ -944,7 +944,7 @@ const ESQLComposerMain = () => {
 
   const handleGetSchemaFromES = async (
     indexPattern: string,
-    randomSamplingFactor: number
+    randomSamplingFactor: number,
   ) => {
     await performQueryAPIAction("Generate schema", async () => {
       const schema = await deriveSchema({
@@ -976,7 +976,7 @@ const ESQLComposerMain = () => {
 
   const handleProvideDemo = useCallback(
     async (item: DemoItem) => {
-      const title = `${item.title  } demo`;
+      const title = `${item.title} demo`;
 
       await performQueryAPIAction(item.title, async (addToSpan) => {
         const missing = !(await checkIndexExists({
@@ -1027,7 +1027,9 @@ const ESQLComposerMain = () => {
             apiKey: queryAPIKey,
             indexPattern: item.index,
           });
-        } catch (error) {}
+        } catch (error) {
+          // Ignore the error, we will try to load the demo anyway.
+        }
 
         if (!schema) {
           throw new Error("Failed to load the demo");
@@ -1050,7 +1052,7 @@ const ESQLComposerMain = () => {
         });
       });
     },
-    [queryAPIURL, queryAPIKey]
+    [queryAPIURL, queryAPIKey],
   );
 
   const handleChainAction = useCallback(
@@ -1063,7 +1065,7 @@ const ESQLComposerMain = () => {
         return false;
       }
     },
-    [visualChain]
+    [visualChain],
   );
 
   const handleUnminimizeLimitBlock = useCallback(() => {
@@ -1083,7 +1085,7 @@ const ESQLComposerMain = () => {
       blocks[index] = blockWIthID;
       setVisualChain(blocks);
     },
-    [visualChain]
+    [visualChain],
   );
 
   const handleVisualBlockAction = useCallback(
@@ -1099,7 +1101,7 @@ const ESQLComposerMain = () => {
         case "accept":
           const newESQL = esqlChainAddToString(
             esqlInput,
-            visualChain.slice(0, index + 1)
+            visualChain.slice(0, index + 1),
           );
           setEsqlInput(newESQL);
           setVisualChain(visualChain.slice(index + 1));
@@ -1112,14 +1114,14 @@ const ESQLComposerMain = () => {
           break;
       }
     },
-    [esqlInput, visualChain]
+    [esqlInput, visualChain],
   );
 
   const handleGlobalTopStats = useCallback(
     async (
       index: number,
       fieldName: string,
-      topN: number
+      topN: number,
     ): Promise<ValueStatistics | undefined> => {
       let stats: ValueStatistics | undefined = undefined;
 
@@ -1128,7 +1130,7 @@ const ESQLComposerMain = () => {
         async () => {
           const queryESQL = esqlChainAddToString(
             esqlInput,
-            visualChain.slice(0, index)
+            visualChain.slice(0, index),
           );
 
           const countCol = fieldName === "c" ? "cc" : "c";
@@ -1150,7 +1152,7 @@ const ESQLComposerMain = () => {
           if (response && response.data.values) {
             const values_counts = response.data.values as [
               ESQLAtomRawValue,
-              number
+              number,
             ][];
             stats = countRawValuesWithCount(values_counts);
 
@@ -1161,12 +1163,12 @@ const ESQLComposerMain = () => {
               }
             }
           }
-        }
+        },
       );
 
       return stats;
     },
-    [performQueryAPIAction, queryAPIURL, queryAPIKey, esqlInput, visualChain]
+    [performQueryAPIAction, queryAPIURL, queryAPIKey, esqlInput, visualChain],
   );
 
   return (

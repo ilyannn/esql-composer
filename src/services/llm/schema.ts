@@ -7,7 +7,7 @@ import { FieldInfo } from "./types";
 
 class Adapter<
   InputType extends MultivaluedRecord,
-  OutputType extends MultivaluedRecord
+  OutputType extends MultivaluedRecord,
 > {
   private inputSchema: string[];
   private outputSchema: string[];
@@ -86,7 +86,7 @@ class ESQLEvalAdapter extends Adapter<ESQLEvalInput, ESQLEvalOutput> {
   }): string {
     const { sourceFields, esqlInput } = options;
 
-    const esql = `${esqlInput.trim()  }\n| EVAL `;
+    const esql = `${esqlInput.trim()}\n| EVAL `;
     const examples: [string, string][] = sourceFields.map((field) => [
       "source",
       makeFieldExample(field),

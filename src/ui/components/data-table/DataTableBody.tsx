@@ -28,11 +28,10 @@ interface DataTableMultiValueCellProps {
   onExpand: () => void;
 }
 
-const DataTableSingleValueCell = React.memo(
-  ({ presenter, value }: DataTableSingleValueCellProps) => (
+const DataTableSingleValueCell: React.FC<DataTableSingleValueCellProps> =
+  React.memo(({ presenter, value }) => (
     <Td>{presenter(esqlRawToHashableValue(value))}</Td>
-  )
-);
+  ));
 
 const DataTableMultiValueCell = React.memo(
   ({ presenter, values, onExpand }: DataTableMultiValueCellProps) => (
@@ -53,7 +52,7 @@ const DataTableMultiValueCell = React.memo(
         right="1"
       />
     </Td>
-  )
+  ),
 );
 
 interface DataTableBodyProps {
@@ -82,7 +81,7 @@ const DataTableBody = ({ data, onExpand }: DataTableBodyProps) => {
                 presenter={columns[colIndex].presenter}
                 value={val}
               />
-            )
+            ),
           )}
         </Tr>
       ))}
@@ -91,5 +90,5 @@ const DataTableBody = ({ data, onExpand }: DataTableBodyProps) => {
 };
 
 export default React.memo(DataTableBody, (prevProps, nextProps) =>
-  isTableDataEqual(prevProps.data, nextProps.data)
+  isTableDataEqual(prevProps.data, nextProps.data),
 );

@@ -49,7 +49,8 @@ export function isESQLTableData(data: any): data is ESQLTableData {
     "values" in data &&
     Array.isArray(data.columns) &&
     data.columns.every(
-      (col: any) => typeof col.name === "string" && typeof col.type === "string"
+      (col: any) =>
+        typeof col.name === "string" && typeof col.type === "string",
     ) &&
     Array.isArray(data.values) &&
     data.values.every(
@@ -61,8 +62,8 @@ export function isESQLTableData(data: any): data is ESQLTableData {
             typeof val === "number" ||
             typeof val === "boolean" ||
             (typeof val === "object" && Array.isArray(val)) ||
-            val === null
-        )
+            val === null,
+        ),
     )
   );
 }
@@ -74,7 +75,7 @@ export function isESQLTableData(data: any): data is ESQLTableData {
  * @returns An array of records where each record is an object with keys corresponding to column names and values corresponding to the row values.
  */
 export const tableDataToRecords = (
-  data: ESQLTableData
+  data: ESQLTableData,
 ): Record<string, any>[] => {
   return data.values.map((row) =>
     row.reduce(
@@ -82,7 +83,7 @@ export const tableDataToRecords = (
         ...acc,
         [data.columns[idx].name]: val,
       }),
-      {}
-    )
+      {},
+    ),
   );
 };

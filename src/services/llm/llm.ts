@@ -62,13 +62,12 @@ const createAnthropicInstance = (apiKey: string) => {
   });
 };
 
-export const warmCache = async (params: WarmCacheInput): Promise<any> => {
-  return await generateESQLUpdate({
+export const warmCache = (params: WarmCacheInput): Promise<any> =>
+  generateESQLUpdate({
     ...params,
     type: "update",
     naturalInput: "top flights",
   });
-};
 
 /**
  * Generates an ESQL update using the Anthropic API.
@@ -86,7 +85,7 @@ export const warmCache = async (params: WarmCacheInput): Promise<any> => {
  * @property {Object} result.stats - Statistics about the API request.
  */
 export const generateESQLUpdate = async (
-  input: GenerateUpdateInput
+  input: GenerateUpdateInput,
 ): Promise<GenerateUpdateOutput> => {
   const anthropic = createAnthropicInstance(input.apiKey);
   const {
@@ -243,7 +242,7 @@ import { AnthropicLLMAdapter } from "./adapters/anthropic";
 
 export const transformField = async (
   adapter: LLMAdapter,
-  params: TransformFieldInput
+  params: TransformFieldInput,
 ): Promise<TransformFieldOutput> => {
   const request = prepareRequest({ ...params });
   let field: string | undefined;
@@ -281,7 +280,7 @@ export const transformField = async (
   const stats = await adapter.stream(
     request,
     { maxTokens: params.maxTokens ?? DEFAULT_MAX_TOKENS },
-    parser
+    parser,
   );
 
   return {

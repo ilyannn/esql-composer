@@ -16,12 +16,6 @@ export default [
       react: reactPlugin,
       "react-compiler": reactCompiler,
     },
-    // extends: [
-    //   "react-app",
-    //   "react-app/jest",
-    //   "plugin:prettier/recommended",
-    //   "airbnb-base",
-    // ],
     languageOptions: {
       parserOptions: {
         ecmaVersion: "latest",
@@ -32,20 +26,32 @@ export default [
       ecmaVersion: "latest",
       sourceType: "module",
       globals: {
-        //        ...globals.browser,
-        ...globals.es2021,
+        ...globals.browser,
+        ...globals.es2022,
       },
     },
     rules: {
+      // Rules set to "off"
+      "react/prop-types": "off",
+      "react/react-in-jsx-scope": "off",
+      "no-console": "off",
+
+      // Rules set to "warn"
+      "react/display-name": "warn",
+      "no-case-declarations": "warn",
+      "no-var": "warn",
+      "no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "prefer-const": "warn",
+      "no-shadow": "warn",
+      "@typescript-eslint/no-explicit-any": "warn",
+
+      // Rules set to "error"
       "react-compiler/react-compiler": "error",
-      "no-console": "error",
       "no-debugger": "error",
-      "no-unused-vars": "error",
       eqeqeq: ["error", "always"],
       curly: "error",
       strict: ["error", "global"],
-      "no-var": "error",
-      "prefer-const": "error",
       "no-implicit-globals": "error",
       "no-implied-eval": "error",
       "no-iterator": "error",
@@ -55,7 +61,6 @@ export default [
       "no-extra-bind": "error",
       "require-await": "error",
       "no-return-await": "error",
-      "no-shadow": "error",
       "no-use-before-define": "error",
       "prefer-template": "error",
       "object-shorthand": "error",

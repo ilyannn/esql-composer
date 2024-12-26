@@ -26,7 +26,7 @@ export type ESQLChain = (ESQLBlock & BlockHasStableId)[];
 
 export const esqlChainAddToString = (
   existingESQL: string,
-  chain: ESQLChain
+  chain: ESQLChain,
 ): string => {
   const chunks = chain.map(esqlBlockToESQL).filter((block) => block !== null);
   return [existingESQL.trimEnd(), ...chunks].join("\n| ");
@@ -85,7 +85,7 @@ interface FindUpdatePointResult {
 // Can this action update this block?
 const canActOnThisBlock = (
   action: ESQLChainAction,
-  block: ESQLBlock
+  block: ESQLBlock,
 ): boolean => {
   switch (action.action) {
     case "limit":
@@ -113,12 +113,15 @@ const canActOnThisBlock = (
 // Can this action bubble over this block?
 const canBubbleOverBlock = (
   action: ESQLChainAction,
-  block: ESQLBlock
+  block: ESQLBlock,
 ): boolean => {
   if (block.command === "LIMIT" && action.action !== "limit") {
     return true;
   }
-  if (block.command === "WHERE" && (action.action === "sortAsc" || action.action === "sortDesc")) {
+  if (
+    block.command === "WHERE" &&
+    (action.action === "sortAsc" || action.action === "sortDesc")
+  ) {
     return true;
   }
   switch (action.action) {
@@ -134,7 +137,7 @@ const canBubbleOverBlock = (
 
 const findUpdatePoint = (
   action: ESQLChainAction,
-  chain: ESQLChain
+  chain: ESQLChain,
 ): FindUpdatePointResult => {
   for (let p = chain.length - 1; p >= 0; p--) {
     if (canActOnThisBlock(action, chain[p])) {
@@ -151,11 +154,11 @@ const findUpdatePoint = (
 
 const blockUpdateForSort = (
   prevBlock: SortBlock | null,
-  orderItem: OrderItem
+  orderItem: OrderItem,
 ): SortBlock => {
   if (prevBlock) {
     const prevOrders = prevBlock.order.filter(
-      (o) => o.field !== orderItem.field
+      (o) => o.field !== orderItem.field,
     );
     return { ...prevBlock, order: [orderItem, ...prevOrders] };
   }
@@ -164,7 +167,7 @@ const blockUpdateForSort = (
 
 const blockUpdateForDrop = (
   prevBlock: DropBlock | KeepBlock | null,
-  field: string
+  field: string,
 ): DropBlock | KeepBlock => {
   if (!prevBlock) {
     return { command: "DROP", fields: [field] };
@@ -179,7 +182,7 @@ const blockUpdateForDrop = (
 
 const blockUpdateForExpand = (
   prevBlock: ExpandBlock | null,
-  field: string
+  field: string,
 ): ExpandBlock => {
   if (!prevBlock) {
     return { command: "MV_EXPAND", fields: [field] };
@@ -191,7 +194,7 @@ const blockUpdateForExpand = (
 const blockUpdateForRename = (
   prevBlock: RenameBlock | null,
   oldName: string,
-  newName: string
+  newName: string,
 ): RenameBlock => {
   if (prevBlock) {
     const map = { ...prevBlock.map, [oldName]: newName };
@@ -202,7 +205,7 @@ const blockUpdateForRename = (
 
 const blockUpdateForEval = (
   prevBlock: EvalBlock | null,
-  expressions: EvalExpression[]
+  expressions: EvalExpression[],
 ): EvalBlock => {
   return prevBlock
     ? { ...prevBlock, expressions: [...prevBlock.expressions, ...expressions] }
@@ -226,7 +229,7 @@ type BubbleDownParams = null | {
 
 const bubbleDown = (
   params: BubbleDownParams,
-  afterBlocks: ESQLChain
+  afterBlocks: ESQLChain,
 ): ESQLChain => {
   if (!params) {
     return afterBlocks;
@@ -279,7 +282,7 @@ const bubbleDown = (
 const provideValues = (stats: ValueStatistics): FilterValue[] => {
   const entries = statisticsEntries(stats);
   entries.sort((a, b) => {
-    if (b[1] == a[1]) {
+    if (b[1] === a[1]) {
       if (a[0] === b[0]) {
         return 0;
       }
@@ -317,7 +320,7 @@ const assignBlockId = (block: ESQLBlock): ESQLBlock & BlockHasStableId => {
 export const performChainAction = (
   chain: ESQLChain,
   action: ESQLChainAction,
-  knownFields: string[]
+  knownFields: string[],
 ): { chain: ESQLChain; upsertedIndex: number } => {
   const { updatePoint, replace } = findUpdatePoint(action, chain);
   const prevBlock = replace ? chain[updatePoint] : null;
@@ -338,7 +341,7 @@ export const performChainAction = (
     case "drop":
       newBlock = blockUpdateForDrop(
         prevBlock as DropBlock | KeepBlock | null,
-        action.column.name
+        action.column.name,
       );
       break;
 
@@ -361,7 +364,7 @@ export const performChainAction = (
     case "expand":
       newBlock = blockUpdateForExpand(
         prevBlock as ExpandBlock | null,
-        action.column.name
+        action.column.name,
       );
       break;
 
@@ -394,14 +397,14 @@ export const performChainAction = (
       newBlock = blockUpdateForRename(
         prevBlock as RenameBlock | null,
         action.column.name,
-        action.newName
+        action.newName,
       );
       break;
 
     case "eval":
       newBlock = blockUpdateForEval(
         prevBlock as EvalBlock | null,
-        action.expressions
+        action.expressions,
       );
       bubbleDownParams = {
         sourceField: action.sourceField,

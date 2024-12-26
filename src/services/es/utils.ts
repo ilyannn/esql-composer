@@ -16,7 +16,7 @@ const addToArray = (arr: any[], value: any) => {
  */
 export const deeplyMergeElasticsearchJSONs = (
   a: Record<string, any>,
-  b: Record<string, any>
+  b: Record<string, any>,
 ) => {
   const result = { ...a };
 

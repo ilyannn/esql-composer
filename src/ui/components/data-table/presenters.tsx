@@ -17,7 +17,7 @@ import "@highlightjs/cdn-assets/styles/nnfx-light.css";
 import Highlight from "react-highlight";
 import "./highlight-esql.css";
 
-require("../../../services/highlight-esql.js");
+import "../../../services/highlight-esql.js";
 
 export type Presenter = (value: ESQLAtomValue) => JSX.Element;
 
@@ -26,7 +26,7 @@ const defaultPresenter: Presenter = (value: ESQLAtomValue) => (
 );
 
 const createNumberPresenter = (
-  maximumFractionDigits: number | undefined
+  maximumFractionDigits: number | undefined,
 ): Presenter => {
   const localNumberFormatter = new Intl.NumberFormat(undefined, {
     maximumFractionDigits,

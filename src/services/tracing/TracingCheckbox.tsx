@@ -26,14 +26,14 @@ const TracingCheckbox: React.FC<TracingCheckboxProps> = ({
     (enabled: boolean) => {
       setOption({ ...option, enabled });
     },
-    [option, setOption]
+    [option, setOption],
   );
 
   const setIndexName = useCallback(
     (indexName: string) => {
       setOption({ ...option, indexName });
     },
-    [option, setOption]
+    [option, setOption],
   );
 
   return (

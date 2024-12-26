@@ -23,7 +23,7 @@ const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
       size = "md",
       gratisAction,
     },
-    ref
+    ref,
   ) => {
     const [isLoading, setIsLoading] = useState(false);
 
@@ -59,7 +59,7 @@ const SpinningButton = forwardRef<HTMLButtonElement, SpinningButtonProps>(
         {children}
       </Button>
     );
-  }
+  },
 );
 
 export default React.memo(SpinningButton);

@@ -8,10 +8,6 @@ export interface MissingDemoContext {
   info: (text: string) => void;
 }
 
-interface MissingDemoProvider {
-  (item: DemoItem, context: MissingDemoContext): Promise<void>;
-}
-
 export interface DemoItem {
   title: string;
   index: string;
@@ -19,22 +15,26 @@ export interface DemoItem {
   missingProvider: MissingDemoProvider;
 }
 
+interface MissingDemoProvider {
+  (item: DemoItem, context: MissingDemoContext): Promise<void>;
+}
+
 const kibanaSamplesMissingProvider: MissingDemoProvider = async (
   { index },
-  { info }
+  { info },
 ) => info(`Please use Kibana to install the sample index "${index}"`);
 
 const esqlFunctionsMissingProvider: MissingDemoProvider = async (
-  {},
-  { info }
+  { index },
+  { info },
 ) => info(`Installation of the functions index is not yet implemented`);
 
 const esqlShapesMissingProvider: MissingDemoProvider = async (
   { index },
-  { prompt, createIndex }
+  { prompt, createIndex },
 ) => {
   const confirmed = await prompt(
-    `The index "${index}" is not available. Would you like to create it from sample shape data? Note: make sure PUT requests are allowed by the CORS rules.`
+    `The index "${index}" is not available. Would you like to create it from sample shape data? Note: make sure PUT requests are allowed by the CORS rules.`,
   );
 
   if (confirmed) {

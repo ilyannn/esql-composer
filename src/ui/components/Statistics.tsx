@@ -147,7 +147,7 @@ const Statistics: React.FC<StatisticsProps> = React.memo(
         </Tooltip>
       </StatGroup>
     );
-  }
+  },
 );
 
 export default Statistics;

@@ -16,7 +16,11 @@ interface SortIconProps {
   onClick: () => void;
 }
 
-const SortIcon: React.FC<SortIconProps> = ({ ascending, onClick, variant }) => {
+const SortIcon: React.FC<SortIconProps> = ({
+  ascending,
+  onClick,
+  variant,
+}: SortIconProps) => {
   const getIcon = () => {
     if (ascending) {
       switch (variant) {

@@ -5,7 +5,7 @@ const fetchJSON = async (
   method: string,
   apiKey: string,
   url: string,
-  body: string | null
+  body: string | null,
 ): Promise<object> => {
   const response = await fetch(url, {
     method,
@@ -46,7 +46,7 @@ export const postJSON = async (
   url: string,
   apiKey: string,
   bodyObject: object,
-  paramObject: Record<string, string> | null = null
+  paramObject: Record<string, string> | null = null,
 ): Promise<object> => {
   const newURL = paramObject
     ? `${url}?${new URLSearchParams(paramObject)}`
@@ -58,27 +58,25 @@ export const postNDJSON = async (
   url: string,
   apiKey: string,
   bodyObjects: object[],
-  paramObject: Record<string, string> | null = null
+  paramObject: Record<string, string> | null = null,
 ): Promise<object> => {
-  const body = bodyObjects.map((obj) => `${JSON.stringify(obj)  }\n`).join("");
+  const body = bodyObjects.map((obj) => `${JSON.stringify(obj)}\n`).join("");
   const newURL = paramObject
     ? `${url}?${new URLSearchParams(paramObject)}`
     : url;
   return await fetchJSON("POST", apiKey, newURL, body);
 };
 
-export const putJSON = async (
+export const putJSON = (
   url: string,
   apiKey: string,
-  bodyObject: object
-): Promise<object> => {
-  return await fetchJSON("PUT", apiKey, url, JSON.stringify(bodyObject));
-};
+  bodyObject: object,
+): Promise<object> => fetchJSON("PUT", apiKey, url, JSON.stringify(bodyObject));
 
 export const getJSON = async (
   url: string,
   apiKey: string,
-  paramObject: Record<string, string> | null = null
+  paramObject: Record<string, string> | null = null,
 ): Promise<object> => {
   const newURL = paramObject
     ? `${url}?${new URLSearchParams(paramObject)}`

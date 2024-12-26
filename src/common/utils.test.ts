@@ -38,7 +38,7 @@ describe("makeUnique", () => {
     expect(result).toEqual(["apple", "apple-1", "apple-1-1"]);
   });
 
-    it("should handle an array with special characters", () => {
+  it("should handle an array with special characters", () => {
     const input = ["apple!", "apple!", "apple!"];
     const result = makeUnique(input);
     expect(result).toEqual(["apple!", "apple!-1", "apple!-2"]);

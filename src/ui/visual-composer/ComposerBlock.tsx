@@ -29,8 +29,8 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
         highlight === "accept"
           ? "green.500"
           : highlight === "reject"
-          ? "red.500"
-          : "gray.700"
+            ? "red.500"
+            : "gray.700"
       }
       borderRadius="lg"
       p={4}
@@ -38,8 +38,8 @@ const ComposerBlock: React.FC<ComposerBlockProps> = ({
         highlight === "accept"
           ? "green.50"
           : highlight === "reject"
-          ? "red.50"
-          : "white"
+            ? "red.50"
+            : "white"
       }
     >
       <HStack justify="flex-start" align="baseline" spacing={6}>

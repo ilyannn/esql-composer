@@ -43,7 +43,7 @@ const WhereComposerBlock = ({
   const undoButtonRef = useRef<HTMLButtonElement>(null);
 
   const [inputValue, setInputValue] = useState<string>(
-    isMatchBlock ? block.match : ""
+    isMatchBlock ? block.match : "",
   );
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
@@ -82,7 +82,7 @@ const WhereComposerBlock = ({
                   }
                 }}
               ></Input>
-              {inputValue != block.match && (
+              {inputValue !== block.match && (
                 <InputRightElement>
                   <IconButton
                     ref={undoButtonRef}
@@ -101,7 +101,7 @@ const WhereComposerBlock = ({
               targets="es"
               type="submit"
               size="sm"
-              spinningAction={async () => handleWhereTopStats(10)}
+              spinningAction={() => handleWhereTopStats(10)}
             >
               Top 10
             </SpinningButton>
@@ -137,7 +137,7 @@ const WhereComposerBlock = ({
                         targets="es"
                         type="submit"
                         size="sm"
-                        spinningAction={async () =>
+                        spinningAction={() =>
                           handleWhereTopStats(block.topStatsRetrieved + 10)
                         }
                       >
@@ -156,7 +156,7 @@ const WhereComposerBlock = ({
                           values: block.values.map((f, i) =>
                             i === valueIndex
                               ? { ...f, included: newChecked }
-                              : f
+                              : f,
                           ),
                         })
                       }

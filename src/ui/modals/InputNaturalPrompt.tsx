@@ -29,7 +29,7 @@ const InputNaturalPrompt = React.forwardRef<
   const { onOpen, onClose, isOpen } = useDisclosure();
   const firstFieldRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (isOpen && firstFieldRef.current !== null) {
       onSubmit(firstFieldRef.current.value);
     }

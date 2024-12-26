@@ -64,11 +64,11 @@ interface QueryResultAreaProps {
   handleUnminimizeLimitBlock: () => void;
   handleChainActionInContext: (
     action: ESQLChainAction,
-    knownFields: string[]
+    knownFields: string[],
   ) => boolean;
   handleTransformFieldWithInfo: (
     fieldInfo: FieldInfo,
-    naturalInput: string
+    naturalInput: string,
   ) => void;
 }
 
@@ -96,7 +96,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
       const knownFields = data?.columns.map((col) => col.name) ?? [];
       return handleChainActionInContext(action, knownFields);
     },
-    [data, handleChainActionInContext]
+    [data, handleChainActionInContext],
   );
 
   const handleRenameColumn = (column: ESQLColumn, newName: string) => {
@@ -114,7 +114,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   const handleTransformColumn = (
     column: ESQLColumn,
     columnIndex: number,
-    naturalInput: string
+    naturalInput: string,
   ) => {
     const examples = data ? data.values.map((row) => row[columnIndex]) : [];
     const fieldInfo: FieldInfo = {
@@ -135,7 +135,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
         stats,
       });
     },
-    [data, handleChainAction]
+    [data, handleChainAction],
   );
 
   const columns: TableColumn[] = useMemo(
@@ -145,17 +145,17 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
         type: col.type,
         presenter: getPresenter(col),
       })),
-    [data]
+    [data],
   );
 
   const idColumnIndex: number = useMemo(
     () => columns.findIndex((col) => col.name === "_id"),
-    [columns]
+    [columns],
   );
 
   const indexColumnIndex: number = useMemo(
     () => columns.findIndex((col) => col.name === "_index"),
-    [columns]
+    [columns],
   );
 
   const row_keys: string[] = useMemo(() => {

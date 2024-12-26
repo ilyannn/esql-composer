@@ -135,7 +135,7 @@ export class PseudoXMLParser<TagType extends string> {
       }
     }
 
-    if (this.currentTag != null) {
+    if (this.currentTag !== null) {
       const closeTag = `</${this.currentTag}>`;
       if (line.endsWith(closeTag)) {
         end = -closeTag.length;
@@ -223,7 +223,7 @@ export const pairsToPseudoXML = (pairs: [string, string][]): string => {
  */
 export const pseudoXMLToPairs = (
   text: string,
-  tags: string[]
+  tags: string[],
 ): [string, string][] => {
   const pairs: [string, string][] = [];
   const handler = {
@@ -263,7 +263,7 @@ export const pseudoXMLToPairs = (
  */
 export const recordToPseudoXML = (
   record: MultivaluedRecord,
-  tags: string[]
+  tags: string[],
 ): string => {
   return pairsToPseudoXML(
     tags.flatMap((key): [string, string][] => {
@@ -277,7 +277,7 @@ export const recordToPseudoXML = (
       } else {
         return [];
       }
-    })
+    }),
   );
 };
 
@@ -292,7 +292,7 @@ export const recordToPseudoXML = (
  */
 export const pseudoXMLToRecord = (
   text: string,
-  tags: string[]
+  tags: string[],
 ): MultivaluedRecord => {
   const record: MultivaluedRecord = {};
 

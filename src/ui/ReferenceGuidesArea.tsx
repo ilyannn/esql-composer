@@ -68,7 +68,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
         console.error(`Error loading ${filename}:`, error);
       }
     },
-    [setEsqlGuideText]
+    [setEsqlGuideText],
   );
 
   return (
@@ -179,7 +179,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
                 colorScheme="green"
                 type="button"
                 disabled={!isElasticsearchAPIAvailable}
-                onClick={async () => handleRetrieveSchemaFromES()}
+                onClick={() => handleRetrieveSchemaFromES()}
               >
                 Load...
               </Button>

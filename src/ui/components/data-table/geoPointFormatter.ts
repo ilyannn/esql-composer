@@ -12,7 +12,7 @@ export class GeoPointFormatter {
     const matches = pointStr.match(/POINT\s*\(([-\d.]+)\s+([-\d.]+)\)/);
     if (!matches) {
       throw new Error(
-        'Invalid POINT format. Expected: "POINT (longitude latitude)"'
+        'Invalid POINT format. Expected: "POINT (longitude latitude)"',
       );
     }
 
@@ -30,7 +30,7 @@ export class GeoPointFormatter {
    */
   private static validateCoordinates(
     longitude: number,
-    latitude: number
+    latitude: number,
   ): void {
     if (latitude < -90 || latitude > 90) {
       throw new Error("Latitude must be between -90 and 90 degrees");
@@ -52,7 +52,7 @@ export class GeoPointFormatter {
     const lonDir = longitude >= 0 ? "E" : "W";
 
     return `${Math.abs(latitude).toFixed(precision)}°${latDir}, ${Math.abs(
-      longitude
+      longitude,
     ).toFixed(precision)}°${lonDir}`;
   }
 }

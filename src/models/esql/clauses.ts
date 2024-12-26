@@ -29,7 +29,7 @@ export const constructWhereClause = ({
   const connector = defaultIncluded ? " AND " : " OR ";
   const escapedField = representFieldName(field.name);
   const escapedValues = specialValues.map((v) =>
-    representESQLValue(v, field.type)
+    representESQLValue(v, field.type),
   );
 
   const clauses: string[] = [];
@@ -66,7 +66,7 @@ export const constructWhereClause = ({
         }
       } else {
         const op = defaultIncluded ? "NOT IN" : "IN";
-        const expr = `(${  escapedValues.join(", ")  })`;
+        const expr = `(${escapedValues.join(", ")})`;
         clauses.push(`${escapedField} ${op} ${expr}`);
       }
       break;

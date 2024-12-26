@@ -37,7 +37,7 @@ export const countRawValues = (values: ESQLAtomRawValue[]): ValueStatistics => {
 };
 
 export const countRawValuesWithCount = (
-  values_counts: [ESQLAtomRawValue, number][]
+  values_counts: [ESQLAtomRawValue, number][],
 ): ValueStatistics => {
   const stats: ValueStatistics = {
     totalCount: values_counts.reduce((a, b) => a + b[1], 0),
@@ -67,7 +67,7 @@ export const countRawValuesWithCount = (
 
 export const getValueCount = (
   value: ESQLAtomValue,
-  stats: ValueStatistics | undefined
+  stats: ValueStatistics | undefined,
 ): number => {
   if (stats === undefined) {
     return 0;
@@ -92,7 +92,7 @@ export const getValueCount = (
 };
 
 export const statisticsEntries = (
-  stats: ValueStatistics | undefined
+  stats: ValueStatistics | undefined,
 ): [ESQLAtomValue, number][] => {
   if (stats === undefined) {
     return [];
@@ -109,7 +109,7 @@ export const statisticsEntries = (
   if (stats.falseCount > 0) {
     items.push([ESQLValueFalse, stats.falseCount]);
   }
-   
+
   if (stats.nullCount > 0) {
     items.push([ESQLValueNull, stats.nullCount]);
   }
@@ -117,6 +117,6 @@ export const statisticsEntries = (
   for (const [value, count] of Object.entries(stats.numberCounts)) {
     items.push([Number(value), count]);
   }
- 
+
   return items;
 };

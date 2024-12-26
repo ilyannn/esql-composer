@@ -15,22 +15,38 @@ interface FieldValueProps {
 }
 
 const getColor = (
-  val: ESQLAtomValue | typeof ESQLSentinelOtherValues
+  val: ESQLAtomValue | typeof ESQLSentinelOtherValues,
 ): string => {
-  if (typeof val === "string") return "green";
-  if (typeof val === "number") return "blue";
-  if (val === ESQLValueFalse || val === ESQLValueTrue) return "black";
-  if (val === ESQLValueNull) return "red";
+  if (typeof val === "string") {
+    return "green";
+  }
+  if (typeof val === "number") {
+    return "blue";
+  }
+  if (val === ESQLValueFalse || val === ESQLValueTrue) {
+    return "black";
+  }
+  if (val === ESQLValueNull) {
+    return "red";
+  }
   return "black";
 };
 
 const getFontStyle = (
-  val: ESQLAtomValue | typeof ESQLSentinelOtherValues
+  val: ESQLAtomValue | typeof ESQLSentinelOtherValues,
 ): string => {
-  if (typeof val === "string") return "oblique";
-  if (typeof val === "number") return "normal";
-  if (val === ESQLValueFalse || val === ESQLValueTrue) return "normal";
-  if (val === ESQLValueNull) return "normal";
+  if (typeof val === "string") {
+    return "oblique";
+  }
+  if (typeof val === "number") {
+    return "normal";
+  }
+  if (val === ESQLValueFalse || val === ESQLValueTrue) {
+    return "normal";
+  }
+  if (val === ESQLValueNull) {
+    return "normal";
+  }
   return "normal";
 };
 
@@ -46,8 +62,8 @@ const FieldValue: React.FC<FieldValueProps> = ({
     value === ESQLSentinelOtherValues
       ? "Other Values"
       : typeof value === "string"
-      ? value
-      : representESQLValue(value);
+        ? value
+        : representESQLValue(value);
 
   return (
     <Text color={getColor(value)} fontStyle={getFontStyle(value)}>

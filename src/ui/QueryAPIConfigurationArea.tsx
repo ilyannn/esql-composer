@@ -92,7 +92,7 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
         }
       }
     },
-    [toast, setApiKey]
+    [toast, setApiKey],
   );
 
   return (
