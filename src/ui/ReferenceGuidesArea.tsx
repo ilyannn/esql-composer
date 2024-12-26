@@ -111,27 +111,26 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
           <HStack justify="space-evenly">
             <Tooltip
               isDisabled={!tooltipsShown}
-              label="Load a prepackaged ES|QL reference file (shorter version)"
+              label="Load a prepackaged ES|QL reference file"
             >
-              <Button
-                variant="ghost"
-                colorScheme="green"
-                onClick={() => loadESQLFile("esql-short.txt")}
-              >
-                Syntax
-              </Button>
-            </Tooltip>
-            <Tooltip
-              isDisabled={!tooltipsShown}
-              label="Load a prepackaged ES|QL reference file (longer version, contains all functions)"
-            >
-              <Button
-                variant="ghost"
-                colorScheme="green"
-                onClick={() => loadESQLFile("esql-long.txt")}
-              >
-                Syntax + Functions
-              </Button>
+              <Menu placement="top">
+                <MenuButton
+                  as={Button}
+                  variant="ghost"
+                  colorScheme="green"
+                  rightIcon={<ChevronUpIcon />}
+                >
+                  Preset
+                </MenuButton>
+                <MenuList>
+                  <MenuItem onClick={() => loadESQLFile("esql-short.txt")}>
+                    Basic Syntax
+                  </MenuItem>
+                  <MenuItem onClick={() => loadESQLFile("esql-long.txt")}>
+                    Syntax + Functions
+                  </MenuItem>
+                </MenuList>
+              </Menu>
             </Tooltip>
             <Tooltip
               isDisabled={!tooltipsShown}
