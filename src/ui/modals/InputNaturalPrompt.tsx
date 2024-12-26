@@ -70,7 +70,10 @@ const InputNaturalPrompt = React.forwardRef<
               <FormControl>
                 <HStack spacing={3} align={"center"} justify={"flex-start"}>
                   <Input ref={firstFieldRef} flex={1} />
-                  <SpinningButton type={"submit"} spinningAction={handleSubmit}>
+                  <SpinningButton
+                    type={"submit"}
+                    spinningAction={async () => handleSubmit()}
+                  >
                     <GoCheck />
                   </SpinningButton>
                 </HStack>
