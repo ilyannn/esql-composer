@@ -18,7 +18,7 @@ export class LlamaServerLLMAdapter implements LLMAdapter {
   }
 
   async countTokens(text: string): Promise<number> {
-    const url = this.apiURL + "/tokenize";
+    const url = `${this.apiURL  }/tokenize`;
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -33,7 +33,7 @@ export class LlamaServerLLMAdapter implements LLMAdapter {
   }
 
   async answer(utterance: string): Promise<string> {
-    const url = this.apiURL + "/completion";
+    const url = `${this.apiURL  }/completion`;
     const response = await fetch(url, {
       method: "POST",
       headers: {

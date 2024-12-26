@@ -229,7 +229,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
   };
 
   const handleLimitChange = (index: number, limit: number | null) => {
-    updateBlock(index, { command: "LIMIT", limit: limit });
+    updateBlock(index, { command: "LIMIT", limit });
   };
 
   const handleWhereTopStats = async (index: number): Promise<void> => {

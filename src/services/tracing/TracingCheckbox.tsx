@@ -24,7 +24,7 @@ const TracingCheckbox: React.FC<TracingCheckboxProps> = ({
 }) => {
   const setEnabled = useCallback(
     (enabled: boolean) => {
-      setOption({ ...option, enabled: enabled });
+      setOption({ ...option, enabled });
     },
     [option, setOption]
   );

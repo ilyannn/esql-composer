@@ -60,7 +60,7 @@ export const postNDJSON = async (
   bodyObjects: object[],
   paramObject: Record<string, string> | null = null
 ): Promise<object> => {
-  const body = bodyObjects.map((obj) => JSON.stringify(obj) + "\n").join("");
+  const body = bodyObjects.map((obj) => `${JSON.stringify(obj)  }\n`).join("");
   const newURL = paramObject
     ? `${url}?${new URLSearchParams(paramObject)}`
     : url;

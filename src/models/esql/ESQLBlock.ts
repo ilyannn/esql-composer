@@ -248,13 +248,13 @@ const evalBlockToESQL = (block: EvalBlock): string | null => {
   }
 
   return (
-    "EVAL " +
+    `EVAL ${ 
     expressions
       .map(
         ({ field, expression }) =>
           `${representESQLField(field)} = ${expression}`
       )
-      .join(", ")
+      .join(", ")}`
   );
 };
 

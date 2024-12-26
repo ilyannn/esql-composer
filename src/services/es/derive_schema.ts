@@ -331,7 +331,7 @@ export const deriveSchema = async ({
   let guide = `# Schema for the index pattern "${indexPattern}"\n\n`;
 
   guide +=
-    `## Indices\n\n` + indices.map((index) => `* ${index}`).join("\n") + "\n\n";
+    `## Indices\n\n${  indices.map((index) => `* ${index}`).join("\n")  }\n\n`;
   guide += `## Fields\n\nHere is the combined list of fields in these indices, their type and most common values:\n\n`;
 
   guide += knownFields
@@ -359,13 +359,13 @@ export const deriveSchema = async ({
   for (const field of knownFields) {
     if (field.type === "date") {
       if (field.name === "timestamp" || field.name === "@timestamp")
-        initialActions.push({
+        {initialActions.push({
           action: "sortDesc",
           column: {
             name: field.name,
             type: field.type,
           },
-        });
+        });}
     }
   }
 

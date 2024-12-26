@@ -434,7 +434,7 @@ const ESQLComposerMain = () => {
         apiKey: llmConfig.anthropic.apiKey,
         modelName: llmConfig.anthropic.modelName,
         esqlGuideText,
-        schemaGuideText: schemaGuideText,
+        schemaGuideText,
       });
 
       setAllStats([...allStats, data.stats]);
@@ -469,15 +469,15 @@ const ESQLComposerMain = () => {
       let newESQGuideText = "";
 
       const processLine = (line: string) => {
-        newESQGuideText += line + "\n";
+        newESQGuideText += `${line  }\n`;
         setEsqlGuideText(newESQGuideText);
       };
 
       const data = (await reduceSize({
         apiKey: llmConfig.anthropic.apiKey,
         modelName: llmConfig.anthropic.modelName,
-        esqlGuideText: esqlGuideText,
-        schemaGuideText: schemaGuideText,
+        esqlGuideText,
+        schemaGuideText,
         processLine,
       })) as any;
 
@@ -632,7 +632,7 @@ const ESQLComposerMain = () => {
       if (esql.length === 0) {
         setQueryAPIDataAutoUpdate(false);
       }
-      setEsqlInput(esql + "\n");
+      setEsqlInput(`${esql  }\n`);
 
       const initialChain = reduce(
         initialActions,
@@ -729,7 +729,7 @@ const ESQLComposerMain = () => {
         return;
       }
       await performLLMAction("ES|QL generation", async () => {
-        let interpolatedLines = esqlInput.split("\n");
+        const interpolatedLines = esqlInput.split("\n");
         let lineIndex = -1;
 
         const haveESQLLine = (line: string) => {
@@ -976,7 +976,7 @@ const ESQLComposerMain = () => {
 
   const handleProvideDemo = useCallback(
     async (item: DemoItem) => {
-      const title = item.title + " demo";
+      const title = `${item.title  } demo`;
 
       await performQueryAPIAction(item.title, async (addToSpan) => {
         const missing = !(await checkIndexExists({

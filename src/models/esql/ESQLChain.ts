@@ -247,7 +247,7 @@ const bubbleDown = (
         let fieldsToKeep = block.fields;
         for (const newField of newFields) {
           if (!fieldsToKeep.includes(newField)) {
-            let insertIndex = sourceField
+            const insertIndex = sourceField
               ? fieldsToKeep.indexOf(sourceField)
               : -1;
             fieldsToKeep = [

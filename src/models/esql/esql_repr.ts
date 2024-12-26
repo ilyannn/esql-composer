@@ -24,14 +24,14 @@ export const representESQLField = (name: string): string => {
 
 const quoteString = (value: string): string => {
   if (!value.includes('"')) {
-    return '"' + value + '"';
+    return `"${  value  }"`;
   }
 
   if (value.includes('"') && !value.includes('"""')) {
-    return '"""' + value + '"""';
+    return `"""${  value  }"""`;
   }
 
-  return '"' + value.replace(/"/g, '\\"') + '"';
+  return `"${  value.replace(/"/g, '\\"')  }"`;
 };
 
 // Representation of the value that can be parsed back.
@@ -53,6 +53,6 @@ export const representESQLValue = (
       : JSON.stringify(value);
 
   const needsConversion = type !== undefined && esqlTypeToClass(type) === "geo";
-  return needsConversion ? quoted + "::" + type : quoted;
+  return needsConversion ? `${quoted  }::${  type}` : quoted;
 };
 

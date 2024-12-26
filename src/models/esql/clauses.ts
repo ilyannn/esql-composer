@@ -32,7 +32,7 @@ export const constructWhereClause = ({
     representESQLValue(v, field.type)
   );
 
-  let clauses: string[] = [];
+  const clauses: string[] = [];
 
   if (nullIsSpecial && defaultIncluded) {
     clauses.push(`${escapedField} IS NOT NULL`);
@@ -66,7 +66,7 @@ export const constructWhereClause = ({
         }
       } else {
         const op = defaultIncluded ? "NOT IN" : "IN";
-        const expr = "(" + escapedValues.join(", ") + ")";
+        const expr = `(${  escapedValues.join(", ")  })`;
         clauses.push(`${escapedField} ${op} ${expr}`);
       }
       break;

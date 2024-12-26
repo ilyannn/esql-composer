@@ -32,7 +32,7 @@ const DataTableCombinedColumnCell = React.memo(
                     {i > 0 && (
                       <WrapItem
                         title="Multiple values"
-                        key={name + "|" + i.toString()}
+                        key={`${name  }|${  i.toString()}`}
                         color={"gray.400"}
                         ml={-1}
                         mr={-1}
@@ -40,7 +40,7 @@ const DataTableCombinedColumnCell = React.memo(
                         ⊕
                       </WrapItem>
                     )}
-                    <WrapItem key={name + "-" + i.toString()}>
+                    <WrapItem key={`${name  }-${  i.toString()}`}>
                       {presenter(esqlRawToHashableValue(v))}
                     </WrapItem>
                   </>

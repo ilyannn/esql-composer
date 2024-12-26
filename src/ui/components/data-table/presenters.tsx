@@ -135,14 +135,13 @@ const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
 };
 
 const geoShapePresenter: Presenter = (value: ESQLAtomValue) => {
-  let formattedValue: string | undefined = undefined;
-
   if (typeof value === "string") {
     return <WktRenderer wkt={value} />;
   }
 
-  return <FieldValue value={value} formattedValue={formattedValue} />;
+  return <FieldValue value={value} />;
 };
+
 const esqlPresenter: Presenter = (value: ESQLAtomValue) => {
   if (typeof value === "string") {
     return <Highlight className="language-esql">{value}</Highlight>;

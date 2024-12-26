@@ -39,7 +39,7 @@ const requestTextForOptions = (options: PrepareRequestOptions): string => {
     case "completion":
       return "Please complete the following ES|QL query at the last token, marked *. Return only the completion:";
     case "update":
-      return "Prompt: " + options.naturalInput + "\n";
+      return `Prompt: ${  options.naturalInput  }\n`;
     case "transformation":
       return evalAdapter.formatInput({ task: options.naturalInput });
   }
@@ -181,7 +181,7 @@ For each request (in the examples between <input> and </input> tags) please comp
 Output a new field name and the evaluation expression using the format below. Try to only use the field itself but use the other fields as necessary as well. 
 Try to keep the expression on a single line. If asked to convert to a specific currency, add the 3-letter ISO code in brackets, such as (JPY) in the new column name. If the new column should have a specific presentation, e.g.  as a Markdown text or as color, this can be hinted at in the brackets, e.g. (Markdown) or (Color). If an explanation is necessary, provide a short one in the corresponding field. 
 Here are some examples for 
-` +
+${ 
           evalAdapter.formatContext({
             esqlInput: `FROM kibana_sample_data_flights
 | STATS
@@ -195,8 +195,8 @@ Here are some examples for
                 examples: ["49.59"],
               },
             ],
-          }) +
-          "\n\n" +
+          }) 
+          }\n\n${ 
           evalAdapter.formatExamples([
             {
               task: "convert to hours",
@@ -210,9 +210,9 @@ Here are some examples for
               expr: 'CONCAT(TO_STRING(avg_delay::long), " minutes")',
               comment: "Uses the type conversion operator for rounding",
             },
-          ]),
-        `Your current task will refer to the following context:\n` +
-          evalAdapter.formatContext(options),
+          ])}`,
+        `Your current task will refer to the following context:\n${ 
+          evalAdapter.formatContext(options)}`,
       ];
   }
 };
@@ -244,7 +244,7 @@ const assistantMessageForEvalOutput = (output: ESQLEvalOutput): TextMessage => {
 const newUppercaseFieldName = (fieldName: string) => {
   let uppercaseFieldName = fieldName.toLocaleUpperCase();
   if (uppercaseFieldName === fieldName) {
-    uppercaseFieldName = fieldName + " UPPERCASE";
+    uppercaseFieldName = `${fieldName  } UPPERCASE`;
   }
   return uppercaseFieldName;
 };
@@ -286,11 +286,11 @@ export const prepareRequest = (
             naturalInput: "convert to markdown",
           }),
           assistantMessageForEvalOutput({
-            field: sourceField.name + " (Markdown)",
+            field: `${sourceField.name  } (Markdown)`,
             expr:
-              'CONCAT("```\\n", ' +
-              applyFunctionToField("TO_STRING", sourceField.name) +
-              ', "\\n```")',
+              `CONCAT("\`\`\`\\n", ${ 
+              applyFunctionToField("TO_STRING", sourceField.name) 
+              }, "\\n\`\`\`")`,
           }),
         ];
         break;
@@ -316,9 +316,9 @@ export const prepareRequest = (
             naturalInput: "round to tens",
           }),
           assistantMessageForEvalOutput({
-            field: sourceField.name + "_00",
+            field: `${sourceField.name  }_00`,
             expr:
-              applyFunctionToField("ROUND", sourceField.name, -1) + "::long",
+              `${applyFunctionToField("ROUND", sourceField.name, -1)  }::long`,
           }),
         ];
         break;
