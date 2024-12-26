@@ -13,6 +13,6 @@ module.exports = {
   transformIgnorePatterns: ["node_modules/(?!(motion-utils|ol))"],
   moduleNameMapper: {
     "\\.(css|less|scss|sass)$": "identity-obj-proxy",
-    "react-markdown": "<rootDir>/src/__test__/__mocks__/react-markdown.js",
+    "react-markdown": "<rootDir>/src/__test__/__mocks__/react-markdown.jsx",
   },
 };
