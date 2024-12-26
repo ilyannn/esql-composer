@@ -458,15 +458,13 @@ const ESQLComposerMain = () => {
 
   const handleReduceSize = async () => {
     await performLLMAction("Size reduction", async (llmAdapter) => {
-      const countTokens = llmAdapter.countTokens;
-
-      if (!countTokens) {
+      if (!llmAdapter.countTokens) {
         throw new Error(
           `Counting tokens is not supported by the '${llmConfig.selected}' LLM adapter.`
         );
       }
 
-      const oldSize = await countTokens(esqlGuideText);
+      const oldSize = await llmAdapter.countTokens(esqlGuideText);
 
       let newESQGuideText = "";
 
@@ -486,7 +484,7 @@ const ESQLComposerMain = () => {
       setAllStats([...allStats, data.stats]);
       saveCacheWarmedInfo();
 
-      const newSize = await countTokens(newESQGuideText);
+      const newSize = await llmAdapter.countTokens(newESQGuideText);
       setEsqlGuideTokenCount([newESQGuideText, newSize]);
 
       const percentage = oldSize
@@ -504,9 +502,7 @@ const ESQLComposerMain = () => {
 
   const handleGetTokenCount = useCallback(async () => {
     await performLLMAction("Token Counting", async (llmAdapter) => {
-      const countTokens = llmAdapter.countTokens;
-
-      if (!countTokens) {
+      if (!llmAdapter.countTokens) {
         throw new Error(
           `Counting tokens is not supported by the '${llmConfig.selected}' LLM adapter.`
         );
@@ -515,14 +511,14 @@ const ESQLComposerMain = () => {
       if (esqlGuideText) {
         setEsqlGuideTokenCount([
           esqlGuideText,
-          await countTokens(esqlGuideText),
+          await llmAdapter.countTokens(esqlGuideText),
         ]);
       }
 
       if (schemaGuideText) {
         setSchemaGuideTokenCount([
           schemaGuideText,
-          await countTokens(schemaGuideText),
+          await llmAdapter.countTokens(schemaGuideText),
         ]);
       }
     });
