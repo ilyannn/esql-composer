@@ -330,7 +330,9 @@ export const deriveSchema = async ({
 
   let guide = `# Schema for the index pattern "${indexPattern}"\n\n`;
 
-  guide += `## Indices\n\n${indices.map((index) => `* ${index}`).join("\n")}\n\n`;
+  guide += `## Indices\n\n${indices
+    .map((index) => `* ${index}`)
+    .join("\n")}\n\n`;
   guide += `## Fields\n\nHere is the combined list of fields in these indices, their type and most common values:\n\n`;
 
   guide += knownFields
