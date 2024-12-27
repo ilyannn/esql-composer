@@ -169,10 +169,7 @@ const ESQLComposerMain = () => {
 
   const isLLMRequestAvailable = isLLMConfigSufficent(llmConfig);
   const isLLMESQLRequestAvailable =
-    isLLMRequestAvailable &&
-    esqlGuideText.length !== 0 &&
-    esqlSchema !== null &&
-    esqlSchema.guide !== "";
+    isLLMRequestAvailable && esqlGuideText.length !== 0;
 
   const getSchemaProps = useDisclosure();
   const isCacheWarmed =
@@ -725,7 +722,7 @@ const ESQLComposerMain = () => {
 
   const performESQLRequest = useCallback(
     async (text: string) => {
-      if (!esqlGuideText || !schemaGuideText) {
+      if (!esqlGuideText) {
         return;
       }
       await performLLMAction("ES|QL generation", async () => {
