@@ -7,6 +7,8 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32",
     "@aws-sdk/client-bedrock-runtime": "^3.716.0",
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@babel/plugin-transform-private-property-in-object": "^7.24.5",
     "@chakra-ui/icons": "^2.2.4",
     "@chakra-ui/react": "^2.10.4",
     "@emotion/react": "^11.13.5",
@@ -45,7 +47,6 @@
   },
   "overrides": {
     "typescript": "^5.7.2",
-    "ajv": "^8.17.1",
     "whatwg-url": "^14.0.0",
     "psl": "^1.15.0"
   },
