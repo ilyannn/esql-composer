@@ -44,7 +44,10 @@
     "web-vitals": "^4.2.4"
   },
   "overrides": {
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "ajv": "^8.17.1",
+    "whatwg-url": "^14.0.0",
+    "psl": "^1.15.0"
   },
   "scripts": {
     "predeploy": "npm run build",
