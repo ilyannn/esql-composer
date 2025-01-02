@@ -26,7 +26,7 @@ export type ESQLChain = (ESQLBlock & BlockHasStableId)[];
 
 export const esqlChainAddToString = (
   existingESQL: string,
-  chain: ESQLChain,
+  chain: ESQLBlock[],
 ): string => {
   const chunks = chain.map(esqlBlockToESQL).filter((block) => block !== null);
   return [existingESQL.trimEnd(), ...chunks].join("\n| ");
@@ -320,7 +320,7 @@ const assignBlockId = (block: ESQLBlock): ESQLBlock & BlockHasStableId => {
 export const performChainAction = (
   chain: ESQLChain,
   action: ESQLChainAction,
-  knownFields: string[],
+  knownFields: string[] = [],
 ): { chain: ESQLChain; upsertedIndex: number } => {
   const { updatePoint, replace } = findUpdatePoint(action, chain);
   const prevBlock = replace ? chain[updatePoint] : null;
@@ -331,11 +331,11 @@ export const performChainAction = (
 
   switch (action.action) {
     case "limit":
-      newBlock = prevBlock ?? { command: "LIMIT", limit: action.limit };
+      newBlock = { ...prevBlock, command: "LIMIT", limit: action.limit };
       break;
 
     case "keep":
-      newBlock = { command: "KEEP", fields: knownFields };
+      newBlock = { ...prevBlock, command: "KEEP", fields: knownFields };
       break;
 
     case "drop":

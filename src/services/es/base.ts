@@ -1,21 +1,37 @@
 import { QueryAPIError } from "./types";
 import { ensureBase64Encoded } from "./utils";
 
+const fetchSomething = (
+  method: string,
+  apiKey: string,
+  url: string,
+  body: string | null,
+  accept: string,
+): Promise<Response> => {
+  return fetch(url, {
+    method,
+    headers: [
+      ["Authorization", `ApiKey ${ensureBase64Encoded(apiKey)}`],
+      ["Content-Type", "application/vnd.elasticsearch+json"],
+      ["Accept", accept],
+    ],
+    body,
+  });
+};
+
 const fetchJSON = async (
   method: string,
   apiKey: string,
   url: string,
   body: string | null,
 ): Promise<object> => {
-  const response = await fetch(url, {
+  const response = await fetchSomething(
     method,
-    headers: [
-      ["Authorization", `ApiKey ${ensureBase64Encoded(apiKey)}`],
-      ["Content-Type", "application/vnd.elasticsearch+json"],
-      ["Accept", "application/vnd.elasticsearch+json"],
-    ],
+    apiKey,
+    url,
     body,
-  });
+    "application/vnd.elasticsearch+json",
+  );
 
   const answer = await response.json();
 
@@ -66,6 +82,14 @@ export const postNDJSON = async (
     : url;
   return await fetchJSON("POST", apiKey, newURL, body);
 };
+
+export const postJSONAcceptFormat = async (
+  url: string,
+  apiKey: string,
+  bodyObject: object,
+  accept: string,
+): Promise<Response> =>
+  fetchSomething("POST", apiKey, url, JSON.stringify(bodyObject), accept);
 
 export const putJSON = (
   url: string,

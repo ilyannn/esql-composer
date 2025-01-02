@@ -1,12 +1,15 @@
 import { tableDataToRecords } from "./types";
-import { postJSON } from "./base";
+import { postJSON, postJSONAcceptFormat } from "./base";
 import {
   QueryAPIError,
-  ESQLQueryOptions as PerformESQLQueryInput,
+  ESQLQueryOptions,
+  ESQLExportOptions,
   ESQLTableData,
   isESQLTableData,
   ESAPIOptions,
 } from "./types";
+import { downloadFile } from "../browser";
+import { dump, DumpOptions } from "js-yaml";
 
 export interface PerformESQLQueryStatistics {
   total_time_ms: number;
@@ -21,7 +24,7 @@ export const performESQLQuery = async ({
   apiURL,
   apiKey,
   query,
-}: PerformESQLQueryInput): Promise<PerformESQLQueryOutput> => {
+}: ESQLQueryOptions): Promise<PerformESQLQueryOutput> => {
   const start_time = new Date();
   const answer = await postJSON(`${apiURL}/_query`, apiKey, { query });
   const total_time = new Date().getTime() - start_time.getTime();
@@ -93,4 +96,51 @@ export const performESQLShowInfoQuery = async ({
   }
 
   return info;
+};
+
+/**
+ * Exports data from Elasticsearch using an ESQL query and downloads it as a file.
+ *
+ * @param options - The export options
+ * @param options.apiURL - The base URL of the Elasticsearch API
+ * @param options.apiKey - API key for authentication
+ * @param options.query - The ESQL query to execute
+ * @param options.accept - The accepted content type format for the response
+ * @param options.filename - The name of the file to be downloaded
+ *
+ * @throws Will throw an error if the API request fails
+ * @returns A Promise that resolves when the file download is complete
+ */
+export const exportData = async ({
+  apiURL,
+  apiKey,
+  query,
+  format,
+  columnar,
+  addPreamble,
+  filename,
+}: ESQLExportOptions): Promise<void> => {
+  const response = await postJSONAcceptFormat(
+    `${apiURL}/_query`,
+    apiKey,
+    { query, columnar },
+    format.accept,
+  );
+
+  let data = await response.blob();
+
+  if (addPreamble) {
+    switch (format.id) {
+      case "yaml":
+        const preamble = {
+          query,
+          cluster: apiURL,
+          timestamp: new Date().toISOString(),
+        };
+        data = new Blob([dump(preamble), data], { type: format.accept });
+        break;
+    }
+  }
+
+  downloadFile(data, filename);
 };

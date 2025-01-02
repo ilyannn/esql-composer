@@ -51,6 +51,7 @@ import {
 
 import { ESQLSchema, deriveSchema } from "../services/es/derive_schema";
 import {
+  exportData,
   performESQLQuery,
   performESQLShowInfoQuery,
 } from "../services/es/esql_query";
@@ -92,6 +93,8 @@ import { LLMAdapter } from "../services/llm/adapters/types";
 import { DemoItem, MissingDemoContext } from "../services/es/demo";
 import { checkIndexExists, createIndex } from "../services/es/indices";
 import axios from "axios";
+import ExportDataModal, { ExportDataCallback } from "./modals/ExportDataModal";
+import { getESQLSettings } from "@/services/es/settings";
 
 const defaultESQLGuidePromise = axios.get("esql-short.txt");
 
@@ -172,6 +175,8 @@ const ESQLComposerMain = () => {
     isLLMRequestAvailable && esqlGuideText.length !== 0;
 
   const getSchemaProps = useDisclosure();
+  const exportDataProps = useDisclosure();
+
   const isCacheWarmed =
     cacheWarmedInfo !== null &&
     cacheWarmedInfo.esqlGuideText === esqlGuideText &&
@@ -245,13 +250,22 @@ const ESQLComposerMain = () => {
     setQueryAPIKeyWorks(null);
   }, []);
 
-  const getCompleteESQL = useCallback(() => {
-    const chain =
-      minimizedLimitBlock !== undefined
-        ? [...visualChain, minimizedLimitBlock]
-        : visualChain;
-    return esqlChainAddToString(esqlInput, chain);
-  }, [esqlInput, visualChain, minimizedLimitBlock]);
+  const getCompleteESQL = useCallback(
+    (newLimit: number | null | undefined = undefined) => {
+      let chain: ESQLChain = visualChain;
+      if (minimizedLimitBlock !== undefined) {
+        chain = [...chain, minimizedLimitBlock];
+      }
+      if (newLimit !== undefined) {
+        chain = performChainAction(chain, {
+          action: "limit",
+          limit: newLimit,
+        }).chain;
+      }
+      return esqlChainAddToString(esqlInput, chain);
+    },
+    [esqlInput, visualChain, minimizedLimitBlock],
+  );
 
   /**
    * Handles API errors and updates the state of apiKeyWorks.
@@ -341,7 +355,7 @@ const ESQLComposerMain = () => {
     async (
       label: string,
       action: (addToSpan: UseTracingCallback) => Promise<void>,
-    ) => {
+    ): Promise<boolean> => {
       const { addToSpan, saveSpan } = useTracing({
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
@@ -351,6 +365,7 @@ const ESQLComposerMain = () => {
       try {
         await action(addToSpan);
         setQueryAPIKeyWorks(true);
+        return true;
       } catch (error) {
         console.error(`Error when ${label}`, error);
 
@@ -398,6 +413,7 @@ const ESQLComposerMain = () => {
         });
 
         addToSpan({ error: { message_j: description } });
+        return false;
       } finally {
         saveSpan();
       }
@@ -1168,6 +1184,47 @@ const ESQLComposerMain = () => {
     [performQueryAPIAction, queryAPIURL, queryAPIKey, esqlInput, visualChain],
   );
 
+  const handleExportData: ExportDataCallback = useCallback(
+    (filename, formatOptions, exportLimit) =>
+      performQueryAPIAction("Export", async () => {
+        const queryESQL = getCompleteESQL(exportLimit);
+
+        await exportData({
+          apiURL: queryAPIURL,
+          apiKey: queryAPIKey,
+          query: queryESQL,
+          filename,
+          ...formatOptions,
+        });
+
+        toast({
+          title: "Export successful",
+          description: `Exported results of ${queryESQL} to ${filename}`,
+          status: "success",
+          isClosable: true,
+        });
+      }),
+    [performQueryAPIAction, queryAPIURL, queryAPIKey, getCompleteESQL],
+  );
+
+  const handleShowLimitSettings = useCallback(async () => {
+    await performQueryAPIAction("Cluster limit settings", async () => {
+      const settings = await getESQLSettings({
+        apiURL: queryAPIURL,
+        apiKey: queryAPIKey,
+      });
+
+      toast({
+        title: "Cluster limit settings",
+        description: `Default ES|QL query limit is ${
+          settings.defaultSize || "unknown"
+        }; max limit is ${settings.maxSize || "unknown"}.`,
+        status: "info",
+        isClosable: true,
+      });
+    });
+  }, [performQueryAPIAction, queryAPIURL, queryAPIKey]);
+
   return (
     <Box p={4}>
       <VStack spacing={4} align="stretch">
@@ -1268,6 +1325,7 @@ const ESQLComposerMain = () => {
                 handleBlockAction={(index, action) => {
                   handleVisualBlockAction(index, action);
                 }}
+                handleShowLimitSettings={handleShowLimitSettings}
                 getGlobalTopStats={handleGlobalTopStats}
               />
 
@@ -1278,6 +1336,7 @@ const ESQLComposerMain = () => {
                   setQueryAPIDataAutoUpdate(false);
                   setQueryAPIData(null);
                 }}
+                exportData={exportDataProps.onOpen}
                 autoUpdate={queryAPIDataAutoUpdate}
                 setAutoUpdate={setQueryAPIDataAutoUpdate}
                 handleChainActionInContext={handleChainAction}
@@ -1298,6 +1357,12 @@ const ESQLComposerMain = () => {
         isOpen={getSchemaProps.isOpen}
         onClose={getSchemaProps.onClose}
         getSchemaFromES={handleGetSchemaFromES}
+      />
+      <ExportDataModal
+        isOpen={exportDataProps.isOpen}
+        onClose={exportDataProps.onClose}
+        onShowLimitSettings={handleShowLimitSettings}
+        onExport={handleExportData}
       />
     </Box>
   );

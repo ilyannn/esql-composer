@@ -1,17 +1,5 @@
 import {
-  Button,
-  CheckboxGroup,
-  Heading,
   HStack,
-  IconButton,
-  Input,
-  InputRightElement,
-  Slider,
-  SliderFilledTrack,
-  SliderMark,
-  SliderThumb,
-  SliderTrack,
-  Spacer,
   TagCloseButton,
   Text,
   VStack,
@@ -40,6 +28,7 @@ import { FieldTagMesh } from "../components/FieldTagMesh";
 import SortIcon from "../components/SortIcon";
 import ComposerBlock, { ComposerBlockAction } from "./ComposerBlock";
 import WhereComposerBlock from "./WhereComposerBlock";
+import LimitSlider from "../components/LimitSlider";
 
 interface ESQLComposerProps {
   chain: ESQLChain;
@@ -50,46 +39,24 @@ interface ESQLComposerProps {
     topN: number,
   ) => Promise<ValueStatistics | undefined>;
   handleBlockAction(index: number, action: ComposerBlockAction): void;
+  handleShowLimitSettings: () => Promise<void>;
 }
 
-const sliderValues = [1, 5, 10, 20, 50, 100, 1000, null];
+const LIMIT_VALUES = [1, 5, 10, 20, 50, 100, 1000] as const;
 
-const toSliderValue = (limit: number | null) => {
-  if (limit === null) {
-    return sliderValues.length - 1;
-  } else {
-    return sliderValues.findIndex((stop) => stop === null || stop >= limit);
-  }
-};
-
-const renderLimitBlock = (
+export const renderLimitBlock = (
   index: number,
   handleLimitChange: (index: number, limit: number | null) => void,
+  handleShowLimitSettings: () => Promise<void>,
   block: ESQLBlock & BlockHasStableId & { command: "LIMIT" },
 ) => {
   return (
-    <Slider
-      value={toSliderValue(block.limit)}
-      max={sliderValues.length - 1}
-      onChange={(value) => handleLimitChange(index, sliderValues[value])}
-    >
-      {sliderValues.map((value, idx) => (
-        <SliderMark
-          key={idx}
-          value={idx}
-          mt=".5em"
-          fontSize="xs"
-          textAlign="center"
-          transform={"translateX(-50%)"}
-        >
-          {value || "All"}
-        </SliderMark>
-      ))}
-      <SliderTrack>
-        <SliderFilledTrack />
-      </SliderTrack>
-      <SliderThumb borderColor={"blue.400"} />
-    </Slider>
+    <LimitSlider
+      limit={block.limit}
+      onChange={(limit) => handleLimitChange(index, limit)}
+      onShowLimitSettings={handleShowLimitSettings}
+      sliderValues={LIMIT_VALUES}
+    />
   );
 };
 
@@ -98,11 +65,17 @@ const renderBlockContents = (
   block: ESQLBlock & BlockHasStableId,
   updateBlock: (index: number, block: ESQLBlock) => void,
   handleLimitChange: (index: number, limit: number | null) => void,
+  handleShowLimitSettings: () => Promise<void>,
   handleWhereTopStats: (index: number, requestedFor: number) => Promise<void>,
 ) => {
   switch (block.command) {
     case "LIMIT":
-      return renderLimitBlock(index, handleLimitChange, block);
+      return renderLimitBlock(
+        index,
+        handleLimitChange,
+        handleShowLimitSettings,
+        block,
+      );
 
     case "DROP":
     case "MV_EXPAND":
@@ -204,6 +177,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
   chain,
   updateBlock,
   handleBlockAction,
+  handleShowLimitSettings,
   getGlobalTopStats,
 }) => {
   const [highlightedBlock, setHighlightedBlock] = useState<
@@ -258,7 +232,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
             ({
               value: v,
               included: otherValuesIncluded,
-            }) as FilterValue,
+            } as FilterValue),
         ),
         ...filterBlock.values,
       ],
@@ -309,6 +283,7 @@ const VisualComposer: React.FC<ESQLComposerProps> = ({
             block,
             updateBlock,
             handleLimitChange,
+            handleShowLimitSettings,
             handleWhereTopStats,
           )}
         </ComposerBlock>

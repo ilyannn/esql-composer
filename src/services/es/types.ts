@@ -2,8 +2,8 @@ import {
   ESQLColumn,
   ESQLAtomRawValue,
   ESQLAtomRawMultivalue,
-} from "../../models/esql/esql_types";
-import { CreateIndexParams } from "./indices";
+} from "@/models/esql/esql_types";
+import { ExportFormatOptions } from "./formats";
 
 export interface ESAPIOptions {
   apiURL: string;
@@ -12,6 +12,10 @@ export interface ESAPIOptions {
 
 export interface ESQLQueryOptions extends ESAPIOptions {
   query: string;
+}
+
+export interface ESQLExportOptions extends ESQLQueryOptions, ExportFormatOptions {
+  filename: string;
 }
 
 export interface ESQLDeriveSchemaOptions extends ESAPIOptions {

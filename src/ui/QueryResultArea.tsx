@@ -54,6 +54,7 @@ import { makeUnique } from "../common/utils";
 interface QueryResultAreaProps {
   data: ESQLTableData | null;
   clearData: () => void;
+  exportData: () => void;
   isFetchAvailable: boolean;
   fetchQueryData: () => Promise<void>;
   tooltipsShown: boolean;
@@ -78,6 +79,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
   setAutoUpdate,
   tooltipsShown,
   clearData,
+  exportData,
   handleChainActionInContext,
   handleTransformFieldWithInfo,
   handleUnminimizeLimitBlock,
@@ -270,6 +272,7 @@ const QueryResultArea: React.FC<QueryResultAreaProps> = ({
                   {isCombinedColumnView ? "Separate" : "Combine"} Columns
                 </MenuItem>
                 <MenuItem onClick={clearData}>Hide Table</MenuItem>
+                <MenuItem onClick={exportData}>Export Data...</MenuItem>
               </MenuList>
             </Menu>
           )}

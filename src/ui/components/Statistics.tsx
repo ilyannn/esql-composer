@@ -8,7 +8,8 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 
-import { LLMStatisticsRow } from "../../common/types";
+import { LLMStatisticsRow } from "@/common/types";
+import { downloadFile } from "@/services/browser";
 
 interface StatisticsProps {
   tooltipsShown: boolean;
@@ -41,15 +42,10 @@ const downloadStatistics = (stats: Array<LLMStatisticsRow>) => {
     .map((e) => e.join(","))
     .join("\n");
 
-  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", "statistics.csv");
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  downloadFile(
+    new Blob([csvContent], { type: "text/csv;charset=utf-8;" }),
+    "statistics.csv",
+  );
 };
 
 const Statistics: React.FC<StatisticsProps> = React.memo(

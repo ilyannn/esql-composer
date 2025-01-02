@@ -11,17 +11,17 @@ import { constructWhereClause } from "./clauses";
 import { TableColumn } from "../../ui/components/data-table/types";
 
 interface BaseESQLBlock {
-  command: string;
-  stableId?: string;
+  readonly command: string;
+  readonly stableId?: string;
 }
 
 export interface BlockHasStableId {
-  stableId: string;
+  readonly stableId: string;
 }
 
 export interface LimitBlock extends BaseESQLBlock {
-  command: "LIMIT";
-  limit: number | null;
+  readonly command: "LIMIT";
+  readonly limit: number | null;
 }
 
 export interface KeepBlock extends BaseESQLBlock {
