@@ -29,7 +29,13 @@ export class LlamaServerLLMAdapter implements LLMAdapter {
     });
 
     const result = await response.json();
-    return result.tokens.length();
+    if (!response.ok) {
+      throw new Error(`Error: ${response.statusText}`);
+    }
+    if (!Array.isArray(result.tokens)) {
+      throw new Error("Invalid llama-server tokenization response");
+    }
+    return result.tokens.length;
   }
 
   async answer(utterance: string): Promise<string> {

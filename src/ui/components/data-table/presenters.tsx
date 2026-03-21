@@ -153,7 +153,7 @@ const esqlPresenter: Presenter = (value: ESQLAtomValue) => {
 const urlPresenter: Presenter = (value: ESQLAtomValue) => {
   if (typeof value === "string" && value.startsWith("http")) {
     return (
-      <Link href="value" isExternal>
+      <Link href={value} isExternal>
         {value}
       </Link>
     );

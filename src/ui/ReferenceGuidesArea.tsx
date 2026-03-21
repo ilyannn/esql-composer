@@ -37,6 +37,7 @@ interface ReferenceGuidesAreaProps {
   handleGetTokenCount: () => Promise<void>;
   tooltipsShown: boolean;
   isESQLRequestAvailable: boolean;
+  isAnthropicGuideActionAvailable: boolean;
   isElasticsearchAPIAvailable: boolean;
   handleRetrieveSchemaFromES: () => void;
   handleProvideDemo: (item: DemoItem) => void;
@@ -55,6 +56,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   handleGetTokenCount,
   tooltipsShown,
   isESQLRequestAvailable,
+  isAnthropicGuideActionAvailable,
   isElasticsearchAPIAvailable,
   handleRetrieveSchemaFromES,
   handleProvideDemo,
@@ -242,24 +244,32 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
           </Tooltip>
           <Tooltip
             isDisabled={!tooltipsShown}
-            label="Send a request with the current ES|QL and schema"
+            label={
+              isAnthropicGuideActionAvailable
+                ? "Send a request with the current ES|QL and schema"
+                : "Warm Cache currently only works with the Anthropic provider"
+            }
           >
             <SpinningButton
               type="button"
               spinningAction={handleWarmCache}
-              disabled={!isESQLRequestAvailable}
+              disabled={!isAnthropicGuideActionAvailable}
             >
               Warm Cache
             </SpinningButton>
           </Tooltip>
           <Tooltip
             isDisabled={!tooltipsShown}
-            label="Ask the LLM to reduce the size of the guides"
+            label={
+              isAnthropicGuideActionAvailable
+                ? "Ask the LLM to reduce the size of the guides"
+                : "Reduce Size currently only works with the Anthropic provider"
+            }
           >
             <SpinningButton
               type="button"
               spinningAction={handleReduceSize}
-              disabled={!isESQLRequestAvailable}
+              disabled={!isAnthropicGuideActionAvailable}
             >
               Reduce Size
             </SpinningButton>

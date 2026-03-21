@@ -173,6 +173,8 @@ const ESQLComposerMain = () => {
   const isLLMRequestAvailable = isLLMConfigSufficent(llmConfig);
   const isLLMESQLRequestAvailable =
     isLLMRequestAvailable && esqlGuideText.length !== 0;
+  const isAnthropicGuideActionAvailable =
+    isLLMESQLRequestAvailable && llmConfig.selected === "anthropic";
 
   const getSchemaProps = useDisclosure();
   const exportDataProps = useDisclosure();
@@ -442,6 +444,15 @@ const ESQLComposerMain = () => {
   };
 
   const handleWarmCache = async () => {
+    if (llmConfig.selected !== "anthropic") {
+      toast({
+        title: "Cache warming unavailable",
+        description: "Cache warming is only supported for Anthropic.",
+        status: "info",
+        isClosable: true,
+      });
+      return;
+    }
     await performLLMAction("Cache warming", async () => {
       const data = await warmCache({
         apiKey: llmConfig.anthropic.apiKey,
@@ -470,6 +481,15 @@ const ESQLComposerMain = () => {
   };
 
   const handleReduceSize = async () => {
+    if (llmConfig.selected !== "anthropic") {
+      toast({
+        title: "Guide size reduction unavailable",
+        description: "Guide size reduction is only supported for Anthropic.",
+        status: "info",
+        isClosable: true,
+      });
+      return;
+    }
     await performLLMAction("Size reduction", async (llmAdapter) => {
       if (!llmAdapter.countTokens) {
         throw new Error(
@@ -1285,6 +1305,7 @@ const ESQLComposerMain = () => {
           >
             <ReferenceGuidesArea
               isESQLRequestAvailable={isLLMESQLRequestAvailable}
+              isAnthropicGuideActionAvailable={isAnthropicGuideActionAvailable}
               isElasticsearchAPIAvailable={isElasticsearchAPIAvailable}
               esqlGuideText={esqlGuideText}
               setEsqlGuideText={setEsqlGuideText}
