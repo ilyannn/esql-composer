@@ -285,8 +285,6 @@ const ESQLComposerMain = () => {
         addToSpan: UseTracingCallback,
       ) => Promise<void>,
     ) => {
-      const adapter = createLLMAdapter(llmConfig);
-
       const { addToSpan, saveSpan } = useTracing({
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
@@ -294,6 +292,7 @@ const ESQLComposerMain = () => {
       });
 
       try {
+        const adapter = createLLMAdapter(llmConfig);
         await action(adapter, addToSpan);
         setAnthropicAPIKeyWorks(true);
         return;
