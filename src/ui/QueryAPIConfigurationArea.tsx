@@ -77,7 +77,7 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
               } else {
                 throw new Error("Invalid API key file.");
               }
-            } catch (e) {
+            } catch (_e) {
               toast({
                 title: "API Key Drag & Drop",
                 description:

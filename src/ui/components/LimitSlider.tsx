@@ -8,7 +8,6 @@ import {
   Spacer,
 } from "@chakra-ui/react";
 import React, { useCallback } from "react";
-import { BsInfoSquare } from "react-icons/bs";
 import SpinningButton from "./SpinningButton";
 
 interface LimitSliderProps {

@@ -150,9 +150,7 @@ const ESQLComposerMain = () => {
 
   const [allStats, setAllStats] = useState<LLMStatisticsRow[]>([]);
 
-  const [anthropicAPIKeyWorks, setAnthropicAPIKeyWorks] = useState<
-    boolean | null
-  >(null);
+  const [, setAnthropicAPIKeyWorks] = useState<boolean | null>(null);
   const [queryAPIKeyWorks, setQueryAPIKeyWorks] = useState<boolean | null>(
     null,
   );
@@ -467,7 +465,8 @@ const ESQLComposerMain = () => {
       toast({
         title: "Cache warming successful",
         description: `Cache will now provide ${
-          data.stats.saved_to_cache + data.stats.input_cached
+          data.stats.token_counts.saved_to_cache +
+          data.stats.token_counts.input_cached
         } tokens for requests using these guides.`,
         status: "success",
         duration: 3000,
@@ -1011,7 +1010,7 @@ const ESQLComposerMain = () => {
     async (item: DemoItem) => {
       const title = `${item.title} demo`;
 
-      await performQueryAPIAction(item.title, async (addToSpan) => {
+      await performQueryAPIAction(item.title, async (_addToSpan) => {
         const missing = !(await checkIndexExists({
           apiURL: queryAPIURL,
           apiKey: queryAPIKey,
@@ -1032,6 +1031,7 @@ const ESQLComposerMain = () => {
               }),
             prompt: (question: string) =>
               new Promise((resolve) => {
+                // eslint-disable-next-line no-alert
                 const answer = window.confirm(question);
                 resolve(answer);
               }),
@@ -1060,7 +1060,7 @@ const ESQLComposerMain = () => {
             apiKey: queryAPIKey,
             indexPattern: item.index,
           });
-        } catch (error) {
+        } catch (_error) {
           // Ignore the error, we will try to load the demo anyway.
         }
 
@@ -1094,7 +1094,7 @@ const ESQLComposerMain = () => {
         const { chain } = performChainAction(visualChain, action, knownFields);
         setVisualChain(chain);
         return true;
-      } catch (error) {
+      } catch (_error) {
         return false;
       }
     },
@@ -1126,7 +1126,7 @@ const ESQLComposerMain = () => {
       const block = visualChain[index];
 
       // Special case of the limit block.
-      if (index == visualChain.length - 1 && block.command === "LIMIT") {
+      if (index === visualChain.length - 1 && block.command === "LIMIT") {
         setMinimizedLimitBlock(block);
       }
 

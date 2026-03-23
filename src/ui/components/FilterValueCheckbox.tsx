@@ -6,7 +6,6 @@ import {
 } from "../../models/esql/ValueStatistics";
 import {
   ESQLAtomValue,
-  esqlRawToHashableValue,
   ESQLSentinelOtherValues,
 } from "../../models/esql/esql_types";
 import FieldValue from "./data-table/FieldValue";

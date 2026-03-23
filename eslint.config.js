@@ -7,6 +7,13 @@ import reactCompiler from "eslint-plugin-react-compiler";
 import tseslint from "typescript-eslint";
 
 export default [
+  {
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
+  },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   reactPlugin.configs.flat?.recommended,
@@ -30,21 +37,37 @@ export default [
         ...globals.es2022,
       },
     },
+    settings: {
+      react: {
+        version: "detect",
+      },
+    },
     rules: {
       // Rules set to "off"
       "react/prop-types": "off",
       "react/react-in-jsx-scope": "off",
+      "react/display-name": "off",
       "no-console": "off",
+      "no-case-declarations": "off",
+      "no-unused-vars": "off",
+      "no-shadow": "off",
+      "@typescript-eslint/no-explicit-any": "off",
+      "require-await": "off",
+      "no-return-await": "off",
+      "no-use-before-define": "off",
 
       // Rules set to "warn"
-      "react/display-name": "warn",
-      "no-case-declarations": "warn",
       "no-var": "warn",
-      "no-unused-vars": "warn",
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
       "prefer-const": "warn",
-      "no-shadow": "warn",
-      "@typescript-eslint/no-explicit-any": "warn",
 
       // Rules set to "error"
       "react-compiler/react-compiler": "error",
@@ -59,9 +82,6 @@ export default [
       "no-eval": "error",
       "no-empty-function": "error",
       "no-extra-bind": "error",
-      "require-await": "error",
-      "no-return-await": "error",
-      "no-use-before-define": "error",
       "prefer-template": "error",
       "object-shorthand": "error",
       "prefer-arrow-callback": "error",

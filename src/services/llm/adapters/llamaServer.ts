@@ -63,9 +63,9 @@ export class LlamaServerLLMAdapter implements LLMAdapter {
   }
 
   stream(
-    request: PreparedRequest,
-    params: StreamingOptions,
-    processor: StreamingProcessor,
+    _request: PreparedRequest,
+    _params: StreamingOptions,
+    _processor: StreamingProcessor,
   ): Promise<StreamingStats> {
     throw new Error("Method not implemented.");
   }

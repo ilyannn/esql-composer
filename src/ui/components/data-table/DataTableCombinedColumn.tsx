@@ -1,4 +1,4 @@
-import { Box, Wrap, VStack, Divider, WrapItem, Icon } from "@chakra-ui/react";
+import { Wrap, VStack, Divider, WrapItem } from "@chakra-ui/react";
 import React from "react";
 import {
   ESQLAtomRawValue,

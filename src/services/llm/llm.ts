@@ -62,7 +62,9 @@ const createAnthropicInstance = (apiKey: string) => {
   });
 };
 
-export const warmCache = (params: WarmCacheInput): Promise<any> =>
+export const warmCache = (
+  params: WarmCacheInput,
+): Promise<GenerateUpdateOutput> =>
   generateESQLUpdate({
     ...params,
     type: "update",
@@ -135,7 +137,7 @@ export const generateESQLUpdate = async (
   } else if (haveExplanationLine) {
     processLine = haveExplanationLine;
   } else {
-    processLine = () => {};
+    processLine = () => undefined;
   }
 
   const request = prepareRequest(input);
@@ -210,7 +212,7 @@ export const reduceSize = async (input: ReduceSizeInput) => {
   const { apiKey, modelName, esqlGuideText, schemaGuideText, processLine } =
     input;
 
-  return await generateESQLUpdate({
+  return generateESQLUpdate({
     type: "update",
     apiKey,
     modelName,
@@ -238,8 +240,6 @@ export const countTokens = async (params: CountTokensInput) => {
   return response.input_tokens;
 };
 
-import { AnthropicLLMAdapter } from "./adapters/anthropic";
-
 export const transformField = async (
   adapter: LLMAdapter,
   params: TransformFieldInput,
@@ -248,6 +248,7 @@ export const transformField = async (
   let field: string | undefined;
   let esql: string | undefined;
   let esql_time_ms: number | undefined;
+  const requestTime = Date.now();
 
   const parseEvents: PseudoXMLHandler<ESQLEvalOutputTag> = {
     onReadLine(tag: ESQLEvalOutputTag | null, line) {
@@ -271,7 +272,6 @@ export const transformField = async (
   };
 
   const parser = new PseudoXMLParser(ESQLEvalOutputSchema, parseEvents);
-  const requestTime = Date.now();
 
   if (adapter.stream === undefined) {
     throw new Error("Adapter does not support streaming");

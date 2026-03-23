@@ -2,6 +2,11 @@ import axios from "axios";
 import { ESQLChainAction } from "../../models/esql/ESQLChain";
 import { CreateIndexParams } from "./indices";
 
+type MissingDemoProvider = (
+  item: DemoItem,
+  context: MissingDemoContext,
+) => Promise<void>;
+
 export interface MissingDemoContext {
   prompt(text: string): Promise<boolean>;
   createIndex: (params: CreateIndexParams) => Promise<void>;
@@ -15,19 +20,19 @@ export interface DemoItem {
   missingProvider: MissingDemoProvider;
 }
 
-interface MissingDemoProvider {
-  (item: DemoItem, context: MissingDemoContext): Promise<void>;
-}
-
 const kibanaSamplesMissingProvider: MissingDemoProvider = async (
   { index },
   { info },
-) => info(`Please use Kibana to install the sample index "${index}"`);
+) => {
+  info(`Please use Kibana to install the sample index "${index}"`);
+};
 
 const esqlFunctionsMissingProvider: MissingDemoProvider = async (
-  { index },
+  _item,
   { info },
-) => info(`Installation of the functions index is not yet implemented`);
+) => {
+  info(`Installation of the functions index is not yet implemented`);
+};
 
 const esqlShapesMissingProvider: MissingDemoProvider = async (
   { index },

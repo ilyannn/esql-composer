@@ -9,7 +9,7 @@ import {
   ESAPIOptions,
 } from "./types";
 import { downloadFile } from "../browser";
-import { dump, DumpOptions } from "js-yaml";
+import { dump } from "js-yaml";
 
 export interface PerformESQLQueryStatistics {
   total_time_ms: number;

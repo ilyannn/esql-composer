@@ -18,7 +18,6 @@ import {
   DrawerCloseButton,
   DrawerFooter,
   useDisclosure,
-  Checkbox,
   CheckboxGroup,
 } from "@chakra-ui/react";
 import React, { useEffect, useRef } from "react";
@@ -27,6 +26,10 @@ import TracingCheckbox from "../services/tracing/TracingCheckbox";
 import { TracingOption } from "../services/tracing/types";
 
 const CONFIG_KEY = "config";
+
+export interface Config {
+  [key: string]: any;
+}
 
 interface HowToUseAreaProps {
   tooltipsShown: boolean;
@@ -39,10 +42,6 @@ interface HowToUseAreaProps {
 
   collectConfig: () => Config;
   loadConfig: (config: Config) => void;
-}
-
-export interface Config {
-  [key: string]: any;
 }
 
 const HowToUseArea: React.FC<HowToUseAreaProps> = React.memo(

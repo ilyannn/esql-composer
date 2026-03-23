@@ -155,7 +155,7 @@ const renderBlockContents = (
       return (
         <VStack spacing={2} align="stretch" justify={"center"}>
           {Object.entries(block.map).map(
-            ([oldName, newName]: [string, string], idx: number) => (
+            ([oldName, newName]: [string, string]) => (
               <HStack
                 key={oldName}
                 align={"baseline"}

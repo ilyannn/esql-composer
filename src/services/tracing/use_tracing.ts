@@ -3,8 +3,7 @@ import { postJSON } from "../es/base";
 import { ESAPIOptions } from "../es/types";
 import { deeplyMergeElasticsearchJSONs } from "../es/utils";
 
-export interface UseTracingInput<T extends Record<string, any>>
-  extends ESAPIOptions {
+export interface UseTracingInput extends ESAPIOptions {
   option: TracingOption;
   traceId?: string | undefined;
 }
@@ -15,16 +14,16 @@ export interface UseTracingOutput {
   saveSpan: () => void;
 }
 
-export const useTracing = <T extends Record<string, any>>({
+export const useTracing = ({
   apiURL,
   apiKey,
   option,
   traceId = undefined,
-}: UseTracingInput<T>): UseTracingOutput => {
+}: UseTracingInput): UseTracingOutput => {
   if (apiURL.length === 0 || apiKey.length === 0 || !option.enabled) {
     return {
-      addToSpan: () => {},
-      saveSpan: () => {},
+      addToSpan: (_data: Record<string, any>) => undefined,
+      saveSpan: () => undefined,
     };
   }
 

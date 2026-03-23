@@ -9,8 +9,6 @@ import {
 } from "@chakra-ui/react";
 import React from "react";
 
-import type { LLMHistoryRow } from "../common/types";
-
 import SpinningButton from "./components/SpinningButton";
 
 import { COMPLETION_KEY } from "./constants";
@@ -36,7 +34,6 @@ interface ESQLWorkingAreaProps {
 }
 
 const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
-  tooltipsShown,
   isESQLRequestAvailable,
 
   naturalInput,
@@ -48,9 +45,7 @@ const ESQLWorkingArea: React.FC<ESQLWorkingAreaProps> = ({
   esqlInputRef,
   esqlCompleteButtonRef,
 
-  handleCompleteESQL,
   performESQLRequest,
-  resetESQL,
 }) => {
   const handleUpdateESQL = async () => {
     await performESQLRequest(naturalInput);

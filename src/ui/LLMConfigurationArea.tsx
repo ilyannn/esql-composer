@@ -5,7 +5,6 @@ import {
   FormControl,
   FormHelperText,
   FormLabel,
-  HStack,
   Input,
   InputGroup,
   InputRightElement,
@@ -27,7 +26,7 @@ import {
   Tooltip,
   VStack,
 } from "@chakra-ui/react";
-import React, { ReactNode, useCallback } from "react";
+import React, { ReactNode } from "react";
 import SpinningButton from "./components/SpinningButton";
 import {
   AnthropicLLMConfig,
@@ -39,12 +38,9 @@ import {
   getAnthropicModelIndex,
   getBedrockModelIndex,
   OpenAILLMConfig,
-  AvailableLLMConfigs,
 } from "../services/llm/config";
 import _ from "lodash";
 import { CLAUDE_MODEL_LIST } from "../services/llm/config";
-import { Config } from "ol/source/TileJSON";
-import { assert } from "console";
 
 interface LLMConfigurationAreaProps {
   llmConfig: FullLLMConfig;
@@ -372,7 +368,7 @@ const LlamaServerConfigurationTab: React.FC<
 
 const OpenAIConfigurationTab: React.FC<
   ConfigurationTabProps<OpenAILLMConfig>
-> = ({ config, updateConfig }) => {
+> = ({ config: _config, updateConfig: _updateConfig }) => {
   return <Text>OpenAI is not supported yet.</Text>;
 };
 

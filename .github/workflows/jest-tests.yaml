@@ -1,4 +1,4 @@
-name: Run Jest Tests
+name: Run Checks
 
 on:
   push:
@@ -9,24 +9,28 @@ on:
       - main
 
 jobs:
-  test:
+  check:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [20.x]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 20.x
+
+      - name: Install just
+        uses: taiki-e/install-action@just
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps
+        run: bun install --frozen-lockfile
 
-      - name: Run Jest tests
-        run: npx jest --ci --coverage
+      - name: Run checks
+        run: just check
