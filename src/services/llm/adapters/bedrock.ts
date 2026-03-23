@@ -1,6 +1,5 @@
 import {
-  BedrockRuntimeClient,
-  CountTokensCommand,
+  BedrockRuntime,
   ConverseCommand,
   ConverseStreamCommand,
   Message,
@@ -66,7 +65,7 @@ const createBedrockInstance = (
   keyID: string,
   keySecret: string,
 ) => {
-  return new BedrockRuntimeClient({
+  return new BedrockRuntime({
     region,
     credentials: {
       accessKeyId: keyID,
@@ -76,7 +75,7 @@ const createBedrockInstance = (
 };
 
 export class BedrockLLMAdapter implements LLMAdapter {
-  private readonly client: BedrockRuntimeClient;
+  private readonly client: BedrockRuntime;
   private readonly modelId: string;
 
   constructor(private readonly config: BedrockLLMConfig) {
@@ -120,7 +119,7 @@ export class BedrockLLMAdapter implements LLMAdapter {
   }
 
   async countTokens(text: string): Promise<number> {
-    const command = new CountTokensCommand({
+    const response = await this.client.countTokens({
       modelId: this.modelId,
       input: {
         converse: {
@@ -133,8 +132,6 @@ export class BedrockLLMAdapter implements LLMAdapter {
         },
       },
     });
-
-    const response = await this.client.send(command);
     return response.inputTokens ?? 0;
   }
 
