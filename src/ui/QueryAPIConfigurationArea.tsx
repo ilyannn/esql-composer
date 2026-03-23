@@ -149,7 +149,7 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
             <InputGroup>
               <Input
                 type="password"
-                placeholder="Enter key here"
+                placeholder="Enter key here or drop a file"
                 value={apiKey}
                 autoComplete="elasticsearch-api-key"
                 onChange={(e) => {
@@ -157,7 +157,12 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
                 }}
                 style={
                   isAPIKeyDragging
-                    ? { border: "1px dashed blue", color: "blue" }
+                    ? {
+                        border: "1px dashed blue",
+                        color: "blue",
+                        backgroundColor: "#ebf8ff",
+                        cursor: "copy",
+                      }
                     : {}
                 }
                 errorBorderColor="red.300"

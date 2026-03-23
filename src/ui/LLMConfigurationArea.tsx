@@ -25,6 +25,7 @@ import {
   Text,
   Tooltip,
   VStack,
+  useToast,
 } from "@chakra-ui/react";
 import React, { ReactNode } from "react";
 import SpinningButton from "./components/SpinningButton";
@@ -151,8 +152,35 @@ interface ConfigInputProps {
 
   isKnownToWork?: boolean | undefined;
   autoFocus?: boolean;
+  allowFileDrop?: boolean;
   children?: ReactNode;
 }
+
+const getDroppedSecretValue = (text: string): string => {
+  const trimmedText = text.trim();
+  if (trimmedText.length === 0) {
+    return "";
+  }
+
+  try {
+    const parsed = JSON.parse(trimmedText);
+    if (typeof parsed === "string") {
+      return parsed.trim();
+    }
+    if (parsed && typeof parsed === "object") {
+      const record = parsed as Record<string, unknown>;
+      for (const key of ["apiKey", "key", "token", "encoded"]) {
+        if (typeof record[key] === "string") {
+          return record[key].trim();
+        }
+      }
+    }
+  } catch (_error) {
+    return trimmedText;
+  }
+
+  return trimmedText;
+};
 
 const ConfigInput: React.FC<ConfigInputProps> = React.memo(
   ({
@@ -164,17 +192,102 @@ const ConfigInput: React.FC<ConfigInputProps> = React.memo(
     setValue,
     isKnownToWork = undefined,
     type,
+    allowFileDrop = false,
     children = null,
   }) => {
+    const toast = useToast();
+    const inputRef = React.useRef<HTMLInputElement>(null);
+    const [isDragging, setIsDragging] = React.useState(false);
+
+    React.useEffect(() => {
+      const input = inputRef.current;
+      if (!input || input.value === value) {
+        return;
+      }
+      setValue(input.value);
+    }, [setValue, value]);
+
+    const handleDragOver = React.useCallback(
+      (event: React.DragEvent) => {
+        if (!allowFileDrop) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = "copy";
+        setIsDragging(true);
+      },
+      [allowFileDrop],
+    );
+
+    const handleDrop = React.useCallback(
+      (event: React.DragEvent) => {
+        if (!allowFileDrop) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        setIsDragging(false);
+
+        const droppedFile = event.dataTransfer.files.item(0);
+        if (!droppedFile) {
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (loadEvent) => {
+          const text = String(loadEvent.target?.result ?? "");
+          const droppedValue = getDroppedSecretValue(text);
+
+          if (droppedValue.length === 0) {
+            toast({
+              title: `${label} Drag & Drop`,
+              description: "The dropped file did not contain a usable key.",
+              status: "error",
+              duration: 4000,
+              isClosable: true,
+            });
+            return;
+          }
+
+          setValue(droppedValue);
+          toast({
+            title: `${label} Drag & Drop`,
+            description: `Loaded ${label.toLowerCase()} from file.`,
+            status: "success",
+            duration: 2500,
+            isClosable: true,
+          });
+        };
+        reader.onerror = () => {
+          toast({
+            title: `${label} Drag & Drop`,
+            description: "Failed to read the dropped file.",
+            status: "error",
+            duration: 4000,
+            isClosable: true,
+          });
+        };
+        reader.readAsText(droppedFile);
+      },
+      [allowFileDrop, label, setValue, toast],
+    );
+
     return (
       <FormControl
         isInvalid={value.length !== 0 && isKnownToWork === false}
         flex={1}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onDragEnter={() => allowFileDrop && setIsDragging(true)}
+        onDragLeave={() => allowFileDrop && setIsDragging(false)}
       >
         <FormLabel>{label}</FormLabel>
         <InputGroup>
           <Input
+            ref={inputRef}
             autoFocus={autoFocus}
+            name={autocompleteName}
             type={type}
             placeholder={placeholder}
             value={value}
@@ -182,6 +295,22 @@ const ConfigInput: React.FC<ConfigInputProps> = React.memo(
             onChange={(e) => {
               setValue(e.target.value);
             }}
+            onInput={(e) => {
+              setValue(e.currentTarget.value);
+            }}
+            onBlur={(e) => {
+              setValue(e.currentTarget.value);
+            }}
+            style={
+              isDragging
+                ? {
+                    border: "1px dashed blue",
+                    color: "blue",
+                    backgroundColor: "#ebf8ff",
+                    cursor: "copy",
+                  }
+                : {}
+            }
             errorBorderColor="red.300"
             flex={1}
           />
@@ -247,9 +376,10 @@ const AnthropicConfigurationTab: React.FC<
         type="password"
         autoFocus={true}
         autocompleteName="anthropic-api-key"
-        placeholder="Enter API key here"
+        placeholder="Enter API key here or drop a file"
         value={config.apiKey}
         isKnownToWork={config.isKnownToWork}
+        allowFileDrop={true}
         setValue={(apiKey: string) => {
           updateConfig({
             apiKey,
