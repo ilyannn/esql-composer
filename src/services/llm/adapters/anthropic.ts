@@ -10,8 +10,13 @@ import { StreamingOptions, StreamingStats, StreamingProcessor } from "./types";
 import { DEFAULT_MAX_TOKENS } from "./constants";
 
 const createAnthropicInstance = (apiKey: string) => {
+  const trimmedApiKey = apiKey.trim();
+  if (trimmedApiKey.length === 0) {
+    throw new Error("Please enter your Anthropic API key.");
+  }
+
   return new Anthropic({
-    apiKey,
+    apiKey: trimmedApiKey,
     defaultHeaders: { "anthropic-beta": "prompt-caching-2024-07-31" },
     dangerouslyAllowBrowser: true,
   });

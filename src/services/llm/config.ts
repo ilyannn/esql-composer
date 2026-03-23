@@ -150,19 +150,22 @@ const hasNonEmptyValue = (value: string): boolean => value.trim().length > 0;
 export const isLLMConfigSufficent = (config: FullLLMConfig): boolean => {
   switch (config.selected) {
     case "anthropic":
-      return config.anthropic.apiKey.length > 0;
+      return hasNonEmptyValue(config.anthropic.apiKey);
 
     case "bedrock":
       return (
-        config.bedrock.region.length > 0 &&
-        config.bedrock.accessKeyId.length > 0 &&
-        config.bedrock.secretAccessKey.length > 0
+        hasNonEmptyValue(config.bedrock.region) &&
+        hasNonEmptyValue(config.bedrock.accessKeyId) &&
+        hasNonEmptyValue(config.bedrock.secretAccessKey)
       );
 
     case "llamaServer":
-      return config.llamaServer.apiURL.length > 0;
+      return hasNonEmptyValue(config.llamaServer.apiURL);
 
     case "openAI":
-      return config.openAI.apiURL.length > 0 && config.openAI.apiKey.length > 0;
+      return (
+        hasNonEmptyValue(config.openAI.apiURL) &&
+        hasNonEmptyValue(config.openAI.apiKey)
+      );
   }
 };
