@@ -285,6 +285,28 @@ const ESQLComposerMain = () => {
         addToSpan: UseTracingCallback,
       ) => Promise<void>,
     ) => {
+      let effectiveLLMConfig = llmConfig;
+      if (llmConfig.selected === "anthropic") {
+        const trimmedApiKey = llmConfig.anthropic.apiKey.trim();
+        if (trimmedApiKey.length === 0) {
+          const anthropicKeyInput = document.querySelector<HTMLInputElement>(
+            'input[name="anthropic-api-key"]',
+          );
+          const fallbackApiKey = anthropicKeyInput?.value.trim() ?? "";
+
+          if (fallbackApiKey.length > 0) {
+            effectiveLLMConfig = {
+              ...llmConfig,
+              anthropic: {
+                ...llmConfig.anthropic,
+                apiKey: fallbackApiKey,
+              },
+            };
+            setLLMConfig(effectiveLLMConfig);
+          }
+        }
+      }
+
       const { addToSpan, saveSpan } = useTracing({
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
@@ -292,7 +314,7 @@ const ESQLComposerMain = () => {
       });
 
       try {
-        const adapter = createLLMAdapter(llmConfig);
+        const adapter = createLLMAdapter(effectiveLLMConfig);
         await action(adapter, addToSpan);
         setAnthropicAPIKeyWorks(true);
         return;
@@ -347,7 +369,7 @@ const ESQLComposerMain = () => {
         saveSpan();
       }
     },
-    [toast, queryAPIURL, queryAPIKey, tracingOptions.llm],
+    [llmConfig, queryAPIKey, queryAPIURL, setLLMConfig, toast, tracingOptions.llm],
   );
 
   const performQueryAPIAction = useCallback(

@@ -12,7 +12,9 @@ import { DEFAULT_MAX_TOKENS } from "./constants";
 const createAnthropicInstance = (apiKey: string) => {
   const trimmedApiKey = apiKey.trim();
   if (trimmedApiKey.length === 0) {
-    throw new Error("Please enter your Anthropic API key.");
+    throw new Error(
+      "Please enter your Anthropic API key. If the field already looks filled, retype or paste the key once.",
+    );
   }
 
   return new Anthropic({
