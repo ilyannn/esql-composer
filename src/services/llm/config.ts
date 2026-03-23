@@ -13,19 +13,23 @@ interface ClaudeModel {
  */
 export const CLAUDE_MODEL_LIST: ClaudeModel[] = [
   {
-    name: "Haiku",
-    anthropic: "claude-3-5-haiku-latest",
-    bedrock: "anthropic.claude-3-5-haiku-20241022-v1:0",
+    name: "Haiku 4.5",
+    anthropic: "claude-haiku-4-5",
+    bedrock: "anthropic.claude-haiku-4-5-20251001-v1:0",
   },
   {
-    name: "Sonnet",
-    anthropic: "claude-3-5-sonnet-latest",
-    bedrock: "anthropic.claude-3-5-sonnet-20241022-v2:0",
+    name: "Sonnet 4.6",
+    anthropic: "claude-sonnet-4-6",
+    bedrock: "anthropic.claude-sonnet-4-6",
   },
-  //  { name: "Opus", anthropic: "claude-3-5-opus-latest" } -- not available yet
+  {
+    name: "Opus 4.6",
+    anthropic: "claude-opus-4-6",
+    bedrock: "anthropic.claude-opus-4-6-v1",
+  },
 ] as const;
 
-export type ClaudeModelIndex = 0 | 1;
+export type ClaudeModelIndex = 0 | 1 | 2;
 export type AnthropicModelName =
   (typeof CLAUDE_MODEL_LIST)[ClaudeModelIndex]["anthropic"];
 export type BedrockModelName =
@@ -135,6 +139,8 @@ export const defaultLLMConfig = {
     apiKey: "",
   },
 } as const satisfies FullLLMConfig;
+
+const hasNonEmptyValue = (value: string): boolean => value.trim().length > 0;
 
 /**
  * Checks if the LLM config is sufficient for the selected LLM.

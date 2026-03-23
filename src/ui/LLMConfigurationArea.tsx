@@ -52,8 +52,9 @@ interface LLMConfigurationAreaProps {
 
 const modelSliderlabelStyles = {
   mt: "3",
-  ml: "-3",
   fontSize: "sm",
+  transform: "translateX(-50%)",
+  whiteSpace: "nowrap",
 };
 
 interface ClaudeModelSelectionProps {
@@ -65,8 +66,8 @@ interface ClaudeModelSelectionProps {
 const ClaudeModelSelection: React.FC<ClaudeModelSelectionProps> = React.memo(
   ({ selectedIndex, setSelectedIndex, children = null }) => {
     return (
-      <FormControl as="fieldset" width="200px">
-        <FormLabel as="legend">Claude 3.5 Model</FormLabel>
+      <FormControl as="fieldset" width="250px">
+        <FormLabel as="legend">Claude Model</FormLabel>
         <Box p={5} pt={0}>
           <Slider
             aria-label="Model Selection"
@@ -234,7 +235,7 @@ const AnthropicConfigurationTab: React.FC<
         <FormHelperText>
           <Link
             isExternal
-            href="https://www.anthropic.com/pricing#anthropic-api"
+            href="https://www.anthropic.com/pricing#api"
           >
             <ExternalLinkIcon mx="3px" />
             Compare model pricing.
@@ -258,8 +259,8 @@ const AnthropicConfigurationTab: React.FC<
       >
         <FormHelperText>
           Direct Anthropic access allows us to use{" "}
-          <Link isExternal href="https://www.anthropic.com/news/prompt-caching">
-            <ExternalLinkIcon /> beta features
+          <Link isExternal href="https://claude.com/blog/prompt-caching">
+            <ExternalLinkIcon /> prompt caching
           </Link>
           .
         </FormHelperText>
