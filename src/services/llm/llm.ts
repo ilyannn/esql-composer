@@ -1,5 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
-
 import { LLMStatisticsRow } from "../../common/types";
 import {
   PrepareCompletionRequestOptions,
@@ -11,23 +9,12 @@ import {
 } from "./prompts";
 import { PseudoXMLHandler, PseudoXMLParser } from "./pseudo-xml";
 import { ESQLEvalOutputSchema, ESQLEvalOutputTag } from "./schema";
-import { AnthropicModelName } from "./config";
-import { AnthropicLLMAdapter } from "./adapters/anthropic";
 import { LLMAdapter } from "./adapters/types";
 import { DEFAULT_MAX_TOKENS } from "./adapters/constants";
-
-export type LLMOptions = {
-  apiKey: string;
-  modelName: AnthropicModelName;
-  maxTokens?: number;
-};
-
-export type WarmCacheInput = LLMOptions & ReferenceOptions;
 
 export type WarmCacheRequest = ReferenceOptions;
 
 export type GenerateUpdateRequest = ReferenceOptions &
-  ReferenceOptions &
   PromptOptions &
   (PrepareCompletionRequestOptions | PrepareUpdateRequestOptions) & {
     haveESQLLine?: (line: string) => void;
@@ -36,8 +23,6 @@ export type GenerateUpdateRequest = ReferenceOptions &
     processESQLLines?: boolean;
     maxTokens?: number;
   };
-
-export type GenerateUpdateInput = LLMOptions & GenerateUpdateRequest;
 
 export type GenerateUpdateOutput = {
   stats: LLMStatisticsRow;
@@ -55,38 +40,9 @@ interface TransformFieldOutput {
   gen_ai: { prompt: string; completion: string };
 }
 
-export type ReduceSizeInput = LLMOptions &
-  ReferenceOptions & {
-    processLine: (line: string) => void;
-  };
-
 export type ReduceSizeRequest = ReferenceOptions & {
   processLine: (line: string) => void;
 };
-
-const createAnthropicInstance = (apiKey: string) => {
-  const trimmedApiKey = apiKey.trim();
-  if (trimmedApiKey.length === 0) {
-    throw new Error(
-      "Please enter your Anthropic API key. If the field already looks filled, retype or paste the key once.",
-    );
-  }
-
-  return new Anthropic({
-    apiKey: trimmedApiKey,
-    defaultHeaders: { "anthropic-beta": "prompt-caching-2024-07-31" },
-    dangerouslyAllowBrowser: true,
-  });
-};
-
-export const warmCache = (
-  params: WarmCacheInput,
-): Promise<GenerateUpdateOutput> =>
-  generateESQLUpdate({
-    ...params,
-    type: "update",
-    naturalInput: "top flights",
-  });
 
 export const warmCacheWithAdapter = (
   adapter: LLMAdapter,
@@ -195,33 +151,7 @@ export const generateESQLUpdateWithAdapter = async (
   };
 };
 
-export const generateESQLUpdate = async (
-  input: GenerateUpdateInput,
-): Promise<GenerateUpdateOutput> => {
-  const adapter = new AnthropicLLMAdapter({
-    type: "anthropic",
-    apiKey: input.apiKey,
-    modelName: input.modelName,
-  });
-
-  return generateESQLUpdateWithAdapter(adapter, input);
-};
-
-export const reduceSize = async (input: ReduceSizeInput) => {
-  const { apiKey, modelName, esqlGuideText, schemaGuideText, processLine } =
-    input;
-
-  return generateESQLUpdate({
-    type: "update",
-    apiKey,
-    modelName,
-    esqlGuideText,
-    schemaGuideText,
-    naturalInput: `Please remove unnecessary information from the provided Elasticsearch Query Language guide which will be used for the ES|QL generation task. Keep relevant information such as list of function names intact but reduce the number of redundant descriptions. Keep enough examples to be able to answer all questions. You will be the consumer of the reduced guide, so feel free to use any tricks that can be helpful. Output the new guide between <esql> and </esql> tags and put any other information outside. Aim at 40% reduction. Here is the old guide again:\n\n<esql>\n${esqlGuideText}\n</esql>`,
-    haveESQLLine: processLine,
-    maxTokens: 8192,
-  });
-};
+const REDUCE_SIZE_PROMPT_PREFIX = `Please remove unnecessary information from the provided Elasticsearch Query Language guide which will be used for the ES|QL generation task. Keep relevant information such as list of function names intact but reduce the number of redundant descriptions. Keep enough examples to be able to answer all questions. You will be the consumer of the reduced guide, so feel free to use any tricks that can be helpful. Output the new guide between <esql> and </esql> tags and put any other information outside. Aim at 40% reduction. Here is the old guide again:\n\n<esql>\n`;
 
 export const reduceSizeWithAdapter = async (
   adapter: LLMAdapter,
@@ -233,26 +163,10 @@ export const reduceSizeWithAdapter = async (
     type: "update",
     esqlGuideText,
     schemaGuideText,
-    naturalInput: `Please remove unnecessary information from the provided Elasticsearch Query Language guide which will be used for the ES|QL generation task. Keep relevant information such as list of function names intact but reduce the number of redundant descriptions. Keep enough examples to be able to answer all questions. You will be the consumer of the reduced guide, so feel free to use any tricks that can be helpful. Output the new guide between <esql> and </esql> tags and put any other information outside. Aim at 40% reduction. Here is the old guide again:\n\n<esql>\n${esqlGuideText}\n</esql>`,
+    naturalInput: `${REDUCE_SIZE_PROMPT_PREFIX}${esqlGuideText}\n</esql>`,
     haveESQLLine: processLine,
     maxTokens: 8192,
   });
-};
-
-export type CountTokensInput = LLMOptions & {
-  text: string;
-};
-
-export const countTokens = async (params: CountTokensInput) => {
-  const client = createAnthropicInstance(params.apiKey);
-
-  const response = await client.beta.messages.countTokens({
-    betas: ["token-counting-2024-11-01"],
-    model: params.modelName,
-    messages: [{ role: "user", content: params.text }],
-  });
-
-  return response.input_tokens;
 };
 
 export const transformField = async (

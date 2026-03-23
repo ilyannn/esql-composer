@@ -199,14 +199,6 @@ const ConfigInput: React.FC<ConfigInputProps> = React.memo(
     const inputRef = React.useRef<HTMLInputElement>(null);
     const [isDragging, setIsDragging] = React.useState(false);
 
-    React.useEffect(() => {
-      const input = inputRef.current;
-      if (!input || input.value === value) {
-        return;
-      }
-      setValue(input.value);
-    }, [setValue, value]);
-
     const handleDragOver = React.useCallback(
       (event: React.DragEvent) => {
         if (!allowFileDrop) {
