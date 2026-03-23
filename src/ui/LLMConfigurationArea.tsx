@@ -512,7 +512,7 @@ const TAB_CONFIG: TabConfig[] = [
   { id: "anthropic", title: "Anthropic" },
   {
     id: "bedrock",
-    title: "Bedrock (under construction)",
+    title: "Bedrock (beta)",
   },
   {
     id: "llamaServer",

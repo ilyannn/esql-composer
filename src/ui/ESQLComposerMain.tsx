@@ -43,10 +43,10 @@ import {
 
 import {
   FieldInfo,
-  generateESQLUpdate,
-  reduceSize,
+  generateESQLUpdateWithAdapter,
+  reduceSizeWithAdapter,
   transformField,
-  warmCache,
+  warmCacheWithAdapter,
 } from "../services/llm";
 
 import { ESQLSchema, deriveSchema } from "../services/es/derive_schema";
@@ -171,8 +171,9 @@ const ESQLComposerMain = () => {
   const isLLMRequestAvailable = isLLMConfigSufficent(llmConfig);
   const isLLMESQLRequestAvailable =
     isLLMRequestAvailable && esqlGuideText.length !== 0;
-  const isAnthropicGuideActionAvailable =
-    isLLMESQLRequestAvailable && llmConfig.selected === "anthropic";
+  const isGuideActionAvailable =
+    isLLMESQLRequestAvailable &&
+    ["anthropic", "bedrock"].includes(llmConfig.selected);
 
   const getSchemaProps = useDisclosure();
   const exportDataProps = useDisclosure();
@@ -463,19 +464,17 @@ const ESQLComposerMain = () => {
   };
 
   const handleWarmCache = async () => {
-    if (llmConfig.selected !== "anthropic") {
+    if (!isGuideActionAvailable) {
       toast({
         title: "Cache warming unavailable",
-        description: "Cache warming is only supported for Anthropic.",
+        description: "Cache warming is currently supported for Anthropic and Bedrock.",
         status: "info",
         isClosable: true,
       });
       return;
     }
-    await performLLMAction("Cache warming", async () => {
-      const data = await warmCache({
-        apiKey: llmConfig.anthropic.apiKey,
-        modelName: llmConfig.anthropic.modelName,
+    await performLLMAction("Cache warming", async (llmAdapter) => {
+      const data = await warmCacheWithAdapter(llmAdapter, {
         esqlGuideText,
         schemaGuideText,
       });
@@ -501,10 +500,11 @@ const ESQLComposerMain = () => {
   };
 
   const handleReduceSize = async () => {
-    if (llmConfig.selected !== "anthropic") {
+    if (!isGuideActionAvailable) {
       toast({
         title: "Guide size reduction unavailable",
-        description: "Guide size reduction is only supported for Anthropic.",
+        description:
+          "Guide size reduction is currently supported for Anthropic and Bedrock.",
         status: "info",
         isClosable: true,
       });
@@ -526,9 +526,7 @@ const ESQLComposerMain = () => {
         setEsqlGuideText(newESQGuideText);
       };
 
-      const data = (await reduceSize({
-        apiKey: llmConfig.anthropic.apiKey,
-        modelName: llmConfig.anthropic.modelName,
+      const data = (await reduceSizeWithAdapter(llmAdapter, {
         esqlGuideText,
         schemaGuideText,
         processLine,
@@ -781,7 +779,7 @@ const ESQLComposerMain = () => {
       if (!esqlGuideText) {
         return;
       }
-      await performLLMAction("ES|QL generation", async () => {
+      await performLLMAction("ES|QL generation", async (llmAdapter) => {
         const interpolatedLines = esqlInput.split("\n");
         let lineIndex = -1;
 
@@ -809,10 +807,8 @@ const ESQLComposerMain = () => {
         };
         setUpdatingESQLLineByLine(true);
 
-        const data = await generateESQLUpdate({
+        const data = await generateESQLUpdateWithAdapter(llmAdapter, {
           type: "update",
-          apiKey: llmConfig.anthropic.apiKey,
-          modelName: llmConfig.anthropic.modelName,
           esqlGuideText,
           schemaGuideText,
           esqlInput,
@@ -843,7 +839,7 @@ const ESQLComposerMain = () => {
   );
 
   const handleCompleteESQL = async () => {
-    await performLLMAction("ES|QL completion", async () => {
+    await performLLMAction("ES|QL completion", async (llmAdapter) => {
       if (
         esqlInputRef.current === null ||
         esqlGuideText === null ||
@@ -896,10 +892,8 @@ const ESQLComposerMain = () => {
           }*/
       };
 
-      const data = (await generateESQLUpdate({
+      const data = (await generateESQLUpdateWithAdapter(llmAdapter, {
         type: "completion",
-        apiKey: llmConfig.anthropic.apiKey,
-        modelName: llmConfig.anthropic.modelName,
         esqlGuideText,
         schemaGuideText,
         esqlInput: esqlBeforeCursor,
@@ -1326,7 +1320,7 @@ const ESQLComposerMain = () => {
           >
             <ReferenceGuidesArea
               isESQLRequestAvailable={isLLMESQLRequestAvailable}
-              isAnthropicGuideActionAvailable={isAnthropicGuideActionAvailable}
+              isGuideActionAvailable={isGuideActionAvailable}
               isElasticsearchAPIAvailable={isElasticsearchAPIAvailable}
               esqlGuideText={esqlGuideText}
               setEsqlGuideText={setEsqlGuideText}
