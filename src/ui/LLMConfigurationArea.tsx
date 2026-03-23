@@ -156,7 +156,7 @@ interface ConfigInputProps {
   children?: ReactNode;
 }
 
-const getDroppedSecretValue = (text: string): string => {
+export const getDroppedSecretValue = (text: string): string => {
   const trimmedText = text.trim();
   if (trimmedText.length === 0) {
     return "";

@@ -24,6 +24,10 @@ test:
 lint:
     mise exec -- bunx eslint src eslint.config.js craco.config.js jest.config.js
 
+# Run tests with coverage report
+coverage:
+    mise exec -- node ./node_modules/jest/bin/jest.js --runInBand --coverage
+
 # Run the main local verification steps
 check: lint test build
 
