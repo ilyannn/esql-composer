@@ -10,7 +10,7 @@
 
 To take advantage of all ES|QL Composer features, you should have:
 
-- An [Anthropic API](https://www.anthropic.com/api) key (since we use beta features, only direct access is supported).
+- An [Anthropic API](https://www.anthropic.com/api) key (direct Anthropic access is required for [prompt caching](https://claude.com/blog/prompt-caching)).
 - Credentials for an Elasticsearch cluster (CORS should be set up to [allow access from the browser](https://www.elastic.co/guide/en/elasticsearch/reference/current/search-application-security.html#search-application-security-cors)).
 
 ### Features
@@ -83,11 +83,11 @@ This is a purely client-side app, built with:
 
 Queries are run directly against Elasticsearch instance, as the SDK [does not support running in the browser](https://github.com/elastic/elasticsearch-js#browser).
 
-We use some recently shipped and beta features of Anthropic API:
+We use the following Anthropic API capabilities:
 
-- Haiku 3.5 and the new Sonnet 3.5 (waiting for Opus 3.5!)
+- Haiku 4.5, Sonnet 4.6, and Opus 4.6
 - [Token counting (beta)](https://docs.anthropic.com/en/docs/build-with-claude/token-counting)
-- [Prompt caching (beta)](https://www.anthropic.com/news/prompt-caching)
+- [Prompt caching](https://claude.com/blog/prompt-caching)
 
 ### Local Installation
 
@@ -95,7 +95,9 @@ Just the regular frontend stuff:
 
 ```sh
 git clone git@github.com:ilyannn/esql-composer.git && cd esql-composer
-npm install && npm start
+mise install
+just install
+just start
 ```
 
 ### Roadmap
