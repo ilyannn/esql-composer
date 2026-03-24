@@ -36,16 +36,12 @@ const parseReferencedAssets = (html) => {
   return new Set(Array.from(matches, (match) => match[1]));
 };
 
-const chunkNameFromFile = (fileName) =>
-  fileName.replace(/\.[^.]+$/, "").replace(/-[^-]+$/, "");
-
 const readAssetInfo = (fileName) => {
   const path = join(ASSETS_DIR, fileName);
   const contents = readFileSync(path);
 
   return {
     fileName,
-    chunkName: chunkNameFromFile(fileName),
     raw: statSync(path).size,
     gzip: gzipSync(contents).length,
     extension: fileName.endsWith(".css") ? "css" : "js",
@@ -110,7 +106,7 @@ const failures = [
 
 for (const [chunkName, budget] of Object.entries(CHUNK_BUDGETS)) {
   const matchingAssets = allAssetInfos
-    .filter((asset) => asset.chunkName === chunkName)
+    .filter((asset) => asset.fileName.startsWith(`${chunkName}-`))
     .sort((left, right) => right.raw - left.raw);
 
   if (matchingAssets.length === 0) {
