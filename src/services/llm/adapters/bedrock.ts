@@ -21,25 +21,12 @@ import { DEFAULT_MAX_TOKENS } from "./constants";
 const createBedrockSystem = (
   system: PreparedRequest["system"],
 ): SystemContentBlock[] => {
-  const content = system.map(
+  return system.map(
     (block) =>
       ({
         text: block.text,
       }) satisfies SystemContentBlock,
   );
-
-  if (content.length === 0) {
-    return content;
-  }
-
-  return [
-    ...content,
-    {
-      cachePoint: {
-        type: "default",
-      },
-    } satisfies SystemContentBlock,
-  ];
 };
 
 const createBedrockMessages = (
@@ -191,12 +178,15 @@ export class BedrockLLMAdapter implements LLMAdapter {
         }
 
         if (chunk.metadata) {
-          const usage = chunk.metadata.usage;
+          const usage = (chunk.metadata.usage ?? {}) as Record<
+            string,
+            number | undefined
+          >;
           message_metadata_stats = {
-            input_cached: usage?.cacheReadInputTokens ?? 0,
-            saved_to_cache: usage?.cacheWriteInputTokens ?? 0,
-            input_uncached: usage?.inputTokens,
-            output_tokens: usage?.outputTokens,
+            input_cached: usage["cacheReadInputTokens"] ?? 0,
+            saved_to_cache: usage["cacheWriteInputTokens"] ?? 0,
+            input_uncached: usage["inputTokens"],
+            output_tokens: usage["outputTokens"],
           };
         } else if (chunk.messageStop) {
           processor.done();
