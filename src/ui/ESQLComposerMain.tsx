@@ -171,7 +171,9 @@ const ESQLComposerMain = () => {
   const isLLMRequestAvailable = isLLMConfigSufficent(llmConfig);
   const isLLMESQLRequestAvailable =
     isLLMRequestAvailable && esqlGuideText.length !== 0;
-  const isGuideActionAvailable =
+  const isWarmCacheAvailable =
+    isLLMESQLRequestAvailable && llmConfig.selected === "anthropic";
+  const isReduceSizeAvailable =
     isLLMESQLRequestAvailable &&
     ["anthropic", "bedrock"].includes(llmConfig.selected);
 
@@ -464,10 +466,10 @@ const ESQLComposerMain = () => {
   };
 
   const handleWarmCache = async () => {
-    if (!isGuideActionAvailable) {
+    if (!isWarmCacheAvailable) {
       toast({
         title: "Cache warming unavailable",
-        description: "Cache warming is currently supported for Anthropic and Bedrock.",
+        description: "Cache warming is currently supported for Anthropic.",
         status: "info",
         isClosable: true,
       });
@@ -500,7 +502,7 @@ const ESQLComposerMain = () => {
   };
 
   const handleReduceSize = async () => {
-    if (!isGuideActionAvailable) {
+    if (!isReduceSizeAvailable) {
       toast({
         title: "Guide size reduction unavailable",
         description:
@@ -1320,7 +1322,8 @@ const ESQLComposerMain = () => {
           >
             <ReferenceGuidesArea
               isESQLRequestAvailable={isLLMESQLRequestAvailable}
-              isGuideActionAvailable={isGuideActionAvailable}
+              isWarmCacheAvailable={isWarmCacheAvailable}
+              isReduceSizeAvailable={isReduceSizeAvailable}
               isElasticsearchAPIAvailable={isElasticsearchAPIAvailable}
               esqlGuideText={esqlGuideText}
               setEsqlGuideText={setEsqlGuideText}

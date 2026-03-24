@@ -37,7 +37,8 @@ interface ReferenceGuidesAreaProps {
   handleGetTokenCount: () => Promise<void>;
   tooltipsShown: boolean;
   isESQLRequestAvailable: boolean;
-  isGuideActionAvailable: boolean;
+  isWarmCacheAvailable: boolean;
+  isReduceSizeAvailable: boolean;
   isElasticsearchAPIAvailable: boolean;
   handleRetrieveSchemaFromES: () => void;
   handleProvideDemo: (item: DemoItem) => void;
@@ -56,7 +57,8 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   handleGetTokenCount,
   tooltipsShown,
   isESQLRequestAvailable,
-  isGuideActionAvailable,
+  isWarmCacheAvailable,
+  isReduceSizeAvailable,
   isElasticsearchAPIAvailable,
   handleRetrieveSchemaFromES,
   handleProvideDemo,
@@ -245,15 +247,15 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
           <Tooltip
             isDisabled={!tooltipsShown}
             label={
-              isGuideActionAvailable
+              isWarmCacheAvailable
                 ? "Send a request with the current ES|QL and schema"
-                : "Warm Cache currently only works with the Anthropic and Bedrock providers"
+                : "Warm Cache currently only works with the Anthropic provider"
             }
           >
             <SpinningButton
               type="button"
               spinningAction={handleWarmCache}
-              disabled={!isGuideActionAvailable}
+              disabled={!isWarmCacheAvailable}
             >
               Warm Cache
             </SpinningButton>
@@ -261,7 +263,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
           <Tooltip
             isDisabled={!tooltipsShown}
             label={
-              isGuideActionAvailable
+              isReduceSizeAvailable
                 ? "Ask the LLM to reduce the size of the guides"
                 : "Reduce Size currently only works with the Anthropic and Bedrock providers"
             }
@@ -269,7 +271,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             <SpinningButton
               type="button"
               spinningAction={handleReduceSize}
-              disabled={!isGuideActionAvailable}
+              disabled={!isReduceSizeAvailable}
             >
               Reduce Size
             </SpinningButton>
