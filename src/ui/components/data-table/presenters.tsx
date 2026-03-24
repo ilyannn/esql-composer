@@ -1,5 +1,4 @@
 import { Box, Link } from "@chakra-ui/react";
-import { memoize } from "lodash";
 import { JSX, Suspense, lazy } from "react";
 import Markdown from "react-markdown";
 import {
@@ -184,20 +183,55 @@ const colorPresenter = (value: ESQLAtomValue) => {
   return defaultPresenter(value);
 };
 
-const memoizedCreateDatePresenter = memoize(createDatePresenter);
-const memoizedCreateMoneyPresenter = memoize(createMoneyPresenter);
-const memoizedCreateNumberPresenter = memoize(createNumberPresenter);
-const memoizedCreateMarkdownPresenter = memoize(createMarkdownPresenter);
+const datePresenterCache = new Map<string | undefined, Presenter>();
+const moneyPresenterCache = new Map<string, Presenter>();
+const numberPresenterCache = new Map<number | undefined, Presenter>();
+const markdownPresenter = createMarkdownPresenter();
+
+const getDatePresenter = (timezone: string | undefined): Presenter => {
+  const existingPresenter = datePresenterCache.get(timezone);
+  if (existingPresenter) {
+    return existingPresenter;
+  }
+
+  const newPresenter = createDatePresenter(timezone);
+  datePresenterCache.set(timezone, newPresenter);
+  return newPresenter;
+};
+
+const getMoneyPresenter = (currency: string): Presenter => {
+  const existingPresenter = moneyPresenterCache.get(currency);
+  if (existingPresenter) {
+    return existingPresenter;
+  }
+
+  const newPresenter = createMoneyPresenter(currency);
+  moneyPresenterCache.set(currency, newPresenter);
+  return newPresenter;
+};
+
+const getNumberPresenter = (
+  maximumFractionDigits: number | undefined,
+): Presenter => {
+  const existingPresenter = numberPresenterCache.get(maximumFractionDigits);
+  if (existingPresenter) {
+    return existingPresenter;
+  }
+
+  const newPresenter = createNumberPresenter(maximumFractionDigits);
+  numberPresenterCache.set(maximumFractionDigits, newPresenter);
+  return newPresenter;
+};
 
 export const getPresenter = (column: ESQLColumn): Presenter => {
   try {
     if (column.name.endsWith("(UTC)")) {
-      return memoizedCreateDatePresenter("UTC");
+      return getDatePresenter("UTC");
     }
 
     const timezoneMatch = column.name.match(/\b([A-Za-z_]+\/[A-Za-z_]+)\b/);
     if (timezoneMatch) {
-      return memoizedCreateDatePresenter(timezoneMatch[1]);
+      return getDatePresenter(timezoneMatch[1]);
     }
 
     if (
@@ -205,7 +239,7 @@ export const getPresenter = (column: ESQLColumn): Presenter => {
       column.type === "date_nanos" ||
       column.name.endsWith("(Date)")
     ) {
-      return memoizedCreateDatePresenter(undefined);
+      return getDatePresenter(undefined);
     }
 
     if (column.type === "geo_shape" || column.name.endsWith("(Shape)")) {
@@ -219,7 +253,7 @@ export const getPresenter = (column: ESQLColumn): Presenter => {
     const class_ = esqlTypeToClass(column.type);
 
     if (class_ === "stringy" && column.name.endsWith("(Markdown)")) {
-      return memoizedCreateMarkdownPresenter();
+      return markdownPresenter;
     }
 
     if (class_ === "stringy" && column.name.endsWith("(ES|QL)")) {
@@ -236,11 +270,11 @@ export const getPresenter = (column: ESQLColumn): Presenter => {
 
     const currencyMatch = column.name.match(/\(([A-Z][A-Z][A-Z])\)$/);
     if (currencyMatch) {
-      return memoizedCreateMoneyPresenter(currencyMatch[1]);
+      return getMoneyPresenter(currencyMatch[1]);
     }
 
     if (class_ === "numeric") {
-      return memoizedCreateNumberPresenter(undefined);
+      return getNumberPresenter(undefined);
     }
   } catch (e) {
     console.error("Failed to create presenter for ", column, e);
