@@ -1,4 +1,4 @@
-import hljs from "highlight.js/lib/core.js";
+import hljs from "@highlightjs/cdn-assets/es/core.js";
 
 function highight_esql() {
   const COMMENT_MODE = hljs.COMMENT("//", "$", {
