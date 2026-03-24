@@ -22,7 +22,7 @@ test:
 
 # Run ESLint
 lint:
-    mise exec -- bunx eslint src eslint.config.js craco.config.js jest.config.js
+    mise exec -- bunx eslint src eslint.config.js jest.config.js vite.config.ts
 
 # Run tests with coverage report
 coverage:
