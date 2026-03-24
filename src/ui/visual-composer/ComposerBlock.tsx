@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Button, Heading, HStack } from "@chakra-ui/react";
-import { CloseIcon } from "@chakra-ui/icons";
+import { CloseIcon } from "../components/icons";
 import { TbWindowMinimize } from "react-icons/tb";
 export type ComposerBlockAction = "accept" | "reject";
 import { BsBoxArrowInUp } from "react-icons/bs";

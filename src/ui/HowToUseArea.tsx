@@ -1,4 +1,3 @@
-import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   Button,
   Heading,
@@ -22,6 +21,7 @@ import {
 } from "@chakra-ui/react";
 import React, { useEffect, useRef } from "react";
 import { useLocalStorage } from "usehooks-ts";
+import { ExternalLinkIcon } from "./components/icons";
 import TracingCheckbox from "../services/tracing/TracingCheckbox";
 import { TracingOption } from "../services/tracing/types";
 

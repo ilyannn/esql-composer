@@ -27,7 +27,7 @@ import {
   KNOWN_EXPORT_FORMATS,
 } from "@/services/es/formats";
 import LimitSlider from "../components/LimitSlider";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
+import { ExternalLinkIcon } from "../components/icons";
 
 export interface ExportDataCallback {
   (

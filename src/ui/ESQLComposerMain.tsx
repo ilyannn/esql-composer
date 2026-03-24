@@ -1,4 +1,3 @@
-import moment from "moment";
 import {
   ReactNode,
   Suspense,
@@ -61,8 +60,6 @@ import {
   type UseTracingCallback,
 } from "../services/tracing/use_tracing";
 
-import { ExternalLinkIcon } from "@chakra-ui/icons";
-import _, { reduce } from "lodash";
 import {
   TracingOptions,
   defaultTracingOptions,
@@ -92,13 +89,15 @@ import { createLLMAdapter } from "../services/llm/adapters";
 import { LLMAdapter } from "../services/llm/adapters/types";
 import { DemoItem, MissingDemoContext } from "../services/es/demo";
 import { checkIndexExists, createIndex } from "../services/es/indices";
-import axios from "axios";
 import type { ExportDataCallback } from "./modals/ExportDataModal";
 import { getESQLSettings } from "@/services/es/settings";
+import { fetchTextAsset } from "../common/assets";
+import { deepEqual } from "../common/equality";
+import { formatRelativeTime } from "../common/time";
+import { mergeLLMConfig } from "../services/llm/config";
+import { ExternalLinkIcon } from "./components/icons";
 
 const ExportDataModal = lazy(() => import("./modals/ExportDataModal"));
-
-const defaultESQLGuidePromise = axios.get("esql-short.txt");
 
 const getErrorStatus = (error: unknown): number | undefined => {
   if (
@@ -227,7 +226,7 @@ const ESQLComposerMain = () => {
     cacheWarmedInfo !== null &&
     cacheWarmedInfo.esqlGuideText === esqlGuideText &&
     cacheWarmedInfo.schemaGuideText === esqlSchema?.guide &&
-    _.isEqual(cacheWarmedInfo.selectedLLMConfig, selectedLLMConfig);
+    deepEqual(cacheWarmedInfo.selectedLLMConfig, selectedLLMConfig);
 
   const updateCacheWarmedText = () => {
     if (!isCacheWarmed) {
@@ -235,8 +234,7 @@ const ESQLComposerMain = () => {
       return;
     }
     const { date } = cacheWarmedInfo;
-    const fromNow = moment(date).fromNow();
-    setCacheWarmedText(`cached ${fromNow}`);
+    setCacheWarmedText(`cached ${formatRelativeTime(date)}`);
   };
 
   useEffect(updateCacheWarmedText, [cacheWarmedInfo, isCacheWarmed]);
@@ -719,8 +717,7 @@ const ESQLComposerMain = () => {
       }
       setEsqlInput(`${esql}\n`);
 
-      const initialChain = reduce(
-        initialActions,
+      const initialChain = (initialActions ?? []).reduce(
         (chain: ESQLChain, action) =>
           performChainAction(chain, action, []).chain,
         createInitialChain(),
@@ -745,11 +742,7 @@ const ESQLComposerMain = () => {
   const loadConfig = useCallback(
     (config: Config) => {
       if ("llmConfig" in config && typeof config["llmConfig"] === "object") {
-        const newConfig = _.merge(
-          _.cloneDeep(defaultLLMConfig),
-          config["llmConfig"],
-        );
-        setLLMConfig(newConfig);
+        setLLMConfig(mergeLLMConfig(config["llmConfig"]));
       }
       if (
         "openedAreas" in config &&
@@ -1004,7 +997,7 @@ const ESQLComposerMain = () => {
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
       });
-      const formattedMoment = moment(info.date).fromNow();
+      const formattedMoment = formatRelativeTime(info.date);
       toast({
         title: "Elasticsearch API test successful",
         description: (
@@ -1044,11 +1037,15 @@ const ESQLComposerMain = () => {
   useEffect(() => {
     let ignore = false;
 
-    defaultESQLGuidePromise.then((response) => {
-      if (!ignore) {
-        setEsqlGuideText(response.data);
-      }
-    });
+    fetchTextAsset("esql-short.txt")
+      .then((text) => {
+        if (!ignore) {
+          setEsqlGuideText(text);
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading esql-short.txt", error);
+      });
 
     return () => {
       ignore = true;

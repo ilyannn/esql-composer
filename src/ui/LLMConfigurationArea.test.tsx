@@ -2,13 +2,16 @@ import { ChakraProvider } from "@chakra-ui/react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
-import _ from "lodash";
 import React from "react";
 import LLMConfigurationArea from "./LLMConfigurationArea";
-import { defaultLLMConfig, FullLLMConfig } from "../services/llm/config";
+import {
+  defaultLLMConfig,
+  FullLLMConfig,
+  mergeLLMConfig,
+} from "../services/llm/config";
 
 const makeConfig = (overrides: Partial<FullLLMConfig> = {}): FullLLMConfig =>
-  _.merge(_.cloneDeep(defaultLLMConfig), overrides);
+  mergeLLMConfig(overrides);
 
 const renderArea = (
   overrides: Partial<React.ComponentProps<typeof LLMConfigurationArea>> = {},

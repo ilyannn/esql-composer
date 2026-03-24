@@ -142,6 +142,53 @@ export const defaultLLMConfig = {
 
 const hasNonEmptyValue = (value: string): boolean => value.trim().length > 0;
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isLLMProvider = (value: unknown): value is LLMProvider =>
+  value === "anthropic" ||
+  value === "bedrock" ||
+  value === "llamaServer" ||
+  value === "openAI";
+
+const mergeProviderConfig = <T extends AvailableLLMConfigs>(
+  defaults: T,
+  overrides: unknown,
+): T => {
+  if (!isRecord(overrides)) {
+    return { ...defaults };
+  }
+
+  return {
+    ...defaults,
+    ...overrides,
+    type: defaults.type,
+  };
+};
+
+export const mergeLLMConfig = (overrides: unknown): FullLLMConfig => {
+  const overrideRecord = isRecord(overrides) ? overrides : {};
+
+  return {
+    selected: isLLMProvider(overrideRecord["selected"])
+      ? overrideRecord["selected"]
+      : defaultLLMConfig.selected,
+    anthropic: mergeProviderConfig(
+      defaultLLMConfig.anthropic,
+      overrideRecord["anthropic"],
+    ),
+    bedrock: mergeProviderConfig(
+      defaultLLMConfig.bedrock,
+      overrideRecord["bedrock"],
+    ),
+    llamaServer: mergeProviderConfig(
+      defaultLLMConfig.llamaServer,
+      overrideRecord["llamaServer"],
+    ),
+    openAI: mergeProviderConfig(defaultLLMConfig.openAI, overrideRecord["openAI"]),
+  };
+};
+
 /**
  * Checks if the LLM config is sufficient for the selected LLM.
  * @param config - The LLM config to check.

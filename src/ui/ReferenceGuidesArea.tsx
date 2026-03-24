@@ -20,9 +20,9 @@ import "react-resizable/css/styles.css";
 import SpinningButton from "./components/SpinningButton";
 import TokenCountNotice from "./components/TokenCountNotice";
 import { ESQLSchema } from "../services/es/derive_schema";
-import axios from "axios";
-import { ChevronUpIcon } from "@chakra-ui/icons";
+import { ChevronUpIcon } from "./components/icons";
 import { DEMO_ITEMS, DemoItem } from "../services/es/demo";
+import { fetchTextAsset } from "../common/assets";
 
 interface ReferenceGuidesAreaProps {
   esqlGuideText: string;
@@ -66,8 +66,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   const loadESQLFile = useCallback(
     async (filename: string) => {
       try {
-        const request = await axios.get(filename, { responseType: "text" });
-        setEsqlGuideText(request.data);
+        setEsqlGuideText(await fetchTextAsset(filename));
       } catch (error) {
         console.error(`Error loading ${filename}:`, error);
       }

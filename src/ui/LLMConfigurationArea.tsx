@@ -1,4 +1,3 @@
-import { CheckIcon, ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   Box,
   Code,
@@ -28,6 +27,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import React, { ReactNode } from "react";
+import { CheckIcon, ExternalLinkIcon } from "./components/icons";
 import SpinningButton from "./components/SpinningButton";
 import {
   AnthropicLLMConfig,
@@ -40,8 +40,8 @@ import {
   getBedrockModelIndex,
   OpenAILLMConfig,
 } from "../services/llm/config";
-import _ from "lodash";
 import { CLAUDE_MODEL_LIST } from "../services/llm/config";
+import { deepEqual } from "../common/equality";
 
 interface LLMConfigurationAreaProps {
   llmConfig: FullLLMConfig;
@@ -590,7 +590,7 @@ const AdaptedConfigurationTab: React.FC<AdaptedConfigurationTabProps> =
     (prevProps, nextProps) =>
       (prevProps.llmConfig.selected === prevProps.type) ===
         (nextProps.llmConfig.selected === nextProps.type) &&
-      _.isEqual(
+      deepEqual(
         prevProps.llmConfig[prevProps.type],
         nextProps.llmConfig[nextProps.type],
       ),

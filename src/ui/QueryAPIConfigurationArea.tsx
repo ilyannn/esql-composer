@@ -1,4 +1,3 @@
-import { CheckIcon, ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   FormControl,
   FormHelperText,
@@ -14,6 +13,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import React, { useCallback } from "react";
+import { CheckIcon, ExternalLinkIcon } from "./components/icons";
 import RecordView from "./components/RecordView";
 import SpinningButton from "./components/SpinningButton";
 
