@@ -16,6 +16,10 @@ start:
 build:
     mise exec -- bun run build
 
+# Check the production bundle against size budgets
+bundle-check:
+    mise exec -- node scripts/check-bundle-size.mjs
+
 # Run tests once
 test:
     mise exec -- node ./node_modules/jest/bin/jest.js --runInBand
@@ -29,7 +33,7 @@ coverage:
     mise exec -- node ./node_modules/jest/bin/jest.js --runInBand --coverage
 
 # Run the main local verification steps
-check: lint test build
+check: lint test build bundle-check
 
 # Deploy to GitHub Pages
 deploy:
