@@ -13,7 +13,7 @@ There is no backend service in this repo.
 
 ## Working Commands
 
-- `npm start` - run the CRACO development server
+- `npm start` - run the Vite development server
 - `npm run build` - create a production build
 - `npm test -- --watch=false` - run Jest once
 - `npm run deploy` - publish the `build/` output to GitHub Pages
@@ -25,12 +25,12 @@ There is currently no dedicated `lint` or `format` script in `package.json`.
 - React 19
 - TypeScript with `strict: true`
 - Chakra UI for most UI
-- CRACO over `react-scripts`
+- Vite for dev/build
 - Jest + ts-jest + React Testing Library
 - Anthropic SDK, AWS Bedrock SDK, browser `fetch`, and `axios`
 - `ol` for WKT / geo rendering
 
-The repo uses the `@/*` path alias for `src/*`, configured in [tsconfig.json](/Users/in/Code/esql-composer/tsconfig.json) and [craco.config.js](/Users/in/Code/esql-composer/craco.config.js).
+The repo uses the `@/*` path alias for `src/*`, configured in [tsconfig.json](/Users/in/Code/esql-composer/tsconfig.json) and [vite.config.ts](/Users/in/Code/esql-composer/vite.config.ts).
 
 ## Repo Map
 

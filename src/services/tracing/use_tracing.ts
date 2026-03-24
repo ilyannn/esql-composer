@@ -38,7 +38,8 @@ export const useTracing = ({
     },
     service: {
       address: window.location.href,
-      environment: process.env["NODE_ENV"] || "",
+      environment:
+        typeof process !== "undefined" ? process.env["NODE_ENV"] || "" : "",
     },
   };
 

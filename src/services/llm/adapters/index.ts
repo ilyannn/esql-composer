@@ -1,17 +1,22 @@
 import { FullLLMConfig } from "../config";
 import { LLMAdapter } from "./types";
-import { AnthropicLLMAdapter } from "./anthropic";
-import { LlamaServerLLMAdapter } from "./llamaServer";
-import { BedrockLLMAdapter } from "./bedrock";
 
-export const createLLMAdapter = (config: FullLLMConfig): LLMAdapter => {
+export const createLLMAdapter = async (
+  config: FullLLMConfig,
+): Promise<LLMAdapter> => {
   switch (config.selected) {
-    case "anthropic":
+    case "anthropic": {
+      const { AnthropicLLMAdapter } = await import("./anthropic");
       return new AnthropicLLMAdapter(config.anthropic);
-    case "bedrock":
+    }
+    case "bedrock": {
+      const { BedrockLLMAdapter } = await import("./bedrock");
       return new BedrockLLMAdapter(config.bedrock);
-    case "llamaServer":
+    }
+    case "llamaServer": {
+      const { LlamaServerLLMAdapter } = await import("./llamaServer");
       return new LlamaServerLLMAdapter(config.llamaServer);
+    }
     case "openAI":
       throw new Error(`Not implemented yet`);
   }

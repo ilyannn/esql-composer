@@ -1,6 +1,8 @@
 import moment from "moment";
 import {
   ReactNode,
+  Suspense,
+  lazy,
   useCallback,
   useEffect,
   useMemo,
@@ -20,8 +22,6 @@ import {
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
-
-import Anthropic from "@anthropic-ai/sdk";
 
 import type { LLMStatisticsRow } from "../common/types";
 import {
@@ -93,10 +93,53 @@ import { LLMAdapter } from "../services/llm/adapters/types";
 import { DemoItem, MissingDemoContext } from "../services/es/demo";
 import { checkIndexExists, createIndex } from "../services/es/indices";
 import axios from "axios";
-import ExportDataModal, { ExportDataCallback } from "./modals/ExportDataModal";
+import type { ExportDataCallback } from "./modals/ExportDataModal";
 import { getESQLSettings } from "@/services/es/settings";
 
+const ExportDataModal = lazy(() => import("./modals/ExportDataModal"));
+
 const defaultESQLGuidePromise = axios.get("esql-short.txt");
+
+const getErrorStatus = (error: unknown): number | undefined => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "status" in error &&
+    typeof error.status === "number"
+  ) {
+    return error.status;
+  }
+
+  return undefined;
+};
+
+const getNestedErrorMessage = (error: unknown): string | undefined => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "error" in error &&
+    error.error &&
+    typeof error.error === "object" &&
+    "error" in error.error &&
+    error.error.error &&
+    typeof error.error.error === "object" &&
+    "message" in error.error.error &&
+    typeof error.error.error.message === "string"
+  ) {
+    return error.error.error.message;
+  }
+
+  return undefined;
+};
 
 interface CacheWarmedInfo {
   date: number;
@@ -317,7 +360,7 @@ const ESQLComposerMain = () => {
       });
 
       try {
-        const adapter = createLLMAdapter(effectiveLLMConfig);
+        const adapter = await createLLMAdapter(effectiveLLMConfig);
         await action(adapter, addToSpan);
         setAnthropicAPIKeyWorks(true);
         return;
@@ -326,38 +369,27 @@ const ESQLComposerMain = () => {
 
         let title: ReactNode = <Text>{label} error</Text>;
         let description: ReactNode = undefined;
+        const errorStatus = getErrorStatus(error);
 
-        if (error instanceof Anthropic.APIError) {
+        if (errorStatus !== undefined) {
           title = (
             <HStack>
               {title} <ExternalLinkIcon />
-              <Link isExternal href={`https://http.dog/${error.status}`}>
-                {error.status}
+              <Link isExternal href={`https://http.dog/${errorStatus}`}>
+                {errorStatus}
               </Link>
             </HStack>
           );
         }
 
-        if (error instanceof Anthropic.APIError && error.status === 401) {
+        if (llmConfig.selected === "anthropic" && errorStatus === 401) {
           setAnthropicAPIKeyWorks(false);
           description = <Text>Please check your Anthropic API key.</Text>;
-        } else if (
-          error instanceof Anthropic.APIError &&
-          error.error &&
-          "error" in error.error &&
-          error.error.error &&
-          typeof error.error.error === "object" &&
-          "message" in error.error.error &&
-          typeof error.error.error.message === "string"
-        ) {
-          description = <Text>{error.error.error.message}</Text>;
-        } else if (
-          error &&
-          typeof error === "object" &&
-          "message" in error &&
-          typeof error.message === "string"
-        ) {
-          description = error.message;
+        } else {
+          const errorMessage = getNestedErrorMessage(error);
+          if (errorMessage) {
+            description = errorMessage;
+          }
         }
 
         toast({
@@ -1397,12 +1429,14 @@ const ESQLComposerMain = () => {
         onClose={getSchemaProps.onClose}
         getSchemaFromES={handleGetSchemaFromES}
       />
-      <ExportDataModal
-        isOpen={exportDataProps.isOpen}
-        onClose={exportDataProps.onClose}
-        onShowLimitSettings={handleShowLimitSettings}
-        onExport={handleExportData}
-      />
+      <Suspense fallback={null}>
+        <ExportDataModal
+          isOpen={exportDataProps.isOpen}
+          onClose={exportDataProps.onClose}
+          onShowLimitSettings={handleShowLimitSettings}
+          onExport={handleExportData}
+        />
+      </Suspense>
     </Box>
   );
 };

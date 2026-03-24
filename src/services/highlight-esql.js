@@ -219,3 +219,5 @@ function highight_esql() {
 }
 
 hljs.registerLanguage("esql", highight_esql);
+
+export default hljs;

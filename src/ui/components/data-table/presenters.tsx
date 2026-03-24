@@ -1,7 +1,6 @@
 import { Box, Link } from "@chakra-ui/react";
 import { memoize } from "lodash";
-import { JSX } from "react";
-import { ColorSwatch } from "react-aria-components";
+import { JSX, Suspense, lazy } from "react";
 import Markdown from "react-markdown";
 import {
   ESQLAtomValue,
@@ -10,14 +9,13 @@ import {
 } from "../../../models/esql/esql_types";
 import FieldValue from "./FieldValue";
 import { GeoPointFormatter } from "./geoPointFormatter";
-import { parseColor } from "@react-stately/color";
-import { WktRenderer } from "./WktRenderer";
 
-import "@highlightjs/cdn-assets/styles/nnfx-light.css";
-import Highlight from "react-highlight";
-import "./highlight-esql.css";
-
-import "../../../services/highlight-esql.js";
+const LazyWktRenderer = lazy(() =>
+  import("./WktRenderer").then((module) => ({
+    default: module.WktRenderer,
+  })),
+);
+const LazyESQLCodeBlock = lazy(() => import("./ESQLCodeBlock"));
 
 export type Presenter = (value: ESQLAtomValue) => JSX.Element;
 
@@ -136,7 +134,11 @@ const geoPointPresenter: Presenter = (value: ESQLAtomValue) => {
 
 const geoShapePresenter: Presenter = (value: ESQLAtomValue) => {
   if (typeof value === "string") {
-    return <WktRenderer wkt={value} />;
+    return (
+      <Suspense fallback={<FieldValue value={value} />}>
+        <LazyWktRenderer wkt={value} />
+      </Suspense>
+    );
   }
 
   return <FieldValue value={value} />;
@@ -144,7 +146,11 @@ const geoShapePresenter: Presenter = (value: ESQLAtomValue) => {
 
 const esqlPresenter: Presenter = (value: ESQLAtomValue) => {
   if (typeof value === "string") {
-    return <Highlight className="language-esql">{value}</Highlight>;
+    return (
+      <Suspense fallback={<FieldValue value={value} />}>
+        <LazyESQLCodeBlock value={value} />
+      </Suspense>
+    );
   }
 
   return defaultPresenter(value);
@@ -163,23 +169,16 @@ const urlPresenter: Presenter = (value: ESQLAtomValue) => {
 };
 
 const colorPresenter = (value: ESQLAtomValue) => {
-  if (typeof value === "string") {
-    try {
-      const color = parseColor(value);
-      return (
-        <ColorSwatch
-          style={{
-            width: "32px",
-            height: "32px",
-            borderRadius: "6px",
-            boxShadow: "inset 0 0 0 2px rgba(0, 0, 0, 0.2)",
-          }}
-          color={color}
-        />
-      );
-    } catch (e) {
-      console.error("Failed to parse color", value, e);
-    }
+  if (typeof value === "string" && CSS.supports("color", value)) {
+    return (
+      <Box
+        width="32px"
+        height="32px"
+        borderRadius="6px"
+        boxShadow="inset 0 0 0 2px rgba(0, 0, 0, 0.2)"
+        backgroundColor={value}
+      />
+    );
   }
 
   return defaultPresenter(value);
