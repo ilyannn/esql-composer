@@ -99,7 +99,3 @@ Jest intentionally ignores [src/app/](src/app/) in [jest.config.js](jest.config.
 - If you touch LLM functionality, check whether the code path is Anthropic-only or adapter-based before generalizing it
 - If you touch query results, verify presenters in [src/ui/components/data-table/presenters.tsx](src/ui/components/data-table/presenters.tsx)
 - If you update docs, avoid claiming provider support or tooling that the repo does not actually implement
-
-## Documentation Caveats
-
-The existing [CLAUDE.md](CLAUDE.md) should not be treated as fully authoritative. Some statements there currently overstate provider support and tooling coverage, so confirm against source before relying on it.
