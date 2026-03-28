@@ -34,7 +34,6 @@ import {
   LlamaServerLLMConfig,
   BedrockLLMConfig,
   FullLLMConfig,
-  LLMProvider,
   ClaudeModelIndex,
   getAnthropicModelIndex,
   getBedrockModelIndex,
