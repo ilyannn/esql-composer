@@ -38,7 +38,6 @@ import {
   ClaudeModelIndex,
   getAnthropicModelIndex,
   getBedrockModelIndex,
-  OpenAILLMConfig,
 } from "../services/llm/config";
 import { CLAUDE_MODEL_LIST } from "../services/llm/config";
 import { deepEqual } from "../common/equality";
@@ -489,14 +488,8 @@ const LlamaServerConfigurationTab: React.FC<
   );
 };
 
-const OpenAIConfigurationTab: React.FC<
-  ConfigurationTabProps<OpenAILLMConfig>
-> = ({ config: _config, updateConfig: _updateConfig }) => {
-  return <Text>OpenAI is not supported yet.</Text>;
-};
-
 interface TabConfig {
-  id: LLMProvider;
+  id: "anthropic" | "bedrock" | "llamaServer";
   title: string;
 }
 
@@ -514,7 +507,7 @@ const TAB_CONFIG: TabConfig[] = [
 ] as const;
 
 interface AdaptedConfigurationTabProps {
-  type: LLMProvider;
+  type: TabConfig["id"];
   llmConfig: FullLLMConfig;
   setLLMConfig: (value: FullLLMConfig) => void;
 }
@@ -564,21 +557,6 @@ const AdaptedConfigurationTab: React.FC<AdaptedConfigurationTabProps> =
                   ...llmConfig,
                   llamaServer: {
                     ...llmConfig.llamaServer,
-                    ...value,
-                  },
-                })
-              }
-            />
-          );
-        case "openAI":
-          return (
-            <OpenAIConfigurationTab
-              config={llmConfig.openAI}
-              updateConfig={(value) =>
-                setLLMConfig({
-                  ...llmConfig,
-                  openAI: {
-                    ...llmConfig.openAI,
                     ...value,
                   },
                 })
