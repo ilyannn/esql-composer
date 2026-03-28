@@ -47,7 +47,7 @@ const mockFileReader = (
     onerror: (() => void) | null;
   }) => void,
 ) => {
-  const originalFileReader = global.FileReader;
+  const originalFileReader = globalThis.FileReader;
 
   class MockFileReader {
     onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
@@ -58,10 +58,10 @@ const mockFileReader = (
     }
   }
 
-  global.FileReader = MockFileReader as unknown as typeof FileReader;
+  globalThis.FileReader = MockFileReader as unknown as typeof FileReader;
 
   return () => {
-    global.FileReader = originalFileReader;
+    globalThis.FileReader = originalFileReader;
   };
 };
 
