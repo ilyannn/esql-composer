@@ -378,11 +378,11 @@ const AnthropicConfigurationTab: React.FC<
         }}
       >
         <FormHelperText>
-          Direct Anthropic access allows us to use{" "}
+          Direct Anthropic access enables Anthropic-native{" "}
           <Link isExternal href="https://claude.com/blog/prompt-caching">
             <ExternalLinkIcon /> prompt caching
           </Link>
-          .
+          . Bedrock also supports prompt caching on supported models.
         </FormHelperText>
       </ConfigInput>
     </DividedStack>

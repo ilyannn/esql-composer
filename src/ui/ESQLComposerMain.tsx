@@ -214,7 +214,8 @@ const ESQLComposerMain = () => {
   const isLLMESQLRequestAvailable =
     isLLMRequestAvailable && esqlGuideText.length !== 0;
   const isWarmCacheAvailable =
-    isLLMESQLRequestAvailable && llmConfig.selected === "anthropic";
+    isLLMESQLRequestAvailable &&
+    ["anthropic", "bedrock"].includes(llmConfig.selected);
   const isReduceSizeAvailable =
     isLLMESQLRequestAvailable &&
     ["anthropic", "bedrock"].includes(llmConfig.selected);
@@ -499,7 +500,8 @@ const ESQLComposerMain = () => {
     if (!isWarmCacheAvailable) {
       toast({
         title: "Cache warming unavailable",
-        description: "Cache warming is currently supported for Anthropic.",
+        description:
+          "Cache warming is currently supported for Anthropic and Bedrock models with prompt caching support.",
         status: "info",
         isClosable: true,
       });

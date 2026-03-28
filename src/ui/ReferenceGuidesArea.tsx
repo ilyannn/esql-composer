@@ -248,7 +248,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
             label={
               isWarmCacheAvailable
                 ? "Send a request with the current ES|QL and schema"
-                : "Warm Cache currently only works with the Anthropic provider"
+                : "Warm Cache currently works with Anthropic and Bedrock models that support prompt caching"
             }
           >
             <SpinningButton
