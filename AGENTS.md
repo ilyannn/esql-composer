@@ -13,12 +13,16 @@ There is no backend service in this repo.
 
 ## Working Commands
 
-- `npm start` - run the Vite development server
-- `npm run build` - create a production build
-- `npm test -- --watch=false` - run Jest once
-- `npm run deploy` - publish the `build/` output to GitHub Pages
+- `just install` - install dependencies through `mise` and Bun
+- `just start` - run the Vite development server
+- `just build` - create a production build
+- `just test` - run Jest once
+- `just lint` - run ESLint
+- `just coverage` - run Jest with coverage
+- `just check` - run lint, tests, build, and bundle-budget verification
+- `just deploy` - publish the `build/` output to GitHub Pages
 
-There is currently no dedicated `lint` or `format` script in `package.json`.
+The underlying package scripts still exist in `package.json`, but the repo-standard command surface is the `justfile`.
 
 ## Tech Stack
 
@@ -27,8 +31,9 @@ There is currently no dedicated `lint` or `format` script in `package.json`.
 - Chakra UI for most UI
 - Vite for dev/build
 - Jest + ts-jest + React Testing Library
-- Anthropic SDK, AWS Bedrock SDK, browser `fetch`, and `axios`
-- `ol` for WKT / geo rendering
+- Anthropic SDK, AWS Bedrock SDK, and browser `fetch`
+- custom SVG-based WKT / geo rendering
+- Bun + `mise` + `just` for local workflows
 
 The repo uses the `@/*` path alias for `src/*`, configured in [tsconfig.json](tsconfig.json) and [vite.config.ts](vite.config.ts).
 
@@ -65,17 +70,17 @@ Keep in mind that this code runs in the browser, so changes to ES access must re
 
 The LLM layer is split in two parts:
 
-- [src/services/llm/llm.ts](src/services/llm/llm.ts): Anthropic-specific query generation, cache warming, size reduction, and token counting
+- [src/services/llm/llm.ts](src/services/llm/llm.ts): adapter-based update generation, cache warming, size reduction, token counting, and field transformation orchestration
 - [src/services/llm/adapters/](src/services/llm/adapters): adapter interface used for provider-specific `answer`, `countTokens`, and streaming support
 
-`transformField()` is adapter-based. `generateESQLUpdate()`, `warmCache()`, `reduceSize()`, and `countTokens()` in `llm.ts` are not provider-agnostic.
+Bedrock prompt caching is implemented in [src/services/llm/adapters/bedrockPromptCaching.ts](src/services/llm/adapters/bedrockPromptCaching.ts). Provider-specific behavior now lives primarily inside the adapters.
 
 ## Provider Status
 
 Do not assume every provider shown in config is production-ready.
 
-- Anthropic: primary implementation, used for ES|QL generation and prompt caching
-- Bedrock: partially implemented through an adapter
+- Anthropic: primary implementation, used for ES|QL generation and Anthropic-native prompt caching
+- Bedrock: beta adapter with test/generation/token counting/guide reduction support, plus prompt caching on supported models
 - Llama server: partial adapter, with unfinished streaming support
 - OpenAI: placeholder config only, not implemented
 
@@ -89,6 +94,8 @@ Tests exist mainly for:
 - shared utilities
 - pseudo-XML parsing
 - geo point formatting
+- LLM configuration UI
+- Bedrock prompt-caching request shaping
 
 Jest intentionally ignores [src/app/](src/app/) in [jest.config.js](jest.config.js), so [src/app/App.test.tsx](src/app/App.test.tsx) is not part of the normal test run.
 
