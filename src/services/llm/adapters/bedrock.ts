@@ -2,9 +2,6 @@ import {
   BedrockRuntime,
   ConverseCommand,
   ConverseStreamCommand,
-  Message,
-  SystemContentBlock,
-  ContentBlock,
 } from "@aws-sdk/client-bedrock-runtime";
 
 import {
@@ -17,35 +14,7 @@ import {
 import { BedrockLLMConfig } from "../config";
 import { PreparedRequest } from "./types";
 import { DEFAULT_MAX_TOKENS } from "./constants";
-
-const createBedrockSystem = (
-  system: PreparedRequest["system"],
-): SystemContentBlock[] => {
-  return system.map(
-    (block) =>
-      ({
-        text: block.text,
-      }) satisfies SystemContentBlock,
-  );
-};
-
-const createBedrockMessages = (
-  messages: PreparedRequest["messages"],
-): Message[] =>
-  messages.map(
-    (message) =>
-      ({
-        role: message.role,
-        content: [
-          ...message.content.map(
-            (block) =>
-              ({
-                text: block.text,
-              }) satisfies ContentBlock,
-          ),
-        ],
-      }) satisfies Message,
-  );
+import { prepareBedrockRequest } from "./bedrockPromptCaching";
 
 const createBedrockInstance = (
   region: string,
@@ -127,6 +96,7 @@ export class BedrockLLMAdapter implements LLMAdapter {
     params: StreamingOptions,
     processor: StreamingProcessor,
   ): Promise<StreamingStats> {
+    const preparedRequest = prepareBedrockRequest(request, true);
     const requestTime = Date.now();
     let first_token_time_ms: number | undefined;
 
@@ -147,8 +117,8 @@ export class BedrockLLMAdapter implements LLMAdapter {
     };
 
     const command = new ConverseStreamCommand({
-      system: createBedrockSystem(request.system),
-      messages: createBedrockMessages(request.messages),
+      system: preparedRequest.system,
+      messages: preparedRequest.messages,
       modelId: this.modelId,
       inferenceConfig: {
         maxTokens: params.maxTokens ?? DEFAULT_MAX_TOKENS,
