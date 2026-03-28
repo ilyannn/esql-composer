@@ -20,9 +20,9 @@ import "react-resizable/css/styles.css";
 import SpinningButton from "./components/SpinningButton";
 import TokenCountNotice from "./components/TokenCountNotice";
 import { ESQLSchema } from "../services/es/derive_schema";
-import axios from "axios";
-import { ChevronUpIcon } from "@chakra-ui/icons";
+import { ChevronUpIcon } from "./components/icons";
 import { DEMO_ITEMS, DemoItem } from "../services/es/demo";
+import { fetchTextAsset } from "../common/assets";
 
 interface ReferenceGuidesAreaProps {
   esqlGuideText: string;
@@ -37,6 +37,8 @@ interface ReferenceGuidesAreaProps {
   handleGetTokenCount: () => Promise<void>;
   tooltipsShown: boolean;
   isESQLRequestAvailable: boolean;
+  isWarmCacheAvailable: boolean;
+  isReduceSizeAvailable: boolean;
   isElasticsearchAPIAvailable: boolean;
   handleRetrieveSchemaFromES: () => void;
   handleProvideDemo: (item: DemoItem) => void;
@@ -55,6 +57,8 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   handleGetTokenCount,
   tooltipsShown,
   isESQLRequestAvailable,
+  isWarmCacheAvailable,
+  isReduceSizeAvailable,
   isElasticsearchAPIAvailable,
   handleRetrieveSchemaFromES,
   handleProvideDemo,
@@ -62,8 +66,7 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
   const loadESQLFile = useCallback(
     async (filename: string) => {
       try {
-        const request = await axios.get(filename, { responseType: "text" });
-        setEsqlGuideText(request.data);
+        setEsqlGuideText(await fetchTextAsset(filename));
       } catch (error) {
         console.error(`Error loading ${filename}:`, error);
       }
@@ -242,24 +245,32 @@ const ReferenceGuidesArea: React.FC<ReferenceGuidesAreaProps> = ({
           </Tooltip>
           <Tooltip
             isDisabled={!tooltipsShown}
-            label="Send a request with the current ES|QL and schema"
+            label={
+              isWarmCacheAvailable
+                ? "Send a request with the current ES|QL and schema"
+                : "Warm Cache currently works with Anthropic and Bedrock models that support prompt caching"
+            }
           >
             <SpinningButton
               type="button"
               spinningAction={handleWarmCache}
-              disabled={!isESQLRequestAvailable}
+              disabled={!isWarmCacheAvailable}
             >
               Warm Cache
             </SpinningButton>
           </Tooltip>
           <Tooltip
             isDisabled={!tooltipsShown}
-            label="Ask the LLM to reduce the size of the guides"
+            label={
+              isReduceSizeAvailable
+                ? "Ask the LLM to reduce the size of the guides"
+                : "Reduce Size currently only works with the Anthropic and Bedrock providers"
+            }
           >
             <SpinningButton
               type="button"
               spinningAction={handleReduceSize}
-              disabled={!isESQLRequestAvailable}
+              disabled={!isReduceSizeAvailable}
             >
               Reduce Size
             </SpinningButton>

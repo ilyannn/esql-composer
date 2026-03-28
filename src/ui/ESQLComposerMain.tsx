@@ -1,6 +1,7 @@
-import moment from "moment";
 import {
   ReactNode,
+  Suspense,
+  lazy,
   useCallback,
   useEffect,
   useMemo,
@@ -20,8 +21,6 @@ import {
   useDisclosure,
   useToast,
 } from "@chakra-ui/react";
-
-import Anthropic from "@anthropic-ai/sdk";
 
 import type { LLMStatisticsRow } from "../common/types";
 import {
@@ -43,10 +42,10 @@ import {
 
 import {
   FieldInfo,
-  generateESQLUpdate,
-  reduceSize,
+  generateESQLUpdateWithAdapter,
+  reduceSizeWithAdapter,
   transformField,
-  warmCache,
+  warmCacheWithAdapter,
 } from "../services/llm";
 
 import { ESQLSchema, deriveSchema } from "../services/es/derive_schema";
@@ -61,8 +60,6 @@ import {
   type UseTracingCallback,
 } from "../services/tracing/use_tracing";
 
-import { ExternalLinkIcon } from "@chakra-ui/icons";
-import _, { reduce } from "lodash";
 import {
   TracingOptions,
   defaultTracingOptions,
@@ -92,11 +89,56 @@ import { createLLMAdapter } from "../services/llm/adapters";
 import { LLMAdapter } from "../services/llm/adapters/types";
 import { DemoItem, MissingDemoContext } from "../services/es/demo";
 import { checkIndexExists, createIndex } from "../services/es/indices";
-import axios from "axios";
-import ExportDataModal, { ExportDataCallback } from "./modals/ExportDataModal";
+import type { ExportDataCallback } from "./modals/ExportDataModal";
 import { getESQLSettings } from "@/services/es/settings";
+import { fetchTextAsset } from "../common/assets";
+import { deepEqual } from "../common/equality";
+import { formatRelativeTime } from "../common/time";
+import { mergeLLMConfig } from "../services/llm/config";
+import { ExternalLinkIcon } from "./components/icons";
 
-const defaultESQLGuidePromise = axios.get("esql-short.txt");
+const ExportDataModal = lazy(() => import("./modals/ExportDataModal"));
+
+const getErrorStatus = (error: unknown): number | undefined => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "status" in error &&
+    typeof error.status === "number"
+  ) {
+    return error.status;
+  }
+
+  return undefined;
+};
+
+const getNestedErrorMessage = (error: unknown): string | undefined => {
+  if (
+    error &&
+    typeof error === "object" &&
+    "message" in error &&
+    typeof error.message === "string"
+  ) {
+    return error.message;
+  }
+
+  if (
+    error &&
+    typeof error === "object" &&
+    "error" in error &&
+    error.error &&
+    typeof error.error === "object" &&
+    "error" in error.error &&
+    error.error.error &&
+    typeof error.error.error === "object" &&
+    "message" in error.error.error &&
+    typeof error.error.error.message === "string"
+  ) {
+    return error.error.error.message;
+  }
+
+  return undefined;
+};
 
 interface CacheWarmedInfo {
   date: number;
@@ -150,9 +192,7 @@ const ESQLComposerMain = () => {
 
   const [allStats, setAllStats] = useState<LLMStatisticsRow[]>([]);
 
-  const [anthropicAPIKeyWorks, setAnthropicAPIKeyWorks] = useState<
-    boolean | null
-  >(null);
+  const [, setAnthropicAPIKeyWorks] = useState<boolean | null>(null);
   const [queryAPIKeyWorks, setQueryAPIKeyWorks] = useState<boolean | null>(
     null,
   );
@@ -173,6 +213,12 @@ const ESQLComposerMain = () => {
   const isLLMRequestAvailable = isLLMConfigSufficent(llmConfig);
   const isLLMESQLRequestAvailable =
     isLLMRequestAvailable && esqlGuideText.length !== 0;
+  const isWarmCacheAvailable =
+    isLLMESQLRequestAvailable &&
+    ["anthropic", "bedrock"].includes(llmConfig.selected);
+  const isReduceSizeAvailable =
+    isLLMESQLRequestAvailable &&
+    ["anthropic", "bedrock"].includes(llmConfig.selected);
 
   const getSchemaProps = useDisclosure();
   const exportDataProps = useDisclosure();
@@ -181,7 +227,7 @@ const ESQLComposerMain = () => {
     cacheWarmedInfo !== null &&
     cacheWarmedInfo.esqlGuideText === esqlGuideText &&
     cacheWarmedInfo.schemaGuideText === esqlSchema?.guide &&
-    _.isEqual(cacheWarmedInfo.selectedLLMConfig, selectedLLMConfig);
+    deepEqual(cacheWarmedInfo.selectedLLMConfig, selectedLLMConfig);
 
   const updateCacheWarmedText = () => {
     if (!isCacheWarmed) {
@@ -189,8 +235,7 @@ const ESQLComposerMain = () => {
       return;
     }
     const { date } = cacheWarmedInfo;
-    const fromNow = moment(date).fromNow();
-    setCacheWarmedText(`cached ${fromNow}`);
+    setCacheWarmedText(`cached ${formatRelativeTime(date)}`);
   };
 
   useEffect(updateCacheWarmedText, [cacheWarmedInfo, isCacheWarmed]);
@@ -285,7 +330,27 @@ const ESQLComposerMain = () => {
         addToSpan: UseTracingCallback,
       ) => Promise<void>,
     ) => {
-      const adapter = createLLMAdapter(llmConfig);
+      let effectiveLLMConfig = llmConfig;
+      if (llmConfig.selected === "anthropic") {
+        const trimmedApiKey = llmConfig.anthropic.apiKey.trim();
+        if (trimmedApiKey.length === 0) {
+          const anthropicKeyInput = document.querySelector<HTMLInputElement>(
+            'input[name="anthropic-api-key"]',
+          );
+          const fallbackApiKey = anthropicKeyInput?.value.trim() ?? "";
+
+          if (fallbackApiKey.length > 0) {
+            effectiveLLMConfig = {
+              ...llmConfig,
+              anthropic: {
+                ...llmConfig.anthropic,
+                apiKey: fallbackApiKey,
+              },
+            };
+            setLLMConfig(effectiveLLMConfig);
+          }
+        }
+      }
 
       const { addToSpan, saveSpan } = useTracing({
         apiURL: queryAPIURL,
@@ -294,6 +359,7 @@ const ESQLComposerMain = () => {
       });
 
       try {
+        const adapter = await createLLMAdapter(effectiveLLMConfig);
         await action(adapter, addToSpan);
         setAnthropicAPIKeyWorks(true);
         return;
@@ -302,38 +368,27 @@ const ESQLComposerMain = () => {
 
         let title: ReactNode = <Text>{label} error</Text>;
         let description: ReactNode = undefined;
+        const errorStatus = getErrorStatus(error);
 
-        if (error instanceof Anthropic.APIError) {
+        if (errorStatus !== undefined) {
           title = (
             <HStack>
               {title} <ExternalLinkIcon />
-              <Link isExternal href={`https://http.dog/${error.status}`}>
-                {error.status}
+              <Link isExternal href={`https://http.dog/${errorStatus}`}>
+                {errorStatus}
               </Link>
             </HStack>
           );
         }
 
-        if (error instanceof Anthropic.APIError && error.status === 401) {
+        if (llmConfig.selected === "anthropic" && errorStatus === 401) {
           setAnthropicAPIKeyWorks(false);
           description = <Text>Please check your Anthropic API key.</Text>;
-        } else if (
-          error instanceof Anthropic.APIError &&
-          error.error &&
-          "error" in error.error &&
-          error.error.error &&
-          typeof error.error.error === "object" &&
-          "message" in error.error.error &&
-          typeof error.error.error.message === "string"
-        ) {
-          description = <Text>{error.error.error.message}</Text>;
-        } else if (
-          error &&
-          typeof error === "object" &&
-          "message" in error &&
-          typeof error.message === "string"
-        ) {
-          description = error.message;
+        } else {
+          const errorMessage = getNestedErrorMessage(error);
+          if (errorMessage) {
+            description = errorMessage;
+          }
         }
 
         toast({
@@ -348,7 +403,7 @@ const ESQLComposerMain = () => {
         saveSpan();
       }
     },
-    [toast, queryAPIURL, queryAPIKey, tracingOptions.llm],
+    [llmConfig, queryAPIKey, queryAPIURL, setLLMConfig, toast, tracingOptions.llm],
   );
 
   const performQueryAPIAction = useCallback(
@@ -442,10 +497,18 @@ const ESQLComposerMain = () => {
   };
 
   const handleWarmCache = async () => {
-    await performLLMAction("Cache warming", async () => {
-      const data = await warmCache({
-        apiKey: llmConfig.anthropic.apiKey,
-        modelName: llmConfig.anthropic.modelName,
+    if (!isWarmCacheAvailable) {
+      toast({
+        title: "Cache warming unavailable",
+        description:
+          "Cache warming is currently supported for Anthropic and Bedrock models with prompt caching support.",
+        status: "info",
+        isClosable: true,
+      });
+      return;
+    }
+    await performLLMAction("Cache warming", async (llmAdapter) => {
+      const data = await warmCacheWithAdapter(llmAdapter, {
         esqlGuideText,
         schemaGuideText,
       });
@@ -456,7 +519,8 @@ const ESQLComposerMain = () => {
       toast({
         title: "Cache warming successful",
         description: `Cache will now provide ${
-          data.stats.saved_to_cache + data.stats.input_cached
+          data.stats.token_counts.saved_to_cache +
+          data.stats.token_counts.input_cached
         } tokens for requests using these guides.`,
         status: "success",
         duration: 3000,
@@ -470,6 +534,16 @@ const ESQLComposerMain = () => {
   };
 
   const handleReduceSize = async () => {
+    if (!isReduceSizeAvailable) {
+      toast({
+        title: "Guide size reduction unavailable",
+        description:
+          "Guide size reduction is currently supported for Anthropic and Bedrock.",
+        status: "info",
+        isClosable: true,
+      });
+      return;
+    }
     await performLLMAction("Size reduction", async (llmAdapter) => {
       if (!llmAdapter.countTokens) {
         throw new Error(
@@ -486,9 +560,7 @@ const ESQLComposerMain = () => {
         setEsqlGuideText(newESQGuideText);
       };
 
-      const data = (await reduceSize({
-        apiKey: llmConfig.anthropic.apiKey,
-        modelName: llmConfig.anthropic.modelName,
+      const data = (await reduceSizeWithAdapter(llmAdapter, {
         esqlGuideText,
         schemaGuideText,
         processLine,
@@ -647,8 +719,7 @@ const ESQLComposerMain = () => {
       }
       setEsqlInput(`${esql}\n`);
 
-      const initialChain = reduce(
-        initialActions,
+      const initialChain = (initialActions ?? []).reduce(
         (chain: ESQLChain, action) =>
           performChainAction(chain, action, []).chain,
         createInitialChain(),
@@ -673,11 +744,7 @@ const ESQLComposerMain = () => {
   const loadConfig = useCallback(
     (config: Config) => {
       if ("llmConfig" in config && typeof config["llmConfig"] === "object") {
-        const newConfig = _.merge(
-          _.cloneDeep(defaultLLMConfig),
-          config["llmConfig"],
-        );
-        setLLMConfig(newConfig);
+        setLLMConfig(mergeLLMConfig(config["llmConfig"]));
       }
       if (
         "openedAreas" in config &&
@@ -741,7 +808,7 @@ const ESQLComposerMain = () => {
       if (!esqlGuideText) {
         return;
       }
-      await performLLMAction("ES|QL generation", async () => {
+      await performLLMAction("ES|QL generation", async (llmAdapter) => {
         const interpolatedLines = esqlInput.split("\n");
         let lineIndex = -1;
 
@@ -769,10 +836,8 @@ const ESQLComposerMain = () => {
         };
         setUpdatingESQLLineByLine(true);
 
-        const data = await generateESQLUpdate({
+        const data = await generateESQLUpdateWithAdapter(llmAdapter, {
           type: "update",
-          apiKey: llmConfig.anthropic.apiKey,
-          modelName: llmConfig.anthropic.modelName,
           esqlGuideText,
           schemaGuideText,
           esqlInput,
@@ -803,7 +868,7 @@ const ESQLComposerMain = () => {
   );
 
   const handleCompleteESQL = async () => {
-    await performLLMAction("ES|QL completion", async () => {
+    await performLLMAction("ES|QL completion", async (llmAdapter) => {
       if (
         esqlInputRef.current === null ||
         esqlGuideText === null ||
@@ -856,10 +921,8 @@ const ESQLComposerMain = () => {
           }*/
       };
 
-      const data = (await generateESQLUpdate({
+      const data = (await generateESQLUpdateWithAdapter(llmAdapter, {
         type: "completion",
-        apiKey: llmConfig.anthropic.apiKey,
-        modelName: llmConfig.anthropic.modelName,
         esqlGuideText,
         schemaGuideText,
         esqlInput: esqlBeforeCursor,
@@ -936,7 +999,7 @@ const ESQLComposerMain = () => {
         apiURL: queryAPIURL,
         apiKey: queryAPIKey,
       });
-      const formattedMoment = moment(info.date).fromNow();
+      const formattedMoment = formatRelativeTime(info.date);
       toast({
         title: "Elasticsearch API test successful",
         description: (
@@ -976,11 +1039,15 @@ const ESQLComposerMain = () => {
   useEffect(() => {
     let ignore = false;
 
-    defaultESQLGuidePromise.then((response) => {
-      if (!ignore) {
-        setEsqlGuideText(response.data);
-      }
-    });
+    fetchTextAsset("esql-short.txt")
+      .then((text) => {
+        if (!ignore) {
+          setEsqlGuideText(text);
+        }
+      })
+      .catch((error) => {
+        console.error("Error loading esql-short.txt", error);
+      });
 
     return () => {
       ignore = true;
@@ -991,7 +1058,7 @@ const ESQLComposerMain = () => {
     async (item: DemoItem) => {
       const title = `${item.title} demo`;
 
-      await performQueryAPIAction(item.title, async (addToSpan) => {
+      await performQueryAPIAction(item.title, async (_addToSpan) => {
         const missing = !(await checkIndexExists({
           apiURL: queryAPIURL,
           apiKey: queryAPIKey,
@@ -1012,6 +1079,7 @@ const ESQLComposerMain = () => {
               }),
             prompt: (question: string) =>
               new Promise((resolve) => {
+                // eslint-disable-next-line no-alert
                 const answer = window.confirm(question);
                 resolve(answer);
               }),
@@ -1040,7 +1108,7 @@ const ESQLComposerMain = () => {
             apiKey: queryAPIKey,
             indexPattern: item.index,
           });
-        } catch (error) {
+        } catch (_error) {
           // Ignore the error, we will try to load the demo anyway.
         }
 
@@ -1074,7 +1142,7 @@ const ESQLComposerMain = () => {
         const { chain } = performChainAction(visualChain, action, knownFields);
         setVisualChain(chain);
         return true;
-      } catch (error) {
+      } catch (_error) {
         return false;
       }
     },
@@ -1106,7 +1174,7 @@ const ESQLComposerMain = () => {
       const block = visualChain[index];
 
       // Special case of the limit block.
-      if (index == visualChain.length - 1 && block.command === "LIMIT") {
+      if (index === visualChain.length - 1 && block.command === "LIMIT") {
         setMinimizedLimitBlock(block);
       }
 
@@ -1285,6 +1353,8 @@ const ESQLComposerMain = () => {
           >
             <ReferenceGuidesArea
               isESQLRequestAvailable={isLLMESQLRequestAvailable}
+              isWarmCacheAvailable={isWarmCacheAvailable}
+              isReduceSizeAvailable={isReduceSizeAvailable}
               isElasticsearchAPIAvailable={isElasticsearchAPIAvailable}
               esqlGuideText={esqlGuideText}
               setEsqlGuideText={setEsqlGuideText}
@@ -1358,12 +1428,14 @@ const ESQLComposerMain = () => {
         onClose={getSchemaProps.onClose}
         getSchemaFromES={handleGetSchemaFromES}
       />
-      <ExportDataModal
-        isOpen={exportDataProps.isOpen}
-        onClose={exportDataProps.onClose}
-        onShowLimitSettings={handleShowLimitSettings}
-        onExport={handleExportData}
-      />
+      <Suspense fallback={null}>
+        <ExportDataModal
+          isOpen={exportDataProps.isOpen}
+          onClose={exportDataProps.onClose}
+          onShowLimitSettings={handleShowLimitSettings}
+          onExport={handleExportData}
+        />
+      </Suspense>
     </Box>
   );
 };

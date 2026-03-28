@@ -46,14 +46,14 @@ export function FieldTagMesh({ size, fields, setFields }: FieldTagMeshProps) {
             setDraggedField(name);
             setDraggedFieldWidth(e.currentTarget.clientWidth);
           }}
-          onDragEnter={(e) => {
+          onDragEnter={() => {
             if (name !== draggedField) {
               setDragOverIndex(fieldIndex);
             } else {
               setDragOverIndex(null);
             }
           }}
-          onDragExit={(e) => {
+          onDragExit={() => {
             // if (fieldIndex === dragOverIndex) {
             //   setDragOverIndex(null);
             // }

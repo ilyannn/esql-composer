@@ -58,7 +58,7 @@ export const headRequest = (url: string, apiKey: string): Promise<Response> =>
     },
   });
 
-export const postJSON = async (
+export const postJSON = (
   url: string,
   apiKey: string,
   bodyObject: object,
@@ -67,10 +67,10 @@ export const postJSON = async (
   const newURL = paramObject
     ? `${url}?${new URLSearchParams(paramObject)}`
     : url;
-  return await fetchJSON("POST", apiKey, newURL, JSON.stringify(bodyObject));
+  return fetchJSON("POST", apiKey, newURL, JSON.stringify(bodyObject));
 };
 
-export const postNDJSON = async (
+export const postNDJSON = (
   url: string,
   apiKey: string,
   bodyObjects: object[],
@@ -80,10 +80,10 @@ export const postNDJSON = async (
   const newURL = paramObject
     ? `${url}?${new URLSearchParams(paramObject)}`
     : url;
-  return await fetchJSON("POST", apiKey, newURL, body);
+  return fetchJSON("POST", apiKey, newURL, body);
 };
 
-export const postJSONAcceptFormat = async (
+export const postJSONAcceptFormat = (
   url: string,
   apiKey: string,
   bodyObject: object,
@@ -97,7 +97,7 @@ export const putJSON = (
   bodyObject: object,
 ): Promise<object> => fetchJSON("PUT", apiKey, url, JSON.stringify(bodyObject));
 
-export const getJSON = async (
+export const getJSON = (
   url: string,
   apiKey: string,
   paramObject: Record<string, string> | null = null,
@@ -105,5 +105,5 @@ export const getJSON = async (
   const newURL = paramObject
     ? `${url}?${new URLSearchParams(paramObject)}`
     : url;
-  return await fetchJSON("GET", apiKey, newURL, null);
+  return fetchJSON("GET", apiKey, newURL, null);
 };

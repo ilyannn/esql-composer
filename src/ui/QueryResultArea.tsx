@@ -33,7 +33,7 @@ import { countRawValues } from "../models/esql/ValueStatistics";
 import { ESQLTableData } from "../services/es/types";
 import { ESQLColumn } from "../models/esql/esql_types";
 
-import { ChevronDownIcon } from "@chakra-ui/icons";
+import { ChevronDownIcon } from "./components/icons";
 import { CiFilter } from "react-icons/ci";
 import { GoTrash } from "react-icons/go";
 import {

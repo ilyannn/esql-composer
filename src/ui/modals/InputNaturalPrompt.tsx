@@ -25,7 +25,7 @@ interface InputNaturalPromptProps {
 const InputNaturalPrompt = React.forwardRef<
   HTMLInputElement,
   InputNaturalPromptProps
->(({ children, inputLabel, onSubmit }, ref) => {
+>(({ children, inputLabel, onSubmit }, _ref) => {
   const { onOpen, onClose, isOpen } = useDisclosure();
   const firstFieldRef = useRef<HTMLInputElement>(null);
 
@@ -72,7 +72,7 @@ const InputNaturalPrompt = React.forwardRef<
                   <Input ref={firstFieldRef} flex={1} />
                   <SpinningButton
                     type={"submit"}
-                    spinningAction={async () => handleSubmit()}
+                    spinningAction={() => Promise.resolve(handleSubmit())}
                   >
                     <GoCheck />
                   </SpinningButton>

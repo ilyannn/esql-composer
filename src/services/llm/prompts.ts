@@ -265,7 +265,7 @@ export const prepareRequest = (
 
   systemTexts = [...systemTexts, ...systemTextForOptions(input)];
 
-  const system = systemTexts.map((content, index) => ({
+  const system = systemTexts.map((content) => ({
     type: "text",
     text: content,
   })) satisfies SystemMessage[];

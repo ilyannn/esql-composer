@@ -1,4 +1,3 @@
-import { CheckIcon, ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   FormControl,
   FormHelperText,
@@ -14,6 +13,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import React, { useCallback } from "react";
+import { CheckIcon, ExternalLinkIcon } from "./components/icons";
 import RecordView from "./components/RecordView";
 import SpinningButton from "./components/SpinningButton";
 
@@ -77,7 +77,7 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
               } else {
                 throw new Error("Invalid API key file.");
               }
-            } catch (e) {
+            } catch (_e) {
               toast({
                 title: "API Key Drag & Drop",
                 description:
@@ -149,7 +149,7 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
             <InputGroup>
               <Input
                 type="password"
-                placeholder="Enter key here"
+                placeholder="Enter key here or drop a file"
                 value={apiKey}
                 autoComplete="elasticsearch-api-key"
                 onChange={(e) => {
@@ -157,7 +157,12 @@ const QueryAPIConfigurationArea: React.FC<QueryAPIConfigurationAreaProps> = ({
                 }}
                 style={
                   isAPIKeyDragging
-                    ? { border: "1px dashed blue", color: "blue" }
+                    ? {
+                        border: "1px dashed blue",
+                        color: "blue",
+                        backgroundColor: "#ebf8ff",
+                        cursor: "copy",
+                      }
                     : {}
                 }
                 errorBorderColor="red.300"

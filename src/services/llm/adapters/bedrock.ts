@@ -1,5 +1,5 @@
 import {
-  BedrockRuntimeClient,
+  BedrockRuntime,
   ConverseCommand,
   ConverseStreamCommand,
 } from "@aws-sdk/client-bedrock-runtime";
@@ -14,13 +14,14 @@ import {
 import { BedrockLLMConfig } from "../config";
 import { PreparedRequest } from "./types";
 import { DEFAULT_MAX_TOKENS } from "./constants";
+import { prepareBedrockRequest } from "./bedrockPromptCaching";
 
 const createBedrockInstance = (
   region: string,
   keyID: string,
   keySecret: string,
 ) => {
-  return new BedrockRuntimeClient({
+  return new BedrockRuntime({
     region,
     credentials: {
       accessKeyId: keyID,
@@ -30,7 +31,7 @@ const createBedrockInstance = (
 };
 
 export class BedrockLLMAdapter implements LLMAdapter {
-  private readonly client: BedrockRuntimeClient;
+  private readonly client: BedrockRuntime;
   private readonly modelId: string;
 
   constructor(private readonly config: BedrockLLMConfig) {
@@ -73,11 +74,29 @@ export class BedrockLLMAdapter implements LLMAdapter {
     }
   }
 
+  async countTokens(text: string): Promise<number> {
+    const response = await this.client.countTokens({
+      modelId: this.modelId,
+      input: {
+        converse: {
+          messages: [
+            {
+              role: "user",
+              content: [{ text }],
+            },
+          ],
+        },
+      },
+    });
+    return response.inputTokens ?? 0;
+  }
+
   async stream(
     request: PreparedRequest,
     params: StreamingOptions,
     processor: StreamingProcessor,
   ): Promise<StreamingStats> {
+    const preparedRequest = prepareBedrockRequest(request, true);
     const requestTime = Date.now();
     let first_token_time_ms: number | undefined;
 
@@ -86,12 +105,20 @@ export class BedrockLLMAdapter implements LLMAdapter {
     } | null = null;
 
     let message_metadata_stats: {
+      input_cached: number;
+      saved_to_cache: number;
       input_uncached: number | undefined;
       output_tokens: number | undefined;
-    } = { input_uncached: undefined, output_tokens: undefined };
+    } = {
+      input_cached: 0,
+      saved_to_cache: 0,
+      input_uncached: undefined,
+      output_tokens: undefined,
+    };
 
     const command = new ConverseStreamCommand({
-      ...request,
+      system: preparedRequest.system,
+      messages: preparedRequest.messages,
       modelId: this.modelId,
       inferenceConfig: {
         maxTokens: params.maxTokens ?? DEFAULT_MAX_TOKENS,
@@ -121,10 +148,15 @@ export class BedrockLLMAdapter implements LLMAdapter {
         }
 
         if (chunk.metadata) {
-          const usage = chunk.metadata.usage;
+          const usage = (chunk.metadata.usage ?? {}) as Record<
+            string,
+            number | undefined
+          >;
           message_metadata_stats = {
-            input_uncached: usage?.inputTokens,
-            output_tokens: usage?.outputTokens,
+            input_cached: usage["cacheReadInputTokens"] ?? 0,
+            saved_to_cache: usage["cacheWriteInputTokens"] ?? 0,
+            input_uncached: usage["inputTokens"],
+            output_tokens: usage["outputTokens"],
           };
         } else if (chunk.messageStop) {
           processor.done();
@@ -138,8 +170,8 @@ export class BedrockLLMAdapter implements LLMAdapter {
       return {
         model: this.modelId,
         token_counts: {
-          input_cached: 0,
-          saved_to_cache: 0,
+          input_cached: message_metadata_stats.input_cached,
+          saved_to_cache: message_metadata_stats.saved_to_cache,
           input_uncached: message_metadata_stats?.input_uncached,
           output: message_metadata_stats?.output_tokens,
         },

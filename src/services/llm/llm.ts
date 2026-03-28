@@ -1,5 +1,3 @@
-import Anthropic from "@anthropic-ai/sdk";
-
 import { LLMStatisticsRow } from "../../common/types";
 import {
   PrepareCompletionRequestOptions,
@@ -11,26 +9,19 @@ import {
 } from "./prompts";
 import { PseudoXMLHandler, PseudoXMLParser } from "./pseudo-xml";
 import { ESQLEvalOutputSchema, ESQLEvalOutputTag } from "./schema";
-import { AnthropicModelName } from "./config";
 import { LLMAdapter } from "./adapters/types";
 import { DEFAULT_MAX_TOKENS } from "./adapters/constants";
 
-export type LLMOptions = {
-  apiKey: string;
-  modelName: AnthropicModelName;
-  maxTokens?: number;
-};
+export type WarmCacheRequest = ReferenceOptions;
 
-export type WarmCacheInput = LLMOptions & ReferenceOptions;
-
-export type GenerateUpdateInput = LLMOptions &
-  ReferenceOptions &
+export type GenerateUpdateRequest = ReferenceOptions &
   PromptOptions &
   (PrepareCompletionRequestOptions | PrepareUpdateRequestOptions) & {
     haveESQLLine?: (line: string) => void;
     doneESQL?: () => void;
     haveExplanationLine?: (line: string) => void;
     processESQLLines?: boolean;
+    maxTokens?: number;
   };
 
 export type GenerateUpdateOutput = {
@@ -49,21 +40,15 @@ interface TransformFieldOutput {
   gen_ai: { prompt: string; completion: string };
 }
 
-export type ReduceSizeInput = LLMOptions &
-  ReferenceOptions & {
-    processLine: (line: string) => void;
-  };
-
-const createAnthropicInstance = (apiKey: string) => {
-  return new Anthropic({
-    apiKey,
-    defaultHeaders: { "anthropic-beta": "prompt-caching-2024-07-31" },
-    dangerouslyAllowBrowser: true,
-  });
+export type ReduceSizeRequest = ReferenceOptions & {
+  processLine: (line: string) => void;
 };
 
-export const warmCache = (params: WarmCacheInput): Promise<any> =>
-  generateESQLUpdate({
+export const warmCacheWithAdapter = (
+  adapter: LLMAdapter,
+  params: WarmCacheRequest,
+): Promise<GenerateUpdateOutput> =>
+  generateESQLUpdateWithAdapter(adapter, {
     ...params,
     type: "update",
     naturalInput: "top flights",
@@ -84,13 +69,12 @@ export const warmCache = (params: WarmCacheInput): Promise<any> =>
  * @property {string} result.esql - The ESQL result from the API.
  * @property {Object} result.stats - Statistics about the API request.
  */
-export const generateESQLUpdate = async (
-  input: GenerateUpdateInput,
+export const generateESQLUpdateWithAdapter = async (
+  adapter: LLMAdapter,
+  input: GenerateUpdateRequest,
 ): Promise<GenerateUpdateOutput> => {
-  const anthropic = createAnthropicInstance(input.apiKey);
   const {
     type,
-    modelName,
     haveESQLLine,
     doneESQL,
     haveExplanationLine,
@@ -99,22 +83,10 @@ export const generateESQLUpdate = async (
   } = input;
 
   const requestTime = Date.now();
-  let first_token_time: number | null = null;
-  let esql_time: number | null = null;
+  let first_token_time_ms: number | undefined;
+  let esql_time_ms: number | undefined;
   let isInsideEsql = type === "completion" ? true : undefined;
   let currentLine = "";
-
-  let message_start_stats = null as {
-    model: string;
-    start_time: number;
-    input_cached: number;
-    input_uncached: number;
-    saved_to_cache: number;
-  } | null;
-
-  let message_delta_stats: {
-    output: number;
-  } = { output: 0 };
 
   let processLine: (line: string) => void;
 
@@ -125,7 +97,7 @@ export const generateESQLUpdate = async (
       } else if (line.startsWith("</esql>") && isInsideEsql === true) {
         isInsideEsql = false;
         doneESQL?.();
-        esql_time = Date.now() - requestTime;
+        esql_time_ms = Date.now() - requestTime;
       } else if (isInsideEsql) {
         haveESQLLine?.(line);
       } else {
@@ -135,34 +107,29 @@ export const generateESQLUpdate = async (
   } else if (haveExplanationLine) {
     processLine = haveExplanationLine;
   } else {
-    processLine = () => {};
+    processLine = () => undefined;
   }
 
   const request = prepareRequest(input);
-
-  const stream = anthropic.beta.promptCaching.messages
-    .stream({
-      stream: true,
-      model: modelName,
-      max_tokens: maxTokens ?? DEFAULT_MAX_TOKENS,
-      ...request,
-    })
-    .on("text", (textDelta, _) => {
-      if (!first_token_time) {
-        first_token_time = Date.now() - requestTime;
-      }
-      currentLine += textDelta;
-      if (type === "completion" && currentLine.startsWith("*")) {
-        currentLine = currentLine.slice(1);
-      }
-      if (currentLine.includes("\n")) {
-        const lines = currentLine.split("\n");
-        currentLine = lines.pop()!;
-        lines.forEach(processLine);
-      }
-    })
-    .on("streamEvent", (event) => {
-      if (event.type === "message_stop") {
+  const stats = await adapter.stream(
+    request,
+    { maxTokens: maxTokens ?? DEFAULT_MAX_TOKENS },
+    {
+      push(textDelta) {
+        if (!first_token_time_ms) {
+          first_token_time_ms = Date.now() - requestTime;
+        }
+        currentLine += textDelta;
+        if (type === "completion" && currentLine.startsWith("*")) {
+          currentLine = currentLine.slice(1);
+        }
+        if (currentLine.includes("\n")) {
+          const lines = currentLine.split("\n");
+          currentLine = lines.pop()!;
+          lines.forEach(processLine);
+        }
+      },
+      done() {
         if (currentLine.length > 0) {
           processLine(currentLine);
           currentLine = "";
@@ -170,75 +137,37 @@ export const generateESQLUpdate = async (
         if (isInsideEsql) {
           processLine("</esql>");
         }
-      } else if (event.type === "message_start") {
-        const usage = event.message.usage;
-        message_start_stats = {
-          model: event.message.model,
-          start_time: Date.now() - requestTime,
-          input_cached: usage.cache_read_input_tokens || 0,
-          input_uncached: usage.input_tokens,
-          saved_to_cache: usage.cache_creation_input_tokens || 0,
-        };
-      } else if (event.type === "message_delta") {
-        message_delta_stats = { output: event.usage.output_tokens };
-      }
-    });
-
-  await stream.finalMessage();
-
-  if (message_start_stats === null) {
-    throw new Error("No message_start event received");
-  }
+      },
+    },
+  );
 
   return {
     stats: {
-      model: message_start_stats.model,
-      token_counts: {
-        input_cached: message_start_stats.input_cached,
-        input_uncached: message_start_stats.input_uncached,
-        saved_to_cache: message_start_stats.saved_to_cache,
-        output: message_delta_stats.output,
-      },
-      first_token_time_ms: first_token_time || Infinity,
-      esql_time_ms: esql_time || Infinity,
-      total_time_ms: Date.now() - requestTime,
+      ...stats,
+      first_token_time_ms:
+        first_token_time_ms ?? stats.first_token_time_ms ?? Infinity,
+      esql_time_ms: esql_time_ms ?? Infinity,
     },
   };
 };
 
-export const reduceSize = async (input: ReduceSizeInput) => {
-  const { apiKey, modelName, esqlGuideText, schemaGuideText, processLine } =
-    input;
+const REDUCE_SIZE_PROMPT_PREFIX = `Please remove unnecessary information from the provided Elasticsearch Query Language guide which will be used for the ES|QL generation task. Keep relevant information such as list of function names intact but reduce the number of redundant descriptions. Keep enough examples to be able to answer all questions. You will be the consumer of the reduced guide, so feel free to use any tricks that can be helpful. Output the new guide between <esql> and </esql> tags and put any other information outside. Aim at 40% reduction. Here is the old guide again:\n\n<esql>\n`;
 
-  return await generateESQLUpdate({
+export const reduceSizeWithAdapter = async (
+  adapter: LLMAdapter,
+  input: ReduceSizeRequest,
+) => {
+  const { esqlGuideText, schemaGuideText, processLine } = input;
+
+  return generateESQLUpdateWithAdapter(adapter, {
     type: "update",
-    apiKey,
-    modelName,
     esqlGuideText,
     schemaGuideText,
-    naturalInput: `Please remove unnecessary information from the provided Elasticsearch Query Language guide which will be used for the ES|QL generation task. Keep relevant information such as list of function names intact but reduce the number of redundant descriptions. Keep enough examples to be able to answer all questions. You will be the consumer of the reduced guide, so feel free to use any tricks that can be helpful. Output the new guide between <esql> and </esql> tags and put any other information outside. Aim at 40% reduction. Here is the old guide again:\n\n<esql>\n${esqlGuideText}\n</esql>`,
+    naturalInput: `${REDUCE_SIZE_PROMPT_PREFIX}${esqlGuideText}\n</esql>`,
     haveESQLLine: processLine,
     maxTokens: 8192,
   });
 };
-
-export type CountTokensInput = LLMOptions & {
-  text: string;
-};
-
-export const countTokens = async (params: CountTokensInput) => {
-  const client = createAnthropicInstance(params.apiKey);
-
-  const response = await client.beta.messages.countTokens({
-    betas: ["token-counting-2024-11-01"],
-    model: params.modelName,
-    messages: [{ role: "user", content: params.text }],
-  });
-
-  return response.input_tokens;
-};
-
-import { AnthropicLLMAdapter } from "./adapters/anthropic";
 
 export const transformField = async (
   adapter: LLMAdapter,
@@ -248,6 +177,7 @@ export const transformField = async (
   let field: string | undefined;
   let esql: string | undefined;
   let esql_time_ms: number | undefined;
+  const requestTime = Date.now();
 
   const parseEvents: PseudoXMLHandler<ESQLEvalOutputTag> = {
     onReadLine(tag: ESQLEvalOutputTag | null, line) {
@@ -271,7 +201,6 @@ export const transformField = async (
   };
 
   const parser = new PseudoXMLParser(ESQLEvalOutputSchema, parseEvents);
-  const requestTime = Date.now();
 
   if (adapter.stream === undefined) {
     throw new Error("Adapter does not support streaming");

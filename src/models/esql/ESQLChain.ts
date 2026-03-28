@@ -292,7 +292,7 @@ const provideValues = (stats: ValueStatistics): FilterValue[] => {
     }
   });
 
-  const entryValues: FilterValue[] = entries.map(([value, count]) => ({
+  const entryValues: FilterValue[] = entries.map(([value]) => ({
     value,
     included: true,
   }));

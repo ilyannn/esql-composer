@@ -51,7 +51,7 @@ export const ensureBase64Encoded = (apiKey: string): string => {
   const trimmed = apiKey.trim();
   try {
     atob(trimmed);
-  } catch (e) {
+  } catch (_e) {
     return btoa(trimmed);
   }
 

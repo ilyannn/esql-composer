@@ -22,8 +22,8 @@ import {
   VStack,
 } from "@chakra-ui/react";
 
-import { ExternalLinkIcon } from "@chakra-ui/icons";
 import { useState } from "react";
+import { ExternalLinkIcon } from "../components/icons";
 import SpinningButton from "../components/SpinningButton";
 interface GetSchemaModalProps {
   isOpen: boolean;

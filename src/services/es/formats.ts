@@ -7,24 +7,6 @@ interface ExportFormatBase {
   canAddPreamble: boolean;
 }
 
-interface WithColumnar {
-  readonly format: { readonly canBeColumnar: true };
-  readonly columnar: boolean;
-}
-
-interface WithPreamble {
-  readonly format: { readonly canAddPreamble: true };
-  readonly addPreamble: boolean;
-}
-
-interface WithoutColumnar {
-  readonly format: { readonly canBeColumnar: false };
-}
-
-interface WithoutPreamble {
-  readonly format: { readonly canAddPreamble: false };
-}
-
 export type ExportFormatOptions = {
   readonly format: ExportFormatBase;
   readonly columnar: boolean;

@@ -27,8 +27,7 @@ import {
   KNOWN_EXPORT_FORMATS,
 } from "@/services/es/formats";
 import LimitSlider from "../components/LimitSlider";
-import { ExternalLinkIcon } from "@chakra-ui/icons";
-import { Form } from "react-aria-components";
+import { ExternalLinkIcon } from "../components/icons";
 
 export interface ExportDataCallback {
   (
@@ -82,7 +81,7 @@ const ExportDataModal: React.FC<ExportDataModalProps> = ({
     <Modal isOpen={isOpen} onClose={onClose} isCentered={true}>
       <ModalOverlay />
       <ModalContent>
-        <Form>
+        <form>
           <ModalHeader>Export Query Results</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
@@ -174,7 +173,7 @@ const ExportDataModal: React.FC<ExportDataModalProps> = ({
               Export
             </SpinningButton>
           </ModalFooter>
-        </Form>
+        </form>
       </ModalContent>
     </Modal>
   );

@@ -1,6 +1,11 @@
-import axios from "axios";
 import { ESQLChainAction } from "../../models/esql/ESQLChain";
 import { CreateIndexParams } from "./indices";
+import { fetchJsonAsset } from "../../common/assets";
+
+type MissingDemoProvider = (
+  item: DemoItem,
+  context: MissingDemoContext,
+) => Promise<void>;
 
 export interface MissingDemoContext {
   prompt(text: string): Promise<boolean>;
@@ -15,19 +20,19 @@ export interface DemoItem {
   missingProvider: MissingDemoProvider;
 }
 
-interface MissingDemoProvider {
-  (item: DemoItem, context: MissingDemoContext): Promise<void>;
-}
-
 const kibanaSamplesMissingProvider: MissingDemoProvider = async (
   { index },
   { info },
-) => info(`Please use Kibana to install the sample index "${index}"`);
+) => {
+  info(`Please use Kibana to install the sample index "${index}"`);
+};
 
 const esqlFunctionsMissingProvider: MissingDemoProvider = async (
-  { index },
+  _item,
   { info },
-) => info(`Installation of the functions index is not yet implemented`);
+) => {
+  info(`Installation of the functions index is not yet implemented`);
+};
 
 const esqlShapesMissingProvider: MissingDemoProvider = async (
   { index },
@@ -38,8 +43,8 @@ const esqlShapesMissingProvider: MissingDemoProvider = async (
   );
 
   if (confirmed) {
-    const params = await axios.get("demo-shapes.json");
-    await createIndex(params.data);
+    const params = await fetchJsonAsset<CreateIndexParams>("demo-shapes.json");
+    await createIndex(params);
   }
 };
 

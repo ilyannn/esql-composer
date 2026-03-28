@@ -6,14 +6,13 @@ import {
   Tr,
   UnorderedList,
 } from "@chakra-ui/react";
-import { isEqual } from "lodash";
-import React, { useMemo } from "react";
+import React from "react";
 import {
   ESQLAtomRawMultivalue,
   ESQLAtomRawValue,
   esqlRawToHashableValue,
 } from "../../../models/esql/esql_types";
-import { isTableDataEqual, TableColumn, TableData } from "../data-table/types";
+import { isTableDataEqual, TableData } from "../data-table/types";
 import { Presenter } from "../data-table/presenters";
 import { BsChevronBarExpand } from "react-icons/bs";
 

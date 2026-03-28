@@ -1,8 +1,9 @@
 import Anthropic from "@anthropic-ai/sdk";
-import {
-  PromptCachingBetaMessageParam,
-  PromptCachingBetaTextBlockParam,
-} from "@anthropic-ai/sdk/resources/beta/prompt-caching/messages";
+import type {
+  BetaMessageParam,
+  BetaRawMessageStreamEvent,
+  BetaTextBlockParam,
+} from "@anthropic-ai/sdk/resources/beta/messages/messages.js";
 import { LLMAdapter } from "./types";
 import { AnthropicLLMConfig, AnthropicModelName } from "../config";
 import { PreparedRequest } from "./types";
@@ -10,8 +11,15 @@ import { StreamingOptions, StreamingStats, StreamingProcessor } from "./types";
 import { DEFAULT_MAX_TOKENS } from "./constants";
 
 const createAnthropicInstance = (apiKey: string) => {
+  const trimmedApiKey = apiKey.trim();
+  if (trimmedApiKey.length === 0) {
+    throw new Error(
+      "Please enter your Anthropic API key. If the field already looks filled, retype or paste the key once.",
+    );
+  }
+
   return new Anthropic({
-    apiKey,
+    apiKey: trimmedApiKey,
     defaultHeaders: { "anthropic-beta": "prompt-caching-2024-07-31" },
     dangerouslyAllowBrowser: true,
   });
@@ -21,8 +29,8 @@ const createAnthropicInstance = (apiKey: string) => {
 const MAX_CACHE_POINTS = 4;
 
 interface AnthropicPreparedRequest {
-  system: PromptCachingBetaTextBlockParam[];
-  messages: PromptCachingBetaMessageParam[];
+  system: BetaTextBlockParam[];
+  messages: BetaMessageParam[];
 }
 
 const addCachePoints = ({
@@ -45,13 +53,13 @@ const addCachePoints = ({
               ? ({
                   ...content,
                   ...cacheAnnotation,
-                } satisfies PromptCachingBetaTextBlockParam)
+                } satisfies BetaTextBlockParam)
               : content,
           );
           return {
             ...message,
             content: cachedContent,
-          } satisfies PromptCachingBetaMessageParam;
+          } satisfies BetaMessageParam;
         }
       }
       return message;
@@ -69,7 +77,7 @@ const addCachePoints = ({
         return {
           ...message,
           ...cacheAnnotation,
-        } satisfies PromptCachingBetaTextBlockParam;
+        } satisfies BetaTextBlockParam;
       }
       return message;
     })
@@ -135,20 +143,20 @@ export class AnthropicLLMAdapter implements LLMAdapter {
       output: number;
     } = { output: 0 };
 
-    const stream = this.client.beta.promptCaching.messages
+    const stream = this.client.beta.messages
       .stream({
-        stream: true,
+        betas: ["prompt-caching-2024-07-31"],
         model: this.modelName,
         max_tokens: params.maxTokens ?? DEFAULT_MAX_TOKENS,
         ...addCachePoints(request),
       })
-      .on("text", (textDelta, _) => {
+      .on("text", (textDelta: string, _textSnapshot: string) => {
         if (!first_token_time_ms) {
           first_token_time_ms = Date.now() - requestTime;
         }
         processor.push(textDelta);
       })
-      .on("streamEvent", (event) => {
+      .on("streamEvent", (event: BetaRawMessageStreamEvent) => {
         if (event.type === "message_start") {
           const usage = event.message.usage;
           message_start_stats = {

@@ -13,19 +13,23 @@ interface ClaudeModel {
  */
 export const CLAUDE_MODEL_LIST: ClaudeModel[] = [
   {
-    name: "Haiku",
-    anthropic: "claude-3-5-haiku-latest",
-    bedrock: "anthropic.claude-3-5-haiku-20241022-v1:0",
+    name: "Haiku 4.5",
+    anthropic: "claude-haiku-4-5",
+    bedrock: "anthropic.claude-haiku-4-5-20251001-v1:0",
   },
   {
-    name: "Sonnet",
-    anthropic: "claude-3-5-sonnet-latest",
-    bedrock: "anthropic.claude-3-5-sonnet-20241022-v2:0",
+    name: "Sonnet 4.6",
+    anthropic: "claude-sonnet-4-6",
+    bedrock: "anthropic.claude-sonnet-4-6",
   },
-  //  { name: "Opus", anthropic: "claude-3-5-opus-latest" } -- not available yet
+  {
+    name: "Opus 4.6",
+    anthropic: "claude-opus-4-6",
+    bedrock: "anthropic.claude-opus-4-6-v1",
+  },
 ] as const;
 
-export type ClaudeModelIndex = 0 | 1;
+export type ClaudeModelIndex = 0 | 1 | 2;
 export type AnthropicModelName =
   (typeof CLAUDE_MODEL_LIST)[ClaudeModelIndex]["anthropic"];
 export type BedrockModelName =
@@ -136,6 +140,55 @@ export const defaultLLMConfig = {
   },
 } as const satisfies FullLLMConfig;
 
+const hasNonEmptyValue = (value: string): boolean => value.trim().length > 0;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isLLMProvider = (value: unknown): value is LLMProvider =>
+  value === "anthropic" ||
+  value === "bedrock" ||
+  value === "llamaServer" ||
+  value === "openAI";
+
+const mergeProviderConfig = <T extends AvailableLLMConfigs>(
+  defaults: T,
+  overrides: unknown,
+): T => {
+  if (!isRecord(overrides)) {
+    return { ...defaults };
+  }
+
+  return {
+    ...defaults,
+    ...overrides,
+    type: defaults.type,
+  };
+};
+
+export const mergeLLMConfig = (overrides: unknown): FullLLMConfig => {
+  const overrideRecord = isRecord(overrides) ? overrides : {};
+
+  return {
+    selected: isLLMProvider(overrideRecord["selected"])
+      ? overrideRecord["selected"]
+      : defaultLLMConfig.selected,
+    anthropic: mergeProviderConfig(
+      defaultLLMConfig.anthropic,
+      overrideRecord["anthropic"],
+    ),
+    bedrock: mergeProviderConfig(
+      defaultLLMConfig.bedrock,
+      overrideRecord["bedrock"],
+    ),
+    llamaServer: mergeProviderConfig(
+      defaultLLMConfig.llamaServer,
+      overrideRecord["llamaServer"],
+    ),
+    openAI: mergeProviderConfig(defaultLLMConfig.openAI, overrideRecord["openAI"]),
+  };
+};
+
 /**
  * Checks if the LLM config is sufficient for the selected LLM.
  * @param config - The LLM config to check.
@@ -144,19 +197,22 @@ export const defaultLLMConfig = {
 export const isLLMConfigSufficent = (config: FullLLMConfig): boolean => {
   switch (config.selected) {
     case "anthropic":
-      return config.anthropic.apiKey.length > 0;
+      return hasNonEmptyValue(config.anthropic.apiKey);
 
     case "bedrock":
       return (
-        config.bedrock.region.length > 0 &&
-        config.bedrock.accessKeyId.length > 0 &&
-        config.bedrock.secretAccessKey.length > 0
+        hasNonEmptyValue(config.bedrock.region) &&
+        hasNonEmptyValue(config.bedrock.accessKeyId) &&
+        hasNonEmptyValue(config.bedrock.secretAccessKey)
       );
 
     case "llamaServer":
-      return config.llamaServer.apiURL.length > 0;
+      return hasNonEmptyValue(config.llamaServer.apiURL);
 
     case "openAI":
-      return config.openAI.apiURL.length > 0 && config.openAI.apiKey.length > 0;
+      return (
+        hasNonEmptyValue(config.openAI.apiURL) &&
+        hasNonEmptyValue(config.openAI.apiKey)
+      );
   }
 };

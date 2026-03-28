@@ -25,8 +25,8 @@ export const getESQLSettings = async ({
   const persistent = response?.persistent?.esql?.query;
   const transient = response?.transient?.esql?.query;
 
-  const to_number = (setings: any, field: string) => {
-    const value = setings?.[field];
+  const to_number = (settings: any, field: string) => {
+    const value = settings?.[field];
     return value !== undefined ? Number(value) : undefined;
   };
 
@@ -35,8 +35,12 @@ export const getESQLSettings = async ({
     const size = to_number(settings, "result_truncation_default_size");
     const maxSize = to_number(settings, "result_truncation_max_size");
 
-    if (size !== undefined) result.defaultSize = size;
-    if (maxSize !== undefined) result.maxSize = maxSize;
+    if (size !== undefined) {
+      result.defaultSize = size;
+    }
+    if (maxSize !== undefined) {
+      result.maxSize = maxSize;
+    }
 
     return result;
   };

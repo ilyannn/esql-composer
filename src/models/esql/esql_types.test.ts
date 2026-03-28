@@ -3,7 +3,6 @@ import {
   ESQLValueTrue,
   ESQLValueFalse,
   ESQLValueNull,
-  esqlTypeToClass,
   esqlIsTypeSortable,
 } from "./esql_types";
 

@@ -23,7 +23,6 @@ import {
   FilterBlock,
   MatchBlock,
 } from "../../models/esql/ESQLBlock";
-import { set } from "lodash";
 
 interface WhereComposerBlockProps {
   block: FilterBlock | MatchBlock;
@@ -88,7 +87,7 @@ const WhereComposerBlock = ({
                     ref={undoButtonRef}
                     aria-label="Undo"
                     icon={<CiUndo />}
-                    onClick={(e) => {
+                    onClick={() => {
                       setInputValue(block.match);
                     }}
                   />

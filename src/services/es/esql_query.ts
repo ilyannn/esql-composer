@@ -9,7 +9,7 @@ import {
   ESAPIOptions,
 } from "./types";
 import { downloadFile } from "../browser";
-import { dump, DumpOptions } from "js-yaml";
+import { serializeYAMLRecord } from "../../common/yaml";
 
 export interface PerformESQLQueryStatistics {
   total_time_ms: number;
@@ -137,7 +137,9 @@ export const exportData = async ({
           cluster: apiURL,
           timestamp: new Date().toISOString(),
         };
-        data = new Blob([dump(preamble), data], { type: format.accept });
+        data = new Blob([serializeYAMLRecord(preamble), data], {
+          type: format.accept,
+        });
         break;
     }
   }
