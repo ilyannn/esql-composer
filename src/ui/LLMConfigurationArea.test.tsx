@@ -1,5 +1,5 @@
 import { ChakraProvider } from "@chakra-ui/react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import React from "react";
@@ -34,6 +34,34 @@ const renderArea = (
   return {
     ...view,
     props,
+  };
+};
+
+const getSetLLMConfigMock = (
+  props: React.ComponentProps<typeof LLMConfigurationArea>,
+): jest.Mock => props.setLLMConfig as unknown as jest.Mock;
+
+const mockFileReader = (
+  implementation: (instance: {
+    onload: ((event: ProgressEvent<FileReader>) => void) | null;
+    onerror: (() => void) | null;
+  }) => void,
+) => {
+  const originalFileReader = global.FileReader;
+
+  class MockFileReader {
+    onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
+    onerror: (() => void) | null = null;
+
+    readAsText(_file: Blob) {
+      implementation(this);
+    }
+  }
+
+  global.FileReader = MockFileReader as unknown as typeof FileReader;
+
+  return () => {
+    global.FileReader = originalFileReader;
   };
 };
 
@@ -81,23 +109,15 @@ describe("LLMConfigurationArea", () => {
   });
 
   it("loads the Anthropic API key from a dropped file", async () => {
-    const originalFileReader = global.FileReader;
-
-    class MockFileReader {
-      onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
-      onerror: (() => void) | null = null;
-
-      readAsText(_file: Blob) {
-        this.onload?.({
-          target: { result: JSON.stringify({ apiKey: "sk-ant-dropped" }) },
-        } as ProgressEvent<FileReader>);
-      }
-    }
-
-    global.FileReader = MockFileReader as unknown as typeof FileReader;
+    const restoreFileReader = mockFileReader((instance) => {
+      instance.onload?.({
+        target: { result: JSON.stringify({ apiKey: "sk-ant-dropped" }) },
+      } as ProgressEvent<FileReader>);
+    });
 
     try {
       const { props } = renderArea();
+      const setLLMConfigMock = getSetLLMConfigMock(props);
       const input = screen.getByLabelText("Anthropic API Key");
       const file = new File(["ignored"], "anthropic-key.json", {
         type: "application/json",
@@ -109,6 +129,10 @@ describe("LLMConfigurationArea", () => {
       };
 
       fireEvent.dragEnter(input);
+      expect(input).toHaveStyle({
+        cursor: "copy",
+      });
+
       fireEvent.dragOver(input, {
         dataTransfer: {
           dropEffect: "none",
@@ -126,8 +150,10 @@ describe("LLMConfigurationArea", () => {
         },
       });
 
+      fireEvent.dragLeave(input);
+
       await waitFor(() => {
-        expect(props.setLLMConfig).toHaveBeenCalledWith(
+        expect(setLLMConfigMock).toHaveBeenCalledWith(
           expect.objectContaining({
             anthropic: expect.objectContaining({
               apiKey: "sk-ant-dropped",
@@ -137,8 +163,126 @@ describe("LLMConfigurationArea", () => {
         );
       });
     } finally {
-      global.FileReader = originalFileReader;
+      restoreFileReader();
     }
+  });
+
+  it("surfaces an error toast when a dropped Anthropic file has no usable key", async () => {
+    const restoreFileReader = mockFileReader((instance) => {
+      instance.onload?.({
+        target: { result: "   " },
+      } as ProgressEvent<FileReader>);
+    });
+
+    try {
+      const { props } = renderArea();
+      const setLLMConfigMock = getSetLLMConfigMock(props);
+      const initialCallCount = setLLMConfigMock.mock.calls.length;
+      const input = screen.getByLabelText("Anthropic API Key");
+      const file = new File(["ignored"], "anthropic-key.json", {
+        type: "application/json",
+      });
+
+      fireEvent.drop(input, {
+        dataTransfer: {
+          files: {
+            0: file,
+            length: 1,
+            item: (index: number) => (index === 0 ? file : null),
+          },
+        },
+      });
+
+      await waitFor(() => {
+        expect(setLLMConfigMock.mock.calls.length).toBe(initialCallCount);
+      });
+    } finally {
+      restoreFileReader();
+    }
+  });
+
+  it("surfaces an error toast when reading a dropped Anthropic file fails", async () => {
+    const restoreFileReader = mockFileReader((instance) => {
+      instance.onerror?.();
+    });
+
+    try {
+      const { props } = renderArea();
+      const setLLMConfigMock = getSetLLMConfigMock(props);
+      const initialCallCount = setLLMConfigMock.mock.calls.length;
+      const input = screen.getByLabelText("Anthropic API Key");
+      const file = new File(["ignored"], "anthropic-key.json", {
+        type: "application/json",
+      });
+
+      fireEvent.drop(input, {
+        dataTransfer: {
+          files: {
+            0: file,
+            length: 1,
+            item: (index: number) => (index === 0 ? file : null),
+          },
+        },
+      });
+
+      await waitFor(() => {
+        expect(setLLMConfigMock.mock.calls.length).toBe(initialCallCount);
+      });
+    } finally {
+      restoreFileReader();
+    }
+  });
+
+  it("ignores drops without a file on the Anthropic input", () => {
+    const { props } = renderArea();
+    const setLLMConfigMock = getSetLLMConfigMock(props);
+    const initialCallCount = setLLMConfigMock.mock.calls.length;
+    const input = screen.getByLabelText("Anthropic API Key");
+
+    fireEvent.drop(input, {
+      dataTransfer: {
+        files: {
+          length: 0,
+          item: () => null,
+        },
+      },
+    });
+
+    expect(setLLMConfigMock.mock.calls.length).toBe(initialCallCount);
+  });
+
+  it("ignores drag and drop for inputs that do not allow file drop", () => {
+    const { props } = renderArea({
+      llmConfig: makeConfig({
+        selected: "llamaServer",
+      }),
+    });
+    const setLLMConfigMock = getSetLLMConfigMock(props);
+    const initialCallCount = setLLMConfigMock.mock.calls.length;
+
+    const input = screen.getByLabelText("API Key");
+
+    fireEvent.dragEnter(input);
+    fireEvent.dragOver(input, {
+      dataTransfer: {
+        dropEffect: "none",
+        files: {
+          length: 0,
+          item: () => null,
+        },
+      },
+    });
+    fireEvent.drop(input, {
+      dataTransfer: {
+        files: {
+          length: 0,
+          item: () => null,
+        },
+      },
+    });
+
+    expect(input).not.toHaveStyle({ cursor: "copy" });
+    expect(setLLMConfigMock.mock.calls.length).toBe(initialCallCount);
   });
 
   it("updates the Bedrock configuration fields", () => {
@@ -168,6 +312,52 @@ describe("LLMConfigurationArea", () => {
         }),
       }),
     );
+  });
+
+  it("updates the selected Anthropic model from the slider", () => {
+    const { props } = renderArea();
+
+    const slider = screen.getByRole("slider", { name: "Model Selection" });
+    act(() => {
+      slider.focus();
+      fireEvent.keyDown(slider, { key: "End" });
+    });
+
+    expect(props.setLLMConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        anthropic: expect.objectContaining({
+          modelName: "claude-opus-4-6",
+        }),
+      }),
+    );
+  });
+
+  it("updates the selected Bedrock model from the slider", async () => {
+    const { props } = renderArea({
+      llmConfig: makeConfig({
+        selected: "bedrock",
+      }),
+    });
+
+    const slider = screen.getByRole("slider", { name: "Model Selection" });
+    act(() => {
+      slider.focus();
+      fireEvent.keyDown(slider, {
+        key: "ArrowRight",
+        code: "ArrowRight",
+        keyCode: 39,
+      });
+    });
+
+    await waitFor(() => {
+      expect(props.setLLMConfig).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bedrock: expect.objectContaining({
+            modelName: "anthropic.claude-sonnet-4-6",
+          }),
+        }),
+      );
+    });
   });
 
   it("updates the llama-server fields", () => {
@@ -201,6 +391,21 @@ describe("LLMConfigurationArea", () => {
         }),
       }),
     );
+  });
+
+  it("shows the success indicator when a key is known to work", async () => {
+    renderArea({
+      llmConfig: makeConfig({
+        anthropic: {
+          ...defaultLLMConfig.anthropic,
+          isKnownToWork: true,
+        },
+      }),
+    });
+
+    await waitFor(() => {
+      expect(document.querySelector("svg")).toBeInTheDocument();
+    });
   });
 
   it("runs the test action when enabled", async () => {
