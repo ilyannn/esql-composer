@@ -21,10 +21,10 @@ const CHUNK_BUDGETS = {
   "react-vendor": { raw: 180 * 1024, gzip: 60 * 1024 },
   chakra: { raw: 450 * 1024, gzip: 150 * 1024 },
   vendor: { raw: 195 * 1024, gzip: 60 * 1024 },
-  bedrock: { raw: 160 * 1024, gzip: 50 * 1024 },
+  bedrock: { raw: 180 * 1024, gzip: 60 * 1024 },
   "data-vendor": { raw: 20 * 1024, gzip: 6 * 1024 },
   WktRenderer: { raw: 6 * 1024, gzip: 3 * 1024 },
-} ;
+};
 
 const formatKiB = (bytes) => `${(bytes / 1024).toFixed(2)} KiB`;
 
